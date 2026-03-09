@@ -1,6 +1,6 @@
 📑 PROJE MASTER RAPORU: HEAR ME OUT
 Konu: Sağlık Teknolojileri & Engelli Erişilebilirliği
-Mimar: [Senin Adın/Grubun]
+Mimar: Habil Yazıcı
 Hedef: İşitme/Konuşma Engelli Bireyler İçin Çift Yönlü İletişim Köprüsü
 
 1. PROJE VİZYONU VE PROBLEM TANIMI
