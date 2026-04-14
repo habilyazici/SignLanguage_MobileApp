@@ -134,7 +134,19 @@ Cümle Modu: Videolar sırayla oynatılır
 
 ---
 
-## 6. İlgili Dokümantasyon
+## 6. Test Stratejisi
+
+Projenin güvenilirliğini sağlamak için uygulanacak test yaklaşımı:
+
+| Katman | Araçlar | Test Kapsamı |
+|--------|---------|--------------|
+| **AI Model** | `scikit-learn` | Confusion matrix (karışıklık matrisi), sınıf bazlı F1-score (zor kelimelerin analizi). |
+| **Flutter** | `flutter_test`, `integration_test` | Widget testleri (özellikle acil durum butonu ve navigasyon), MediaPipe ↔ TFLite entegrasyon testleri. |
+| **Backend** | `jest`, `supertest` | Auth endpoint'leri, rate limit sınırları, Token validation testleri. |
+
+---
+
+## 7. İlgili Dokümantasyon
 
 | Dosya | İçerik |
 |-------|--------|

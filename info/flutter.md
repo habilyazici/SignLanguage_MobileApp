@@ -340,7 +340,19 @@ MaterialApp (Riverpod ProviderScope)
 
 ---
 
-## 6. Kamera → AI Pipeline Akışı
+## 6. Offline-First Video Cache Stratejisi
+
+Uygulamanın "Offline-First" vizyonunu koruyabilmesi için **Metin→İşaret** (Çevirici) yönünde gösterilecek videoların internet kesintilerinde bile oynatılabilmesi gerekir.
+
+Bu amaçla `flutter_cache_manager` paketi kullanılacaktır. Strateji:
+1. **İsteğe Bağlı İndirme (Lazy Load)**: Tüm videolar (yaklaşık 226 video, 1+ GB) ilk açılışta topluca indirilmez. Bu, depolama alanını tüketir ve kullanıcı deneyimini bozar.
+2. **Akıllı Cache**: Kullanıcı bir kelime çevirdiğinde, video CDN'den stream edilirken arka planda cache'e alınır (`CachedVideoPlayer` veya custom cache logic).
+3. **Kalıcılık**: Aynı kelime offline modda arandığında, video direkt yerel cache üzerinden oynatılır.
+4. **Sınırlandırma**: Cache boyutu kontrolden çıkmasın diye maksimum boyut (örn. 500 MB) veya maksimum gün sınırı (örn. 30 gün kullanılmayan kelimeyi sil) belirlenir. Favoriye eklenen kelimeler kalıcı cache'te tutulur.
+
+---
+
+## 7. Kamera → AI Pipeline Akışı
 
 ```
 CameraController (ResolutionPreset.medium, YUV420)
@@ -355,13 +367,13 @@ TFLite .run([1, 60, 106]) → argmax + confidence
 
 ---
 
-## 7. Tema ve Tasarım Sistemi
+## 8. Tema ve Tasarım Sistemi
 
 > Renk paleti, tipografi ve UI stili için bkz: [brand.md](./brand.md)
 
 ---
 
-## 8. Navigasyon Yapısı (go_router)
+## 9. Navigasyon Yapısı (go_router)
 
 | Route | Ekran | İçerik |
 |-------|-------|--------|
