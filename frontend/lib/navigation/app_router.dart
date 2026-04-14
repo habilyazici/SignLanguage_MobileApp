@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/recognition/presentation/screens/recognition_screen.dart';
+
 // İleride sayfaları geliştirdikçe bu placeholder widget'ları sileceğiz
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -35,8 +37,7 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/live-translation',
-      builder: (context, state) =>
-          const PlaceholderScreen(title: 'Canlı Çeviri'),
+      builder: (context, state) => const RecognitionScreen(),
     ),
     GoRoute(
       path: '/settings',
