@@ -268,7 +268,7 @@ TFLite Converter
    └── Graph Optimization
         ↓
 sign_language_model.tflite
-   • Boyut: ~5-15 MB (orijinalin %10-20'si)
+   • Boyut: ~587 KB (Dynamic Range INT8 quantization ile beklenenden küçük)
    • Hız: 2-5x daha hızlı inference
         ↓
 Flutter'a entegre (tflite_flutter paketi)
@@ -312,6 +312,20 @@ UI Update (Riverpod State)
         ↓ Kelime + Confidence göster
         ↓ Cümle modunda tampona ekle
 ```
+
+> [!CAUTION]
+> **KRİTİK — Normalizasyon Eşitliği (Training ↔ Inference)**
+>
+> Model eğitiminde `normalize_landmarks_pro()` fonksiyonu uygulanıyor (bilek/burun referanslı hizalama + max-abs ölçeklendirme).
+> **Flutter'da canlı inference yaparken aynı normalizasyonun Dart'ta da uygulanması zorunludur.**
+> Aksi halde model, eğitildiği formattan farklı girdi alır ve başarısız olur.
+>
+> Dart'ta uygulanması gereken adımlar:
+> 1. Sağ/sol el koordinatlarını bileğe göre merkezle (`coords[0::2] -= wrist_x`)
+> 2. Pose koordinatlarını burna göre merkezle
+> 3. Her bölgeyi `max(abs) + 1e-6` ile ölçeklendir
+>
+> Bu fonksiyon `lib/features/recognition/data/sources/tflite_source.dart` içinde implement edilmelidir.
 
 ### 6.2. Performans Optimizasyonları
 

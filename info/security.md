@@ -33,13 +33,13 @@ Kamera → RAM (geçici) → MediaPipe → Koordinatlar → Model → Tahmin
 
 ### Token Yapısı
 ```
-Access Token (Kısa ömürlü - 7 gün)
+Access Token (Kısa ömürlü - 15 dakika)
 ├── userId
 ├── email
 ├── role
 └── exp (expiration)
 
-Refresh Token (Uzun ömürlü - 30 gün)
+Refresh Token (Uzun ömürlü - 7 gün)
 ├── userId
 └── exp
 ```
@@ -137,7 +137,7 @@ Sağlık kartı bilgileri **hassas kişisel veri** kategorisindedir. Ek önlemle
 |------|-------|-------|
 | Kamera verisi sunucuya gitmiyor | ✅ | Tamamen on-device |
 | Şifreler bcrypt ile hash'lenmiş | ✅ | 12 salt round |
-| JWT token süresi sınırlı | ✅ | Access: 7 gün, Refresh: 30 gün |
+| JWT token süresi sınırlı | ✅ | Access: 15 dk, Refresh: 7 gün |
 | HTTPS zorunlu (production) | ⏳ | Deploy aşamasında |
 | Rate limiting aktif | ⏳ | Backend kurulumunda |
 | Input validasyonu (Zod) | ⏳ | Backend kurulumunda |

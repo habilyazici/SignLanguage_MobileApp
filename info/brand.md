@@ -58,9 +58,9 @@
 
 | Renk | HEX | Kullanım |
 |------|-----|----------|
-| **Success** | `#22C55E` | Başarılı tanıma, confidence >80% |
-| **Warning** | `#F59E0B` | Orta confidence, dikkat uyarısı |
-| **Error / Emergency** | `#EF4444` | Hata, düşük confidence, acil durum butonu |
+| **Success** | `#22C55E` | Başarılı tanıma, confidence ≥%90 (bkz. `ai-ml.md` Bölüm 9) |
+| **Warning** | `#F59E0B` | Orta confidence (%80–90), dikkat uyarısı |
+| **Error / Emergency** | `#EF4444` | Düşük confidence (%70–80), hata, acil durum butonu |
 
 ### Genel Hissiyat
 > **"tech + calm + accessible"** — Teknolojik ama sakin, güven veren, herkes için erişilebilir.
@@ -161,3 +161,177 @@
 ---
 
 ## 6. Flutter Tema Tanımı
+
+```dart
+// lib/core/theme/app_colors.dart
+
+import 'package:flutter/material.dart';
+
+class AppColors {
+  // Ana Renkler
+  static const primary    = Color(0xFF1E3A5F);
+  static const secondary  = Color(0xFF4DA8DA);
+  static const softGrey   = Color(0xFFF2F4F7);
+  static const midGrey    = Color(0xFF8A94A6);
+
+  // Dark Mode
+  static const darkBg      = Color(0xFF0F172A);
+  static const darkSurface = Color(0xFF1E293B);
+
+  // Light Mode
+  static const lightBg      = Color(0xFFF2F4F7);
+  static const lightSurface = Color(0xFFFFFFFF);
+
+  // Semantic — Confidence Eşikleri (bkz. ai-ml.md Bölüm 9)
+  static const success  = Color(0xFF22C55E); // ≥%90
+  static const warning  = Color(0xFFF59E0B); // %80–90
+  static const error    = Color(0xFFEF4444); // %70–80 + acil durum
+}
+```
+
+```dart
+// lib/core/theme/app_theme.dart
+
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
+
+class AppTheme {
+  // ─── LIGHT THEME ──────────────────────────────
+  static ThemeData get light => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: AppColors.lightBg,
+    colorScheme: const ColorScheme.light(
+      primary:   AppColors.primary,
+      secondary: AppColors.secondary,
+      surface:   AppColors.lightSurface,
+      error:     AppColors.error,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: AppColors.lightSurface,
+      foregroundColor: AppColors.primary,
+      elevation: 0,
+      centerTitle: true,
+      titleTextStyle: GoogleFonts.poppins(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: AppColors.primary,
+      ),
+    ),
+    textTheme: _textTheme(AppColors.primary, AppColors.midGrey),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+        elevation: 2,
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.secondary,
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        side: const BorderSide(color: AppColors.secondary, width: 2),
+        textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.lightSurface,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.lightSurface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.lightSurface,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: AppColors.midGrey,
+    ),
+  );
+
+  // ─── DARK THEME ───────────────────────────────
+  static ThemeData get dark => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: AppColors.darkBg,
+    colorScheme: const ColorScheme.dark(
+      primary:   AppColors.secondary,
+      secondary: AppColors.secondary,
+      surface:   AppColors.darkSurface,
+      error:     AppColors.error,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: AppColors.darkBg,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+      titleTextStyle: GoogleFonts.poppins(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+    ),
+    textTheme: _textTheme(Colors.white, AppColors.midGrey),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.secondary,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+        elevation: 0,
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.secondary,
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        side: const BorderSide(color: AppColors.secondary, width: 2),
+        textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.darkSurface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withOpacity(0.05)),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.darkSurface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.darkBg,
+      selectedItemColor: AppColors.secondary,
+      unselectedItemColor: AppColors.midGrey,
+    ),
+  );
+
+  // ─── PAYLAŞILAN TİPOGRAFİ ────────────────────
+  static TextTheme _textTheme(Color primary, Color secondary) => TextTheme(
+    headlineLarge:  GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: primary),  // H1
+    headlineMedium: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: primary),  // H2
+    headlineSmall:  GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: primary),  // H3
+    bodyLarge:      GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w400, color: primary),  // Body
+    bodyMedium:     GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w500, color: primary),  // Body Medium
+    bodySmall:      GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w400, color: secondary), // Body Small
+    labelLarge:     GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: primary),  // Button
+    labelSmall:     GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w400, color: secondary), // Caption
+  );
+}
+```

@@ -230,18 +230,37 @@ DATABASE_URL="postgresql://user:password@localhost:5432/hearmeout?schema=public"
 
 # JWT
 JWT_SECRET="your-super-secret-jwt-key-change-in-production"
-JWT_EXPIRES_IN="7d"
+JWT_EXPIRES_IN="15m"
 JWT_REFRESH_SECRET="your-refresh-secret-key"
-JWT_REFRESH_EXPIRES_IN="30d"
+JWT_REFRESH_EXPIRES_IN="7d"
 
 # CORS
 CORS_ORIGIN="*"
 
 # Video Dosyaları
-# Şimdilik: Videolar backend'deki /public/videos klasöründe static dosya olarak sunulur
-# İleride: CDN'e taşınabilir (Cloudflare, AWS S3 + CloudFront vb.)
+# Mevcut: Backend'deki /public/videos klasöründe static dosya olarak sunulur
+# Gelecek: Cloudflare R2'ye taşınacak (10 GB ücretsiz, çıkış trafiği ücretsiz)
 VIDEOS_BASE_URL="http://localhost:3000/videos"
 ```
+
+### Video Barındırma Stratejisi
+
+| Aşama | Çözüm | Maliyet | Not |
+|-------|-------|---------|-----|
+| **Geliştirme** | `backend/public/videos/` static serve | 0₺ | Express static middleware |
+| **Production** | Cloudflare R2 + CDN | 0₺ | 226 video × ~5 MB ≈ 1.1 GB (ücretsiz sınır içi) |
+
+```
+backend/
+├── public/
+│   └── videos/
+│       ├── agri.mp4
+│       ├── yardim.mp4
+│       ├── hastane.mp4
+│       └── ... (226 video)
+```
+
+> **Not:** `VIDEOS_BASE_URL` env değişkeni sayesinde migration sırasında sadece bu değer değiştirilir, uygulama kodu aynı kalır.
 
 ---
 

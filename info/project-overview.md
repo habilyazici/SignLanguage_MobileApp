@@ -145,3 +145,4 @@ Cümle Modu: Videolar sırayla oynatılır
 | `ui-ux.md` | Ekran tasarımları, navigasyon, kullanıcı akışları |
 | `security.md` | KVKK, şifreleme, veri güvenliği |
 | `tech-stack.md` | Tüm teknolojiler ve seçim gerekçeleri |
+| `brand.md` | Marka kimliği, renk paleti, tipografi, Flutter tema kodu |

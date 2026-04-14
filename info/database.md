@@ -86,6 +86,7 @@ model User {
   healthCard   HealthCard?
   translations Translation[]
   favorites    Favorite[]
+  refreshTokens RefreshToken[]
 
   @@map("users")
 }
@@ -117,16 +118,17 @@ model HealthCard {
 
 // ─── İŞARET DİLİ KELİMELERİ ───────────────────────────
 model Sign {
-  id          String   @id @default(uuid())
-  word        String   @unique // "ağrı", "yardım", "teşekkür"
-  category    String   // "sağlık", "günlük", "acil", "duygular", "sayılar"
-  videoUrl    String   // CDN video URL'si
-  thumbnailUrl String? // Video önizleme resmi
-  description String?  // Kelimenin açıklaması
-  difficulty  Int      @default(1) // 1-5 zorluk seviyesi
-  createdAt   DateTime @default(now())
+  id           String   @id @default(uuid())
+  word         String   @unique // "ağrı", "yardım", "teşekkür"
+  categoryId   String              // Category FK
+  videoUrl     String              // CDN video URL'si
+  thumbnailUrl String?             // Video önizleme resmi
+  description  String?             // Kelimenin açıklaması
+  difficulty   Int      @default(1) // 1-5 zorluk seviyesi
+  createdAt    DateTime @default(now())
 
   // Relations
+  category     Category     @relation(fields: [categoryId], references: [id])
   translations Translation[]
   favorites    Favorite[]
 
@@ -186,6 +188,21 @@ model Category {
   @@map("categories")
 }
 
+// ─── REFRESH TOKEN (Güvenlik — Token İptal Mekanizması) ──
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
 ```
 
 ---
@@ -200,32 +217,55 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// 1. Önce kategorileri oluştur
+const categories = [
+  { name: "sağlık",   icon: "🏥", color: "#22C55E", order: 1 },
+  { name: "acil",     icon: "🆘", color: "#EF4444", order: 2 },
+  { name: "günlük",   icon: "💬", color: "#4DA8DA", order: 3 },
+  { name: "duygular", icon: "😊", color: "#F59E0B", order: 4 },
+  { name: "sayılar",  icon: "🔢", color: "#8B5CF6", order: 5 },
+];
+
+// 2. Her kelimeyi kategorisiyle ilişkilendir
 const signs = [
   // Sağlık kategorisi
-  { word: "ağrı",       category: "sağlık",   videoUrl: "https://cdn.../agri.mp4",       difficulty: 1 },
-  { word: "yardım",     category: "acil",     videoUrl: "https://cdn.../yardim.mp4",     difficulty: 1 },
-  { word: "hastane",    category: "sağlık",   videoUrl: "https://cdn.../hastane.mp4",    difficulty: 2 },
-  { word: "ilaç",       category: "sağlık",   videoUrl: "https://cdn.../ilac.mp4",       difficulty: 1 },
-  { word: "alerji",     category: "sağlık",   videoUrl: "https://cdn.../alerji.mp4",     difficulty: 2 },
+  { word: "ağrı",       categoryName: "sağlık",   videoUrl: "https://cdn.../agri.mp4",       difficulty: 1 },
+  { word: "yardım",     categoryName: "acil",     videoUrl: "https://cdn.../yardim.mp4",     difficulty: 1 },
+  { word: "hastane",    categoryName: "sağlık",   videoUrl: "https://cdn.../hastane.mp4",    difficulty: 2 },
+  { word: "ilaç",       categoryName: "sağlık",   videoUrl: "https://cdn.../ilac.mp4",       difficulty: 1 },
+  { word: "alerji",     categoryName: "sağlık",   videoUrl: "https://cdn.../alerji.mp4",     difficulty: 2 },
 
   // Günlük kategorisi
-  { word: "merhaba",    category: "günlük",   videoUrl: "https://cdn.../merhaba.mp4",    difficulty: 1 },
-  { word: "teşekkür",   category: "günlük",   videoUrl: "https://cdn.../tesekkur.mp4",   difficulty: 1 },
-  { word: "evet",       category: "günlük",   videoUrl: "https://cdn.../evet.mp4",       difficulty: 1 },
-  { word: "hayır",      category: "günlük",   videoUrl: "https://cdn.../hayir.mp4",      difficulty: 1 },
+  { word: "merhaba",    categoryName: "günlük",   videoUrl: "https://cdn.../merhaba.mp4",    difficulty: 1 },
+  { word: "teşekkür",   categoryName: "günlük",   videoUrl: "https://cdn.../tesekkur.mp4",   difficulty: 1 },
+  { word: "evet",       categoryName: "günlük",   videoUrl: "https://cdn.../evet.mp4",       difficulty: 1 },
+  { word: "hayır",      categoryName: "günlük",   videoUrl: "https://cdn.../hayir.mp4",      difficulty: 1 },
 
   // ... toplam 226 kelime
 ];
 
 async function main() {
+  // Kategorileri upsert et
+  const categoryMap = new Map<string, string>();
+  for (const cat of categories) {
+    const record = await prisma.category.upsert({
+      where: { name: cat.name },
+      update: cat,
+      create: cat,
+    });
+    categoryMap.set(cat.name, record.id);
+  }
+
+  // Kelimeleri categoryId ile upsert et
   for (const sign of signs) {
+    const categoryId = categoryMap.get(sign.categoryName)!;
     await prisma.sign.upsert({
       where: { word: sign.word },
-      update: sign,
-      create: sign,
+      update: { videoUrl: sign.videoUrl, difficulty: sign.difficulty, categoryId },
+      create: { word: sign.word, videoUrl: sign.videoUrl, difficulty: sign.difficulty, categoryId },
     });
   }
-  console.log(`${signs.length} kelime eklendi`);
+  console.log(`${categories.length} kategori + ${signs.length} kelime eklendi`);
 }
 
 main()
