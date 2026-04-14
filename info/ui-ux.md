@@ -1,322 +1,65 @@
-# 🎨 HEAR ME OUT — UI/UX Dokümantasyonu
+# 🎨 HEAR ME OUT — UI/UX Kodlama Kılavuzu
 
-## 1. Tasarım Felsefesi
+## 1. Navigasyon
 
-| Prensip | Açıklama |
-|---------|----------|
-| **Erişilebilirlik Öncelikli** | Sağır/dilsiz kullanıcılar için tasarlanmış — görsel geri bildirim, haptic, büyük dokunma alanları |
-| **Guest-First** | Kayıt olmadan tüm çeviri özellikleri açık |
-| **Offline-First** | İnternetsiz çalışabilmeli |
-| **Premium Hissi** | Glassmorphism, animasyonlar, akıcı geçişler |
-| **Tek Elle Kullanım** | Acil durumda tek elle erişilebilir |
+**Bottom Navigation (GoRouter ShellRoute):**
+- **[Ortada Büyük İkon]:** Ana Sayfa (Hub)
+- **Sol Taraf:** Sözlük, Kamera (İşaret → Metin)
+- **Sağ Taraf:** Çevirici (Metin → İşaret), Profil
 
----
+**Kamera <-> Çevirici Kesintisiz Geçişi:**
+Kamera ve Çevirici arasında yatay kaydırma (`PageView`) ile swipe desteği.
 
-## 2. Navigasyon Yapısı
+## 2. Ekran Şemaları
 
-### Bottom Navigation Bar (5 İkon)
+**Splash / Onboarding**
+- 2 sn Splash -> 3 adım Onboarding -> Hub. 
+- İlk kullanıcılar için swipe tutorial overlay.
 
-```
-┌───────┬───────┬──────────────────┬──────────┬──────┐
-│  📚   │  📸   │       🏠          │   🔄    │  👤  │
-│Sözlük │Kamera │   [ANA SAYFA]    │Çevirici │Profil│
-│       │       │  ↑ BÜYÜK İKON ↑   │         │      │
-└───────┴───────┴──────────────────┴──────────┴──────┘
-```
+**Hub (Ana Sayfa)**
+- Çeviri modlarına giden Swipe yönlendirmeli dev butonlar.
+- **Günün Kelimesi** dinamik komponenti.
+- **Acil Durum Modu:** Kırmızı renkli, pulsating acil durum butonları ('Ağrım Var', 'Alerjim Var', 'Kan Grubu').
 
-- **Ana Sayfa**: Ortada, diğerlerinden büyük ve çıkıntılı (FloatingActionButton tarzı)
-- **Kamera & Çevirici**: Ana Sayfa'nın hemen yanlarında — swipe ile de geçilebilir
-- **Sözlük & Profil**: Kenarlarda
+**İşaret -> Metin (Kamera)**
+- Tam ekran vizör. Üstünde (seviye/geçiş) indikatörler.
+- Glassmorphism stili ile çeviri text bar'ı.
+- Confidence Score bar: `≥90% Yeşil, 80-90% Sarı, 70-80% Kırmızı`.
+- Kelime kuyruklama / Cümle build etme opsiyonları paneli (TTS buton, Panoya al, Paylaş).
 
-### Swipe Navigasyon (Ana Özellik)
+**Metin -> İşaret (Çevirici)**
+- Metin Input + STT mikrofon butonu + Auto-complete suggestions.
+- Üstte eşleşen videoyu (MP4/GIF) gösteren full genişlikli video player (Playback speed kontrollü).
 
-```
-  📸 Kamera  ←──── swipe ────→  🔄 Çevirici
-```
+**Sözlük**
+- Kategori Chip dizilimi (Sağlık, Günlük, vs.)
+- Önizlemeli ızgara liste `GridView`.
+- Arama barı + Favori ekleme etkileşimleri.
 
-- Kamera ve Çevirici arasında `PageView` ile yatay kaydırma
-- Üstte nokta göstergesi: ● ○ veya ○ ●
-- Alt bar'daki ikonlara basarak da geçiş yapılabilir
+**Ayarlar Merkezi (Settings)**
+Ayarlar menüsü kullanıcının ihtiyacına göre şekillenebilen kapsamlı ve kategorize edilmiş bir yapıya sahiptir:
+- **Genel Cihaz & Görünüm:**
+  - Tema (Sistem / Koyu / Açık Mode)
+  - Uygulama Metin Boyutu (Dinamik tipografi: Standart / Büyük / Ekstra Büyük)
+  - Solak Modu (Kamera deklanşörünü ve ana UI butonlarını sola hizalar)
+- **Kamera & Yapay Zeka (AI) Optimizasyonları:**
+  - Çeviri Hassasiyet Eşiği (Düşük/Orta/Yüksek - Modelin el hareketlerini ne kadar tolere edeceği)
+  - Çerçeve Hızı (FPS) Limitörü (Batarya çok ısındığında veya düşük güç modunda kamerayı 30FPS'den 15FPS'e sabitleme)
+  - Haptic Feedback (Titreşim) Kalibrasyonu (Aç/Kapat veya Yoğunluk Seviyesi)
+- **Veri Kullanımı & Video Sunucusu (Backend Streaming):**
+  - Hücresel Veride Video Oynatmayı Devre Dışı Bırak (Backend'den video çekerken data tasarrufu)
+  - Video Kalitesi Seçimi (Yüksek 720p / Veri Tasarrufu 360p)
+  - Local Cache (Önbellek) Yönetimi: Cihaz hafızası doluluğa göre limit atama ve "Önbelleği Temizle" seçeneği. (Videolar şuanlık backend'de duracağı için streaming yaparken cihazda cache birikimini yönetir).
+- **Gizlilik & Veri Kontrolü:**
+  - Sıfır-Veri Modu: Çeviri geçmişini (history) lokalde bile tutmaz.
+  - Bulut Eşzamanlaması (Ayarları ve Sağlık Kartını hesabınıza senkronize edin/kapatın).
+  - Hesabı tamamen sil ve tüm verilerimi indir (GDPR/KVKK gereksinimleri).
 
-### Uygulama Açılış Akışı
+**Profil & Sağlık Kartı**
+- Ad/Soyad, Acil durum telefonu, sağlık notları. ve ...
 
-```
-İlk Açılış:
-  Splash (2sn) → Onboarding (3 sayfa) → Ana Sayfa Hub
-
-Sonraki Açılışlar:
-  Splash (2sn) → Ana Sayfa Hub (swipe ipuçları ile)
-```
-
----
-
-## 3. Ekran Detayları
-
-### 🚀 Splash Screen
-- **Süre**: 2 saniye
-- **İçerik**: Lottie animasyonlu logo + "Hear Me Out" yazısı
-- **Arka plan**: Gradient (primaryColor → backgroundDark)
-- **İşlev**: Model + veri ön yükleme
-
-### 📖 Onboarding (3 Sayfa)
-| Sayfa | Başlık | Görsel | Açıklama |
-|-------|--------|--------|----------|
-| 1 | "İşareti Algılıyoruz" | El + kamera animasyonu | Kameranıza işaret yapın, biz anlayalım |
-| 2 | "Sesinizi Çeviriyoruz" | Mikrofon + video animasyonu | Konuşun veya yazın, işaret dilinde gösterelim |
-| 3 | "İnternetsiz Çalışır" | Uçak modu ikonu | Her yerde, her zaman kullanın |
-
-- Sayfa göstergesi: ● ○ ○ → ○ ● ○ → ○ ○ ●
-- "Atla" linki (sağ üst)
-- "Hemen Başla" butonu (son sayfada)
-
-### 🏠 Ana Sayfa Hub
-
-```
-┌─────────────────────────────────────────┐
-│ Hear Me Out              ⚙️             │  ← AppBar
-├─────────────────────────────────────────┤
-│  ┌─────────────────────────────────┐    │
-│  │  ← İşaret → Metin              │    │  ← Animasyonlu kart
-│  │  Kameranızla işaret dilini      │    │    (tıkla veya sola kaydır)
-│  │  anlık metne çeviriyoruz        │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │  Metin → İşaret →              │    │  ← Animasyonlu kart
-│  │  Yazın veya konuşun, işaret     │    │    (tıkla veya sağa kaydır)
-│  │  dili videosunu gösterelim      │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │  🆘 ACİL DURUM                  │    │  ← Kırmızı pulsing buton
-│  │  Sağlık kelimelerine hızlı erişim│    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│  ── Günün Kelimesi ─────────────────    │
-│  │ 🤟 "Teşekkür ederim"   ▶️ İzle  │    │
-│                                         │
-│  ── Son Çeviriler ──────────────────    │
-│  │ ağrı │ yardım │ hastane │ >>>   │    │  ← Yatay kaydırmalı
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-### 📸 Kamera Ekranı (İşaret → Metin)
-
-```
-┌─────────────────────────────────────────┐
-│         ● ○ (sayfa göstergesi)         │
-├─────────────────────────────────────────┤
-│                                         │
-│                                         │
-│          KAMERA GÖRÜNTÜSÜ               │
-│     (tam ekran, landmark overlay)       │
-│                                         │
-│     🦴 İskelet çizgiler (opsiyonel)     │
-│                                         │
-│                                         │
-├─────────────────────────────────────────┤
-│  ██████████████████░░░░  85%  ✅        │  ← Confidence bar
-├─────────────────────────────────────────┤
-│ ┌─────────────────────────────────────┐ │
-│ │  "Baba geldi ve..."                 │ │  ← Glassmorphism panel
-│ │  📋 Kopyala  |  🔊 Sesli Oku       │ │    (yarı şeffaf, cümle modu)
-│ │  💾 Kaydet   |  📤 Paylaş          │ │
-│ └─────────────────────────────────────┘ │
-├─────────────────────────────────────────┤
-│  📸 Ön/Arka  |  [ÇEVIRICI İÇIN →]    │
-└─────────────────────────────────────────┘
-
-#### Sürekli Çeviri (Cümle Modu) Metin Akışı:
-Kullanıcı art arda işaret yaptığında ekrandaki metin şu mantıkla akar:
-1. **İlk Kelime**: Büyük harfle başlar ("Baba").
-2. **Ekleme**: Sonraki kelimeler sağa küçük harfle eklenir ("Baba", "Baba geldi").
-3. **Güven Düzeyi Renklendirme ve Filtreleme:**
-   Eşik değerleri için bkz: `ai-ml.md` Bölüm 9 — Canonical Eşik Tablosu
-   - **Yeşil**: ≥ %90 | **Sarı**: %80–90 | **Kırmızı**: %70–80 | **Atla**: < %70
-4. **Taşma (Overflow) ve Temizleme**: Metin kutuya sığmayacak kadar uzadığında (veya satır dolduğunda), ekran temizlenir ancak devam ettiğini belirtmek için `...` ile başlar ve yeni kelime küçük harfle devam eder ("... oturdu").
-5. **Cümle Sonu**: Uzun duraksamada cümle tamamlanır ve otomatik noktalanır.
-```
-
-### 🔄 Çevirici Ekranı (Metin → İşaret)
-
-```
-┌─────────────────────────────────────────┐
-│         ○ ● (sayfa göstergesi)         │
-├─────────────────────────────────────────┤
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │                                 │    │
-│  │       🎬 VIDEO OYNATICI         │    │  ← İşaret dili videosu
-│  │                                 │    │
-│  │    ◀◀  ▶️   ▶▶                   │    │  ← Kontroller
-│  │    0.5x  1x  1.5x  2x          │    │  ← Hız kontrolü
-│  └─────────────────────────────────┘    │
-│                                         │
-│  Öneriler: [ağrı] [yardım] [hastane]   │  ← Autocomplete chip'leri
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │  Metin girin veya konuşun...    │    │  ← TextField
-│  │                          🎤     │    │  ← Mikrofon butonu
-│  └─────────────────────────────────┘    │
-│                                         │
-│  [← KAMERA İÇİN]                      │
-└─────────────────────────────────────────┘
-```
-
-### 🆘 Acil Durum Ekranı
-
-```
-┌─────────────────────────────────────────┐
-│  ← Geri          ACİL DURUM            │
-├─────────────────────────────────────────┤
-│                                         │
-│  ┌──────────────┐  ┌──────────────┐    │
-│  │   😣         │  │   🏥         │    │
-│  │  AĞRIM VAR   │  │  HASTANEYE   │    │  ← Büyük dokunma
-│  │              │  │  GÖTÜRÜN    │    │    alanları
-│  └──────────────┘  └──────────────┘    │
-│                                         │
-│  ┌──────────────┐  ┌──────────────┐    │
-│  │   ⚠️         │  │   🩸         │    │
-│  │  ALERJİM VAR │  │  KAN GRUBUM  │    │
-│  │              │  │   A+         │    │
-│  └──────────────┘  └──────────────┘    │
-│                                         │
-│  ┌──────────────┐  ┌──────────────┐    │
-│  │   💊         │  │   📞         │    │
-│  │  İLAÇ        │  │  ACİL KİŞİ  │    │
-│  │  KULLANIYORUM│  │  ARAYIN      │    │
-│  └──────────────┘  └──────────────┘    │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │  🔊 SESSİZCE SÖYLE (TTS)      │    │  ← Tek dokunuşla
-│  └─────────────────────────────────┘    │    sesli oku
-└─────────────────────────────────────────┘
-```
-
-### 📚 Sözlük
-
-```
-┌─────────────────────────────────────────┐
-│  Sözlük                         🔍     │
-├─────────────────────────────────────────┤
-│  [Sağlık🏥] [Günlük💬] [Acil🆘] [...]   │  ← Kategori chip'leri
-│                                         │
-│  ┌────────┐ ┌────────┐ ┌────────┐      │
-│  │ 🎬     │ │ 🎬     │ │ 🎬     │      │  ← Grid görünümü
-│  │ Ağrı   │ │ Yardım │ │Hastane │      │    (video önizlemeli)
-│  │ ⭐     │ │        │ │ ⭐     │      │
-│  └────────┘ └────────┘ └────────┘      │
-│                                         │
-│  📊  kelime | ⭐ 3 favori           │
-└─────────────────────────────────────────┘
-```
-
-### 👤 Profil Ekranı
-
-```
-┌─────────────────────────────────────────┐
-│  Profil                                 │
-├─────────────────────────────────────────┤
-│          ┌──────┐                       │
-│          │  👤  │                       │  ← Avatar
-│          │      │                       │
-│          └──────┘                       │
-│      Habil Yazıcı                       │
-│      habil@email.com                    │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │ 🩸 Sağlık Kartı            →  │    │
-│  ├─────────────────────────────────┤    │
-│  │ 📜 Çeviri Geçmişi          →  │    │
-│  ├─────────────────────────────────┤    │
-│  │ ⭐ Favori Kelimeler         →  │    │
-│  ├─────────────────────────────────┤    │
-│  │ 📊 İstatistikler            →  │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│  ── İstatistiklerim ────────────────    │
-│  │ 🔄 247 çeviri │ 📚 89 kelime   │    │
-│  │ 🔥 12 gün streak │ ⭐ 15 fav   │    │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-### ⚙️ Ayarlar Ekranı
-
-> **Erişim:** Ana Sayfa'nın (Hub) sağ üst köşesindeki dişli (⚙️) ikonundan veya Profil ekranından ulaşılır.
-
-```
-┌─────────────────────────────────────────┐
-│  ←                Ayarlar               │
-├─────────────────────────────────────────┤
-│                                         │
-│  ── 🎨 Görünüm & Erişilebilirlik ──     │
-│  [◐] Tema (Açık/Koyu/Sistem)    [>]     │
-│  [A] Metin Boyutu (Normal)      [>]     │
-│  [🌈] Model İskelet Rengi (Yeşil) [>]   │
-│                                         │
-│  ── ⚙️ Çeviri & Kamera Özellikleri ──   │
-│  [📳] Başarılı Tanıma Titreşimi [AÇIK]  │
-│  [🔊] Otomatik Sesli Okuma (TTS)[KAPALI]│
-│  [🎯] Yapay Zeka Hassasiyeti    [>]     │
-│                                         │
-│  ── 💾 Depolama & Çevrimdışı ──         │
-│  [⬇️] Cihaza İndirme Limiti (500MB)     │
-│       Kullanım: 345 MB                  │
-│  [🗑️] Video Önbelleğini Temizle        │
-│                                         │
-│  ── 🔒 Hesap & Gizlilik ──              │
-│  [📄] Verilerimi Dışa Aktar (JSON)[>]   │
-│  [🛑] Hesabı ve Tüm Verileri Sil  [>]   │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-**Özelleştirilmiş Ayar Detayları:**
-- **İskelet (Landmark) Rengi:** Kamera modunda ellerin ve vücudun üzerindeki çizgilerin rengini ayarlama (Uygulamanın kişiselleştirildiği hissiyatını artırır).
-- **Yapay Zeka Hassasiyeti (Tolerans):** AI'ın doğru kabul edeceği (varsayılan %80 olan) güven eşiğini "Katı, Normal, Toleranslı" şeklinde ayarlama. İşaret diline yeni başlayanlar için toleranslı mod eklenebilir.
-- **Depolama / Önbellek Yönetimi:** Çevrimdışı çalışabilme felsefesinin en büyük özelliği videoların cache'e alınmasıdır. Bu menüden cihazda ne kadar GB yer ayrılacağı seçilebilir.
-- **Otomatik Sesli Okuma:** Kamera modunda kelime algılanıp cümle kurulduğunda, ekstra tts butonuna basmadan telefonun doğrudan bunu sesli dile getirmesi. (Acil durumlarda kullanışlı).
-
----
-
-## 4. Tasarım Sistemi
-
-> Renk paleti, tipografi ve Flutter tema kodları için bkz: [brand.md](./brand.md)
-
-### Glassmorphism Kılavuzu
-- **Arka plan**: `rgba(255, 255, 255, 0.1)` (koyu temada)
-- **Blur**: `sigmaX: 10, sigmaY: 10`
-- **Border**: `rgba(255, 255, 255, 0.2)`, 1px
-- **Border radius**: 20px
-- **Shadow**: `rgba(0, 0, 0, 0.1)`, blur 30, offset y:10
-
-### Animasyonlar ve Mikro-etkileşimler
-
-| Eleman | Animasyon | Süre |
-|--------|-----------|------|
-| Sayfa geçişi | Slide + Fade | 300ms |
-| Kart dokunma | Scale down (0.95) + shadow | 150ms |
-| Confidence bar | Smooth width transition | 200ms |
-| İşaret tanınma | Haptic + yeşil flash | 100ms |
-| Buton hover/press | Color shift + elevation | 150ms |
-| Favori ekleme | ⭐ scale bounce | 300ms |
-| Acil buton | Pulsing glow (infinite) | 1500ms |
-| Swipe ipucu | Fade in/out (ilk açılış) | 2000ms |
-
----
-
-## 5. Erişilebilirlik Özellikleri
-
-| Özellik | Açıklama |
-|---------|----------|
-| **Büyük dokunma alanı** | Minimum 48×48 dp tüm interaktif elemanlar |
-| **Haptic feedback** | İşaret tanındığında titreşim — sağır kullanıcılar için kritik |
-| **Yüksek kontrast modu** | Arka plan/metin kontrastı WCAG AA standardı |
-| **Ayarlanabilir font** | 4 kademe: küçük, normal, büyük, çok büyük |
-| **Screen reader** | TalkBack (Android) / VoiceOver (iOS) desteği |
-| **Renk körlüğü** | Confidence göstergesinde renk + ikon birlikte kullanılır |
-| **Tek elle kullanım** | Kritik butonlar ekranın alt yarısında |
-| **Otomatik TTS** | İsteğe bağlı otomatik sesli okuma |
+## 3. Tasarım Notları (Design System Specs)
+*(Referans kodlama)*
+- **Glassmorphism Spec:** `Color(0x1AFFFFFF)`, `ImageFilter.blur(sigmaX: 10, sigmaY: 10)`, `BorderRadius.circular(20)`
+- **Erişilebilirlik:** Touch targets min `48x48`. State değişiklikleri (başarılı inference, hata) Haptic Feedback ve Toast ile güçlendirilmeli.
+- **Tipografi:** Google Fonts `Inter`.

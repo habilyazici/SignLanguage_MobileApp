@@ -9,112 +9,49 @@
 | **Hedef Kitle** | İşitme/Konuşma Engelli Bireyler & Yakınları |
 | **Platform** | Android + iOS (Flutter Cross-Platform) |
 | **Çalışma Modu** | Offline-First (İnternetsiz çalışabilir) |
-| **Felsefe** | Guest-First (Kayıt olmadan tüm çeviri özellikleri açık) |
+| **Felsefe** | Guest-First (Kayıt olmadan hesap gerektirmeden çeviri) |
 
----
-
-## 2. Vizyon ve Problem Tanımı
-
-### Problem
-Geleneksel iletişim araçları, işaret dili bilmeyen bireylerle işitme/konuşma engelliler arasında büyük bir bariyer oluşturur. Özellikle **acil sağlık durumlarında** bu bariyer hayati risk taşır — bir sağır birey acil serviste ağrısını, alerjisini veya kan grubunu karşısındaki kişiye anlık olarak iletemez.
-
-### Çözüm
-Hear Me Out, mobil cihazın kamerasını ve mikrofonunu birer **"tercümana"** dönüştürür:
-
-1. **İşaret → Metin/Ses**: Kullanıcı kameraya işaret dili yapar → AI gerçek zamanlı olarak metne çevirir → İsteğe bağlı sesli okuma (TTS)
-2. **Metin/Ses → İşaret**: Karşıdaki kişi yazar veya konuşur → Uygulama işaret dili videosunu oynatır
-
-### Sağlık Odak Noktası
-- Acil durumlar (ağrı tarifleme, alerji bildirme)
-- Hastane randevuları
-- Eczane iletişimi
-- Temel sağlık ihtiyaçlarının anlık iletilmesi
-
----
+## 2. Amaç
+İşitme/konuşma engelli bireylerin acil sağlık durumlarında (ağrı, alerji, hastane işlemleri) doktor ve sağlık personeli ile anlık iletişim kurmasını sağlayan iki yönlü bir çeviri asistanı.
 
 ## 3. Mimari Büyük Resim
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                     FLUTTER (On-Device)                   │
-│                                                           │
-│  ┌──────────┐    ┌────────────┐    ┌──────────────────┐  │
-│  │  Kamera   │───▶│ MediaPipe  │───▶│  TFLite Model    │  │
-│  │  30 FPS   │    │ 106 coord  │    │  LSTM + Attention│  │
-│  └──────────┘    └────────────┘    └────────┬─────────┘  │
-│                                              │            │
-│                                    "ağrı" kelimesi        │
-│                                              │            │
-│  ┌───────────────────────────────────────────▼─────────┐  │
-│  │              UI (Material 3 + Glassmorphism)        │  │
-│  │     Metin gösterimi + TTS + Haptic Feedback         │  │
-│  └─────────────────────────────────────────────────────┘  │
-│                                                           │
-│  ┌─────────────────┐    ┌──────────────────────────────┐  │
-│  │  Hive (Local DB) │    │  Dio (HTTP Client)          │  │
-│  │  • Favoriler     │    │  ↕ Backend (opsiyonel)      │  │
-│  │  • Ayarlar       │    │  ↕ Sadece gerektiğinde      │  │
-│  │  • Geçmiş        │    └─────────────┬──────────────┘  │
-│  └─────────────────┘                   │                  │
-└────────────────────────────────────────┼──────────────────┘
-                                         │ (internet varsa)
-                                         ▼
-┌──────────────────────────────────────────────────────────┐
-│               BACKEND (Node.js + Express)                 │
-│                                                           │
-│  • Kullanıcı kaydı / giriş (JWT Auth)                    │
-│  • Çeviri geçmişi kaydetme                               │
-│  • Sağlık kartı bilgileri (KVKK uyumlu)                  │
-│  • İşaret dili video URL'leri (Sözlük CDN)               │
-│  • Model güncelleme (gelecekte OTA)                      │
-│  • PostgreSQL + Prisma ORM                                │
-└──────────────────────────────────────────────────────────┘
+```text
+┌──────────────────────────────────────────────┐
+│                    FLUTTER                   │
+│  [Kamera] -> [MediaPipe] -> [TFLite Model]   │
+│                 (offline)                    │
+│                     ↓                        │
+│             [UI & Metin/Ses]                 │
+│                     ↕                        │
+│            [Hive Local Data]                 │
+└─────────────────────┬────────────────────────┘
+                      │ (opsiyonel)
+┌─────────────────────▼────────────────────────┐
+│                   BACKEND                    │
+│      [Node.js API] <-> [PostgreSQL DB]       │
+└──────────────────────────────────────────────┘
 ```
 
-### Mimari Prensipler
-- **Clean Architecture**: Data → Domain → Presentation katmanları ayrı
-- **Feature-First**: Her özellik kendi klasöründe izole yaşar
-- **Offline-First**: Çekirdek AI tamamen cihaz üzerinde, backend opsiyonel
-- **Guest-First**: Kayıt olmadan tüm çeviri özellikleri erişilebilir
+**Prensipler:**
+- **Clean Architecture:** Data → Domain → Presentation katman izalasyonu.
+- **Feature-First Modülerlik:** Hedef feature'a özel klasörleme.
+- **Offline-First:** Model inference on-device (TFLite) yapılarak internet gereksinimi kaldırılmıştır. Çeviriler ve history local (Hive) üzerinden çalışır.
 
----
-
-## 4. Çift Yönlü İletişim Akışı
+## 4. İletişim Akışı
 
 ### Akış 1: İşaret Dili → Metin/Ses (Kamera)
-```
-Kullanıcı işaret yapar
-        ↓
-Kamera 30 FPS yakalama
-        ↓
-MediaPipe: 53 landmark → 106 koordinat (x, y)
-        ↓
-60 karelik sliding window oluştur
-        ↓
-TFLite LSTM+Attention modeli tahmin eder
-        ↓
-Confidence score kontrolü (bkz. `ai-ml.md` Bölüm 9 — Canonical Eşik Tablosu)
-   ├── ≥ %90 (yeşil): Kelimeyi göster + haptic feedback
-   ├── %80–90 (sarı): Kelimeyi göster
-   ├── %70–80 (kırmızı): Kelimeyi göster + uyarı ikonu
-   └── < %70: "Emin değilim" — atla
-        ↓
-Cümle Modu: Kelimeler tampona eklenir → cümle oluşturulur
-        ↓
-[Opsiyonel] TTS ile sesli okuma
-```
+1. **Giriş:** Kamera 30FPS akış yakalar.
+2. **Landmark Extraction:** MediaPipe cihaz üzerinde frame'den yüz, vücut, el landmark coordinatlarını çıkarır (53 landmark -> 106 koordinat (x,y)).
+3. **Pipeline:** 60 frame'lik sekans penceresi oluşturulur.
+4. **Tahmin:** TFLite (LSTM + Attention) modeli prediction üretir.
+5. **Threshold:**
+   - Yeşil (≥ 90%): Göster ve Haptic feedback.
+   - Sarı (80-90%): Sadece göster.
+   - Kırmızı (70-80%): Göster + uyarı ikon.
+6. **Çıkış:** Kelime cümleye eklenir, süreklilik halinde otomatik TTS ile seslendirilir.
 
 ### Akış 2: Metin/Ses → İşaret Dili (Çevirici)
-```
-Kullanıcı metin yazar veya konuşur (STT)
-        ↓
-Metin kelimelere ayrılır
-        ↓
-Her kelime sözlükte aranır
-   ├── Bulundu: İşaret dili videosu oynatılır
-   └── Bulunamadı: "Sözlükte yok" + alternatif önerileri
-        ↓
-Cümle Modu: Videolar sırayla oynatılır
-```
-
----
+1. **Giriş:** Kullanıcı text yazar veya STT (Speech-to-Text) kullanır.
+2. **İşleme:** Metin parsellenir, lookup yapılır.
+3. **Çıkış:** İlgili işaret dili MP4/GIF referans videoları UI'da sırayla oynatılır.
