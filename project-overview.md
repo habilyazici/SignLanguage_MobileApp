@@ -94,10 +94,11 @@ MediaPipe: 53 landmark → 106 koordinat (x, y)
         ↓
 TFLite LSTM+Attention modeli tahmin eder
         ↓
-Confidence score kontrolü
-   ├── >80% (yeşil): Kelimeyi göster + haptic feedback
-   ├── 50-80% (sarı): Kelimeyi göster + uyarı
-   └── <50% (kırmızı): "Emin değilim" göster
+Confidence score kontrolü (bkz. `ai-ml.md` Bölüm 9 — Canonical Eşik Tablosu)
+   ├── ≥ %90 (yeşil): Kelimeyi göster + haptic feedback
+   ├── %80–90 (sarı): Kelimeyi göster
+   ├── %70–80 (kırmızı): Kelimeyi göster + uyarı ikonu
+   └── < %70: "Emin değilim" — atla
         ↓
 Cümle Modu: Kelimeler tampona eklenir → cümle oluşturulur
         ↓
