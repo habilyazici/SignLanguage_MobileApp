@@ -121,21 +121,6 @@ X_train_final, y_train_final = augment_landmarks_pro(X_train_norm, y_train)
 
 print(f"✅ Hazır! Yeni Eğitim Seti Boyutu: {X_train_final.shape}")
 
-def augment_pro(X_batch):
-    """
-    Normalizasyonu bozmadan veriyi artırır:
-    Sadece çok küçük gürültü (jittering) ve hafif ölçekleme ekler.
-    """
-    # 1. Hafif Gürültü (Noise)
-    noise = np.random.normal(0, 0.001, X_batch.shape) # Normalizasyon bozulmasın diye düşük tuttuk
-    X_aug = X_batch + noise
-
-    # 2. Rastgele Ölçekleme (Slight Scaling)
-    # İşareti yapan kişinin ellerinin %5 daha büyük/küçük olması durumu
-    scale_factor = np.random.uniform(0.95, 1.05)
-    X_aug *= scale_factor
-
-    return X_aug.astype(np.float32)
 
 def prepare_dataset_pro(X, y, batch_size=64, is_train=False):
     """

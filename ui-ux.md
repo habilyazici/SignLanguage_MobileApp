@@ -131,13 +131,9 @@ Sonraki Açılışlar:
 Kullanıcı art arda işaret yaptığında ekrandaki metin şu mantıkla akar:
 1. **İlk Kelime**: Büyük harfle başlar ("Baba").
 2. **Ekleme**: Sonraki kelimeler sağa küçük harfle eklenir ("Baba", "Baba geldi").
-3. **Güven Düzeyi Renklendirme ve Filtreleme (Ayarlanabilir)**: 
-   AI'ın kelimeyi bilme oranına (confidence) göre renk ataması yapılır:
-   - **Yeşil**: %90+ yüksek güven, kesin doğru kelime.
-   - **Sarı / Turuncu**: %80-90 orta güven.
-   - **Kırmızı**: %70-80 düşük güven, ucu ucuna kabul. 
-   - 🚫 **Yok Sayma (Sınır Altı)**: Tahmin **%75'in altındaysa** ekrana hiçbir kelime yazılmaz, işaret "anlamsız hareket" (garbage) sayılarak çöpe atılır. 
-   *(Sadece net ve kesinlik oranı yüksek işaretler kabul edilecektir. Bu asgari %75 barajı, uygulamanın asla yanlış kelime türetmemesini sağlar).*
+3. **Güven Düzeyi Renklendirme ve Filtreleme:**
+   Eşik değerleri için bkz: `ai-ml.md` Bölüm 9 — Canonical Eşik Tablosu
+   - **Yeşil**: ≥ %90 | **Sarı**: %80–90 | **Kırmızı**: %70–80 | **Atla**: < %70
 4. **Taşma (Overflow) ve Temizleme**: Metin kutuya sığmayacak kadar uzadığında (veya satır dolduğunda), ekran temizlenir ancak devam ettiğini belirtmek için `...` ile başlar ve yeni kelime küçük harfle devam eder ("... oturdu").
 5. **Cümle Sonu**: Uzun duraksamada cümle tamamlanır ve otomatik noktalanır.
 ```
@@ -199,26 +195,18 @@ Kullanıcı art arda işaret yaptığında ekrandaki metin şu mantıkla akar:
 └─────────────────────────────────────────┘
 ```
 
-### 📚 Sözlük & Öğren
+### 📚 Sözlük
 
 ```
 ┌─────────────────────────────────────────┐
 │  Sözlük                         🔍     │
-├──────────────────┬──────────────────────┤
-│   Kelimeler      │       Öğren         │  ← TabBar (2 alt tab)
-├──────────────────┴──────────────────────┤
-│                                         │
+├─────────────────────────────────────────┤
 │  [Sağlık🏥] [Günlük💬] [Acil🆘] [...]   │  ← Kategori chip'leri
 │                                         │
 │  ┌────────┐ ┌────────┐ ┌────────┐      │
 │  │ 🎬     │ │ 🎬     │ │ 🎬     │      │  ← Grid görünümü
 │  │ Ağrı   │ │ Yardım │ │Hastane │      │    (video önizlemeli)
 │  │ ⭐     │ │        │ │ ⭐     │      │
-│  └────────┘ └────────┘ └────────┘      │
-│  ┌────────┐ ┌────────┐ ┌────────┐      │
-│  │ 🎬     │ │ 🎬     │ │ 🎬     │      │
-│  │ İlaç   │ │ Evet   │ │ Hayır  │      │
-│  │        │ │        │ │        │      │
 │  └────────┘ └────────┘ └────────┘      │
 │                                         │
 │  📊 226 kelime | ⭐ 3 favori           │

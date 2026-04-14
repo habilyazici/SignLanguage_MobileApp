@@ -237,8 +237,10 @@ JWT_REFRESH_EXPIRES_IN="30d"
 # CORS
 CORS_ORIGIN="*"
 
-# CDN (İşaret dili videoları)
-CDN_BASE_URL="https://cdn.hearmeout.app/videos"
+# Video Dosyaları
+# Şimdilik: Videolar backend'deki /public/videos klasöründe static dosya olarak sunulur
+# İleride: CDN'e taşınabilir (Cloudflare, AWS S3 + CloudFront vb.)
+VIDEOS_BASE_URL="http://localhost:3000/videos"
 ```
 
 ---

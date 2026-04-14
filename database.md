@@ -171,6 +171,21 @@ model Favorite {
   @@unique([userId, signId]) // Aynı kullanıcı aynı kelimeyi 2 kez favoriye ekleyemez
   @@map("favorites")
 }
+
+// ─── KATEGORİ ──────────────────────────────────────
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique // "sağlık", "günlük", "acil", "duygular", "sayılar"
+  icon  String?        // Emoji veya icon key
+  color String?        // HEX renk kodu
+  order Int    @default(0) // Sıralama
+
+  // Relations
+  signs Sign[]
+
+  @@map("categories")
+}
+
 ```
 
 ---

@@ -122,7 +122,7 @@ lib/
 │   │           ├── autocomplete_suggestions.dart
 │   │           └── speed_control.dart
 │   │
-│   ├── dictionary/                    # 📚 Sözlük & Öğrenme
+│   ├── dictionary/                    # 📚 Sözlük
 │   │   ├── data/
 │   │   │   ├── models/
 │   │   │   │   └── word_model.dart
@@ -136,24 +136,21 @@ lib/
 │   │   │   │   └── i_dictionary_repo.dart
 │   │   │   └── use_cases/
 │   │   │       ├── search_word_use_case.dart
-│   │   │       ├── get_categories_use_case.dart
-│   │   │       └── toggle_favorite_use_case.dart
+│   │   │       └── get_categories_use_case.dart
 │   │   │
 │   │   └── presentation/
 │   │       ├── screens/
-│   │       │   ├── dictionary_screen.dart          # Ana sözlük (tab'lı)
-│   │       │   ├── word_detail_screen.dart          # Kelime detayı + video
-│   │       │   └── learning_screen.dart             # Öğrenme modu
+│   │       │   ├── dictionary_screen.dart          # Ana sözlük (kategori filtreli grid)
+│   │       │   └── word_detail_screen.dart          # Kelime detayı + video
 │   │       ├── providers/
 │   │       │   ├── dictionary_provider.dart
-│   │       │   ├── favorites_provider.dart
-│   │       │   └── learning_progress_provider.dart
+│   │       │   └── favorites_provider.dart
 │   │       └── widgets/
 │   │           ├── word_card.dart
 │   │           ├── category_chip.dart
-│   │           ├── search_bar_widget.dart
-│   │           └── quiz_card.dart
+│   │           └── search_bar_widget.dart
 │   │
+
 │   ├── home/                          # 🏠 Ana Sayfa Hub
 │   │   └── presentation/
 │   │       ├── screens/
@@ -251,9 +248,8 @@ MaterialApp (Riverpod ProviderScope)
 └── MainShell (Scaffold + BottomNavigationBar)
     ├── BottomNav: [Sözlük, Kamera, ANA SAYFA(FAB), Çevirici, Profil]
     │
-    ├── Tab: Sözlük → DictionaryScreen (TabBar: Kelimeler | Öğren)
-    │   ├── Kelimeler → ListView/GridView + SearchBar
-    │   └── Öğren → LearningScreen (Quiz modülü)
+    ├── Tab: Sözlük → DictionaryScreen
+    │   └── Kelimeler → GridView + SearchBar + Kategori filtresi
     │
     ├── Tab: PageView (2 sayfa — swipe ile geçiş)
     │   ├── Sayfa 0: CameraScreen (İşaret→Metin)
@@ -268,7 +264,8 @@ MaterialApp (Riverpod ProviderScope)
     │       ├── AutocompleteSuggestions
     │       └── VideoPlayerWidget
     │
-    ├── FAB (Ortada, büyük) → HomeScreen (aşağıdan açılır)
+    ├── FAB (Ortada, büyük) → HomeScreen
+    │   └── (BottomNav orta butonu olarak "/home" route'una navige eder)
     │   ├── FeatureCards (2 animasyonlu kart)
     │   ├── EmergencyButton (kırmızı pulsing)
     │   ├── RecentTranslations

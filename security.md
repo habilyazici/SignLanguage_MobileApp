@@ -61,6 +61,21 @@ Refresh Token (Uzun ömürlü - 30 gün)
 
 **Şifre güvenliği:** bcrypt (12 salt round) — plaintext şifre hiçbir zaman saklanmaz.
 
+> [!IMPORTANT]
+> **Refresh Token İptal Mekanizması (TODO):** Refresh token'lar şu an stateless — logout sonrası
+> geçerli kalmaya devam eder. KVKK "hesap silme" hakkıyla çelişiyor.
+> **Planı:** `refresh_tokens` tablosu oluştur, logout'ta token'ı tablodan sil, her kullanımda kontrol et.
+> ```prisma
+> model RefreshToken {
+>   id        String   @id @default(uuid())
+>   token     String   @unique
+>   userId    String
+>   expiresAt DateTime
+>   user      User     @relation(...)
+>   @@map("refresh_tokens")
+> }
+> ```
+
 ---
 
 ## 4. KVKK (Kişisel Verilerin Korunması Kanunu)
