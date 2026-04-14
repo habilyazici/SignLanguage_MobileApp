@@ -5,11 +5,12 @@
 | Alan | Bilgi |
 |------|-------|
 | **Amaç** | Gerçek zamanlı, video tabanlı Türk İşaret Dili (TİD) tanıma |
-| **Referans Model** | LSTM + Multi-Head Attention mimarisi |
+| **Referans Model** | Bidirectional LSTM + Self-Attention mimarisi |
 | **Veri Seti** | AUTSL (Ankara Üniversitesi Türk İşaret Dili Veri Seti) |
 | **Sınıf Sayısı** | 226 kelime |
 | **Video Sayısı** | ~36.302 video |
 | **Başarı Hedefi** | %94 ve üzeri doğruluk |
+| **Model Boyutu** | ~587 KB (TFLite Dynamic Range Quantization) |
 | **Eğitim Ortamı** | Google Colab (GPU: A100/L4) |
 | **Deployment** | TensorFlow Lite — cihaz üzerinde (on-device) |
 
@@ -22,6 +23,9 @@
 - **İçerik**: Türk İşaret Dili videolarından oluşan geniş kapsamlı veri seti
 - **226 sınıf** (kelime): Sağlık, günlük hayat, duygular, sayılar vb.
 - **~36.302 video**: Farklı kişiler, açılar ve ışık koşullarında çekilmiş
+  - Eğitim: ~28.142 video
+  - Doğrulama: ~4.418 video
+  - Test: ~3.742 video
 - **Format**: Video dosyaları (.mp4/.avi)
 
 ### 2.2. Feature Extraction (Özellik Çıkarma)
@@ -72,25 +76,7 @@ Sliding Window, sürekli bir veri akışını modelin işleyebileceği **sabit u
 
 Veri setindeki uzun bir videodan **birden fazla eğitim örneği** üretmek için kullanılır. Bu sayede yüzlerce video yerine binlerce eğitim örneği elde edilir.
 
-**Örnek:** 120 karelik video + Pencere Boyutu = 60 + Stride = 30:
-```
-Pencere 1: kare [0  → 59]
-Pencere 2: kare [30 → 89]
-Pencere 3: kare [60 → 119]
-```
-→ Tek bir videodan **3 farklı eğitim örneği** elde edilmiş olur (veri zenginleştirme).
-
-```python
-import numpy as np
-
-def create_sliding_windows(features: np.ndarray, window_size=60, stride=30):
-    """(N_kare, 106) şeklindeki veriyi sliding window ile böl."""
-    windows = []
-    for start in range(0, len(features) - window_size + 1, stride):
-        window = features[start:start + window_size]  # (60, 106)
-        windows.append(window)
-    return np.array(windows)  # (N_windows, 60, 106)
-```
+**Örnek:** 120 karelik video + window=60 + stride=30 → **3 farklı eğitim örneği** elde edilir (overlap ile veri zenginleştirme).
 
 ---
 
@@ -113,28 +99,7 @@ Her 5 yeni karede bir:
   • 5 yeni kare buffer'a eklenir
   • Güncel 60 karelik pencere modele verilir
         ↓
-Confidence > %75 → Ekrana kelime yaz
-Confidence < %75 → Sessiz kal (garbage filter)
-```
-
-**Flutter'da Dart kodu (mantık):**
-```dart
-final buffer = Queue<List<double>>(); // FIFO deque
-const int windowSize = 60;
-
-void onNewFrame(List<double> landmarks) { // 106 float
-  buffer.addLast(landmarks);
-  if (buffer.length > windowSize) buffer.removeFirst(); // Eski atılır
-  
-  if (buffer.length == windowSize) {
-    // Her 5 karede bir tahmin yap (performans optimizasyonu)
-    if (frameCount % 5 == 0) {
-      final input = bufferToTensor(buffer); // [1, 60, 106]
-      runInference(input);
-    }
-  }
-  frameCount++;
-}
+Confidence → bkz. Bölüm 9 Confidence Eşik Standardı
 ```
 
 ---
@@ -151,7 +116,6 @@ void onNewFrame(List<double> landmarks) { // 106 float
 ---
 
 > [!IMPORTANT]
-> **💡 Cursor / AI Asistanı İçin Teknik Not**
 >
 > Model girdi olarak `(Batch, Time_Steps, Features)` formatında veri bekliyor.
 > Sliding window uygularken:
@@ -166,21 +130,9 @@ void onNewFrame(List<double> landmarks) { // 106 float
 
 ### 2.4. Çıktı Formatı
 
-```python
-# Her bir video/pencere için
-window_features.shape = (60, 106)
-# 60 kare × 106 koordinat değeri
-
-# Tüm veri seti
-X_train.shape = (N_train, 60, 106)  # Eğitim seti
-X_val.shape   = (N_val, 60, 106)    # Doğrulama seti
-X_test.shape  = (N_test, 60, 106)   # Test seti
-
-# Etiketler
-y_train.shape = (N_train,)  # 0-225 arası sınıf indeksleri
-```
-
-Veriler `.npy` (NumPy) formatında kaydedilir — hızlı yükleme ve düşük disk kullanımı.
+- Her pencere: `(60, 106)` → 60 kare × 106 koordinat
+- Eğitim seti: `(N_train, 60, 106)`, etiketler: `(N_train,)` → 0-225 sınıf indeksi
+- `.npy` formatında kaydedilir — hızlı yükleme, düşük disk kullanımı
 
 ### 2.5. Veri Akış Şeması
 
@@ -190,80 +142,75 @@ AUTSL Video (.mp4)
 OpenCV: Kare kare okuma (frame extraction)
         ↓
 MediaPipe Holistic: Her karede 53 landmark çıkarma
+  └─ Konfigürasyon: model_complexity=1, min_detection=0.5, min_tracking=0.5
         ↓
-Koordinat dizisi: (N_kare, 106)
+Kare sayısı sabitleme (her video için 60 kare):
+  ├─ Kısa video (< 60 kare) → Son kare tekrarlanır (Padding)
+  └─ Uzun video (> 60 kare) → linspace ile eşit aralıklı örnekleme (Sampling)
         ↓
-Sliding Window (stride=30): (N_windows, 60, 106)
+Koordinat dizisi: (60, 106) her video için
+        ↓
+Normalizasyon (bilek / burun referanslı + ölçeklendirme):
+  ├─ Sağ/Sol el → Bilek noktası (0, 0) yapılır, sonra `max(abs)` ile ölçeklenir
+  └─ Pose → Burun noktası (0, 0) yapılır, sonra `max(abs)` ile ölçeklenir
         ↓
 NumPy array olarak kaydetme (.npy)
-        ↓
-Etiketleme: CSV'den sınıf adı eşleştirme
-        ↓
-Train / Validation / Test split
+  X_train.npy, X_val.npy, X_test.npy
+  y_train.npy, y_val.npy, y_test.npy
 ```
-
 
 ---
 
 ## 3. Model Mimarisi
 
-### 3.1. LSTM + Multi-Head Attention
+### 3.1. Bidirectional LSTM + Self-Attention
 
-Bu model iki ana bileşenden oluşur:
+Gerçek mimari (`model_training.py`):
 
 ```
 Input: (batch_size, 60, 106)
         ↓
 ┌───────────────────────────┐
-│      LSTM Katmanı         │
-│  Zaman serisi analizi     │
-│  Hareketin yönü ve hızı  │
-│  Sequential pattern       │
+│ LayerNormalization        │  ← Giriş verisini stabilize eder
 └─────────────┬─────────────┘
               ↓
 ┌───────────────────────────┐
-│  Multi-Head Attention     │
-│  60 kare içinde "en       │
-│  anlamlı" anlara odaklan  │
-│  Vurgulu hareketleri bul  │
+│ BiLSTM (128, recurrentDP=0)│  ← TFLite uyumlu
+│ BatchNormalization        │
+│ Dropout (0.4)             │
 └─────────────┬─────────────┘
               ↓
 ┌───────────────────────────┐
-│    Dense (Fully Connected)│
-│  Dropout (Overfitting ↓)  │
-│  Softmax → 226 sınıf     │
+│ BiLSTM (64, recurrentDP=0) │
+│ BatchNormalization        │
+│ Dropout (0.4)             │
+└─────────────┬─────────────┘
+              ↓
+┌───────────────────────────┐
+│ SelfAttention (Custom)    │  ← 60 kare içinde kritik anlara odaklan
+└─────────────┬─────────────┘
+              ↓
+┌───────────────────────────┐
+│ Dense (256, relu)         │
+│ BatchNormalization        │
+│ Dropout (0.3)             │
+│ Dense (128, relu)         │
+│ BatchNormalization        │
+│ Dense (226, softmax)      │  ← 226 kelime sınıfı
 └───────────────────────────┘
               ↓
 Output: Tahmin edilen kelime + Confidence Score
 ```
 
-#### Neden LSTM?
+#### Neden Bidirectional LSTM?
 - İşaret dili **zaman serisidir** — elin A noktasından B noktasına hareketi anlamlıdır
-- LSTM, "uzun süreli bağımlılıkları" (long-term dependencies) öğrenebilir
-- Örnek: "Ağrı" işaretinde elin göğse dokunup geri çekilmesi bir zaman serisinin iki farklı anıdır
+- **Bidirectional**: İleri (baştan sona) ve geri (sondan başa) aynı anda analiz — bağlamı daha iyi yakalar
+- Örnek: "Ağrı" işaretinde elin göğüse dokunup geri çekilmesi iki yönlü analiz ile daha net algılanır
 
-#### Neden Multi-Head Attention?
+#### Neden Self-Attention?
 - 60 kare içinde her kare eşit önemde değildir
 - Attention mekanizması "hangi karelere odaklanmalıyım?" sorusunu öğrenir
-- Örnek: Elin hızla yukarı kalkması (kritik an) vs. hazırlık pozisyonunda beklemesi (önemsiz an)
-- **Multi-Head**: Birden fazla "bakış açısı" ile farklı örüntüleri aynı anda yakalar
-
-### 3.2. Matematiksel Detay
-
-```
-# LSTM çıktısı
-h_t = LSTM(x_t, h_{t-1}, c_{t-1})
-# h_t: hidden state (gizli durum), her karedeki öğrenilmiş temsil
-
-# Multi-Head Attention
-Attention(Q, K, V) = softmax(QK^T / √d_k) × V
-# Q, K, V: LSTM çıktılarından türetilir
-# d_k: boyut normalizasyonu
-
-# Final tahmin
-y = softmax(W × attention_out + b)
-# 226 sınıf için olasılık dağılımı
-```
+- Custom `SelfAttention` layer: tanh + softmax ile ağırlıklı toplam
 
 ---
 
@@ -271,29 +218,27 @@ y = softmax(W × attention_out + b)
 
 ### 4.1. Data Augmentation (Veri Artırma)
 
-Orijinal koordinatlar üzerinde uygulanan **sayısal augmentation** teknikleri:
+Eğitim verisi **2 katına** çıkarılır: orijinal + gürültülü kopya birleştirilir.
 
 | Teknik | Açıklama | Parametre |
 |--------|----------|-----------|
-| **Jittering** | Koordinatlara hafif rastgele gürültü ekleme | σ = 0.01-0.03 |
-| **Shifting** | Tüm koordinatları x/y yönünde kaydırma | Δ = ±0.05 |
-| **Scaling** | Koordinatları ölçeklendirme (büyütme/küçültme) | 0.9-1.1 |
-| **Time Warping** | Zaman ekseninde hız değişikliği | ±%10 |
+| **Noise (Jitter)** | Koordinatlara çok küçük rastgele gürültü | σ = 0.002 (normalizasyonu bozmayacak düşük) |
+| **Scaling** | İşareti yapan kişinin el büyüklüğünü simüle eder | × 0.95 ile 1.05 arası rastgele |
 
 > **Not**: Piksel bazlı augmentation (döndürme, flip) yapılmaz çünkü girdi piksel değil, koordinattır. Bu bir avantajdır — augmentation çok daha hızlı ve kontrollüdür.
 
-### 4.2. Eğitim Parametreleri (Planlanan)
+### 4.2. Eğitim Parametreleri
 
 | Parametre | Değer |
 |-----------|-------|
-| Optimizer | Adam |
-| Learning Rate | 1e-3 (ReduceLROnPlateau ile düşürülecek) |
-| Batch Size | 64 veya 128 |
-| Epochs | 100-200 (Early Stopping ile) |
-| Loss Function | Categorical Crossentropy |
-| Metrics | Accuracy, F1-Score (macro), Confusion Matrix |
-| Regularization | Dropout (0.3-0.5), L2 |
-| Early Stopping | Patience = 15-20 epoch |
+| Optimizer | Adam (lr=0.001) |
+| Learning Rate | ReduceLROnPlateau: factor=0.5, patience=5, min=1e-5 |
+| Batch Size | 64 |
+| Epochs | Maks. 100 (EarlyStopping patience=15 ile erken durabilir) |
+| Loss Function | Sparse Categorical Crossentropy |
+| Metrics | Accuracy |
+| Regularization | Dropout 0.4 (LSTM sonrası), 0.3 (Dense sonrası) + BatchNormalization |
+| Checkpoint | En iyi `val_accuracy` Drive'a kaydedilir (`best_model.keras`) |
 | Platform | Google Colab Pro (A100/L4 GPU) |
 
 ### 4.3. Başarı Metrikleri
@@ -304,7 +249,7 @@ Orijinal koordinatlar üzerinde uygulanan **sayısal augmentation** teknikleri:
 | **Top-5 Accuracy** | ≥ %99 | İlk 5 tahmin içinde doğru sınıf olma oranı |
 | **F1-Score (Macro)** | ≥ %90 | Tüm sınıflar için dengeli başarı |
 | **Inference Time** | < 50ms | Mobil cihazda tek tahmin süresi |
-| **Model Size** | < 15 MB | TFLite formatında |
+| **Model Size** | ~587 KB | Gerçek dosya boyutu: `sign_language_model.tflite` |
 
 ---
 
@@ -315,14 +260,14 @@ Eğitilen TensorFlow modeli doğrudan mobil cihazda çalışamaz. TensorFlow Lit
 ### 5.1. Dönüşüm Pipeline
 
 ```
-TensorFlow Model (.h5 / SavedModel)
+TensorFlow Model (best_model.keras)
         ↓
 TFLite Converter
-   ├── Quantization: Float32 → Float16 veya INT8
-   ├── Operator Optimization
+   ├── Quantization: DEFAULT (Dynamic Range INT8)
+   ├── TFLITE_BUILTINS + SELECT_TF_OPS  ← Custom LSTM ops için zorunlu
    └── Graph Optimization
         ↓
-TFLite Model (.tflite)
+sign_language_model.tflite
    • Boyut: ~5-15 MB (orijinalin %10-20'si)
    • Hız: 2-5x daha hızlı inference
         ↓
@@ -335,8 +280,8 @@ Flutter'a entegre (tflite_flutter paketi)
 |-----|-------|-----|----------------|-------|
 | Float32 (Orijinal) | ~50 MB | Yavaş | %0 | ❌ Çok büyük |
 | Float16 | ~25 MB | Orta | <%0.5 | ✅ Dengeli |
-| Dynamic Range (INT8) | ~12 MB | Hızlı | <%1 | ✅ Önerilen |
-| Full Integer (INT8) | ~10 MB | Çok hızlı | <%2 | ⚠️ Dikkatli test et |
+| Dynamic Range (INT8) | **~587 KB** | Hızlı | <%1 | ✅ Kullanılan (beklenenden küçük çıkmış) |
+| Full Integer (INT8) | ~10 MB | Çok hızlı | <%2 | ⚠️ Alternatif |
 
 ---
 
@@ -441,40 +386,25 @@ Sıralı oynatma (kelimeler arası kısa geçiş)
 
 ---
 
-## 9. JSON Veri Formatı (Tek Kare Örneği)
+## 9. Confidence Eşik Standardı
 
-```json
-{
-  "frame_index": 1,
-  "label": "agri",
-  "label_index": 12,
-  "landmarks": {
-    "right_hand": [
-      {"id": 0, "x": 0.52, "y": 0.88},
-      {"id": 1, "x": 0.53, "y": 0.87},
-      "... (21 nokta)"
-    ],
-    "left_hand": [
-      {"id": 0, "x": 0.00, "y": 0.00},
-      "... (el yoksa tüm değerler 0.0)"
-    ],
-    "pose": [
-      {"id": "left_shoulder", "x": 0.45, "y": 0.22},
-      {"id": "right_shoulder", "x": 0.55, "y": 0.20},
-      "... (11 nokta)"
-    ]
-  }
-}
+> **Bu tablo tüm proje için canonical kaynaktır.** UI, Flutter ve backend bu değerleri referans alır.
+
+| Seviye | Aralık | Renk | UI Davranışı |
+|--------|--------|------|--------------|
+| **Garbage** | < %70 | — | Hiçbir şey gösterilmez, kelime atılır |
+| **Düşük** | %70 – %80 | 🔴 Kırmızı | Kelime gösterilir + uyarı ikonu |
+| **Orta** | %80 – %90 | 🟡 Sarı | Kelime gösterilir |
+| **Yüksek** | ≥ %90 | 🟢 Yeşil | Kelime gösterilir + haptic feedback |
+
+**Flutter implementasyonu:**
+```dart
+// recognition_provider.dart
+if (confidence < 0.70) return; // garbage filter — sessiz kal
+if (confidence >= 0.90) ConfidenceLevel.high;   // yeşil
+if (confidence >= 0.80) ConfidenceLevel.medium; // sarı
+else                    ConfidenceLevel.low;    // kırmızı
 ```
-
-### Tabular Format (Eğitim Verisi)
-
-| Frame | RH_x0 | RH_y0 | ... | LH_x20 | LH_y20 | Pose_x0 | Pose_y0 | ... | Label |
-|-------|--------|--------|-----|---------|---------|---------|---------|-----|-------|
-| 1 | 0.52 | 0.88 | ... | 0.00 | 0.00 | 0.45 | 0.22 | ... | "agri" (12) |
-| 2 | 0.53 | 0.87 | ... | 0.00 | 0.00 | 0.45 | 0.22 | ... | "agri" (12) |
-| ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
-| 60 | 0.60 | 0.80 | ... | 0.00 | 0.00 | 0.46 | 0.23 | ... | "agri" (12) |
 
 ---
 

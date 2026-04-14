@@ -59,18 +59,7 @@ Refresh Token (Uzun ömürlü - 30 gün)
 6. Refresh Token da dolduysa? → Kullanıcı yeniden giriş yapar
 ```
 
-### Şifre Güvenliği
-```typescript
-import bcrypt from 'bcryptjs';
-
-// Kayıt sırasında
-const salt = await bcrypt.genSalt(12); // 12 round
-const hashedPassword = await bcrypt.hash(plainPassword, salt);
-// DB'ye hashedPassword kaydedilir
-
-// Giriş sırasında
-const isMatch = await bcrypt.compare(inputPassword, hashedPassword);
-```
+**Şifre güvenliği:** bcrypt (12 salt round) — plaintext şifre hiçbir zaman saklanmaz.
 
 ---
 
@@ -110,72 +99,20 @@ Sağlık kartı bilgileri **hassas kişisel veri** kategorisindedir. Ek önlemle
 
 ## 5. API Güvenliği
 
-### Rate Limiting
-```typescript
-import rateLimit from 'express-rate-limit';
-
-// Genel API limiti
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 dakika
-  max: 100,                  // 15 dk'da max 100 istek
-  message: 'Çok fazla istek gönderildi, lütfen bekleyin'
-});
-
-// Auth limiti (brute force koruması)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,                    // 15 dk'da max 5 giriş denemesi
-  message: 'Çok fazla giriş denemesi'
-});
-```
-
-### HTTP Güvenlik Header'ları (Helmet)
-```typescript
-import helmet from 'helmet';
-app.use(helmet()); // XSS, clickjacking, sniffing koruması
-```
-
-### Input Validasyonu (Zod)
-```typescript
-import { z } from 'zod';
-
-const registerSchema = z.object({
-  email: z.string().email('Geçerli bir e-posta girin'),
-  password: z.string().min(8, 'En az 8 karakter').regex(
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-    'En az 1 büyük harf, 1 küçük harf, 1 rakam'
-  ),
-  name: z.string().min(2).max(50),
-});
-```
+| Önlem | Detay |
+|-------|-------|
+| **Rate Limiting** | Genel: 100 istek/15dk · Auth: 5 giriş/15dk (brute-force koruması) |
+| **Helmet** | HTTP güvenlik headerları — XSS, clickjacking, sniffing koruması |
+| **Input Validasyonu** | Zod şeması — email, şifre (min 8 + büyük/küçük/rakam), isim (2-50 karakter) |
 
 ---
 
 ## 6. Yerel Depolama Güvenliği (Flutter)
 
-### Hive Şifreli Box
-```dart
-// Hassas veriler şifreli Hive box'ta saklanır
-final encryptionKey = await SecureStorage.read(key: 'hive_key')
-  ?? Hive.generateSecureKey();
-
-final secureBox = await Hive.openBox(
-  'secure_data',
-  encryptionCipher: HiveAesCipher(encryptionKey),
-);
-
-// Token saklama
-await secureBox.put('access_token', token);
-```
-
-### SharedPreferences (Hassas olmayan veriler)
-```dart
-// Sadece hassas OLMAYAN ayarlar
-final prefs = await SharedPreferences.getInstance();
-await prefs.setBool('onboarding_complete', true);
-await prefs.setString('theme_mode', 'dark');
-await prefs.setBool('landmark_overlay', true);
-```
+| Depolama | Kullanım |
+|----------|----------|
+| **Hive şifreli box** | Token, hassas kullanıcı verisi — AES cipher ile şifreli |
+| **SharedPreferences** | Hassas olmayan ayarlar (tema, onboarding durumu) |
 
 ---
 

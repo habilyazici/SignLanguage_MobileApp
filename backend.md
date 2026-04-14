@@ -243,107 +243,17 @@ CDN_BASE_URL="https://cdn.hearmeout.app/videos"
 
 ---
 
-## 7. Örnek Controller
+## 7. Docker Kurulumu
 
-```typescript
-// src/api/controllers/sign.controller.ts
-import { Request, Response, NextFunction } from 'express';
-import { SignService } from '../../services/sign.service';
+| Servis | Image | Port |
+|--------|-------|------|
+| **PostgreSQL** | `postgres:16-alpine` | 5432 |
+| **API** | Multistage Node build | 3000 |
 
-export class SignController {
-  constructor(private signService: SignService) {}
+```bash
+# Geliştirme ortamını başlat
+docker compose up -d
 
-  // GET /api/signs
-  async getAllSigns(req: Request, res: Response, next: NextFunction) {
-    try {
-      const signs = await this.signService.getAllSigns();
-      res.json({ success: true, data: signs });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // GET /api/signs/search?q=ağrı
-  async searchSigns(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { q } = req.query;
-      const results = await this.signService.searchSigns(q as string);
-      res.json({ success: true, data: results });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // GET /api/signs/:word
-  async getSignByWord(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { word } = req.params;
-      const sign = await this.signService.getSignByWord(word);
-      if (!sign) {
-        return res.status(404).json({
-          success: false,
-          message: 'Bu kelime sözlükte bulunamadı'
-        });
-      }
-      res.json({ success: true, data: sign });
-    } catch (error) {
-      next(error);
-    }
-  }
-}
-```
-
----
-
-## 8. Docker Kurulumu
-
-```dockerfile
-# Dockerfile
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npx prisma generate
-RUN npm run build
-
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/src/prisma ./src/prisma
-EXPOSE 3000
-CMD ["node", "dist/app.js"]
-```
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: hearmeout
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: secret
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  api:
-    build: .
-    ports:
-      - "3000:3000"
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgresql://admin:secret@db:5432/hearmeout
-      JWT_SECRET: change-me-in-production
-    command: >
-      sh -c "npx prisma migrate deploy && node dist/app.js"
-
-volumes:
-  pgdata:
+# Migration çalıştır
+npx prisma migrate deploy
 ```

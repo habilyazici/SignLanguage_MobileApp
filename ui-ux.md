@@ -259,33 +259,7 @@ Kullanıcı art arda işaret yaptığında ekrandaki metin şu mantıkla akar:
 
 ## 4. Tasarım Sistemi
 
-### Renk Paleti
-
-> **Resmi marka renkleri için bkz:** [brand.md](file:///c:/Users/habil/OneDrive/Belgeler/GitHub/SignLanguageMobileApp/brand.md)
-
-| Renk | HEX | Kullanım |
-|------|-----|----------|
-| **Primary** | `#1E3A5F` | Ana butonlar, seçili tab, aktif elemanlar |
-| **Secondary** | `#4DA8DA` | Vurgu, linkler, aktif göstergeler |
-| **Soft Grey** | `#F2F4F7` | Light mode arka plan |
-| **Mid Grey** | `#8A94A6` | İkincil metin, placeholder |
-| **Dark BG** | `#0F172A` | Koyu tema arka plan |
-| **Dark Card** | `#1E293B` | Koyu tema kart |
-| **Success** | `#22C55E` | Confidence yeşil (>80%) |
-| **Warning** | `#F59E0B` | Confidence sarı (50-80%) |
-| **Error** | `#EF4444` | Hata, acil durum, düşük confidence |
-
-### Tipografi
-
-| Stil | Font | Boyut | Ağırlık | Kullanım |
-|------|------|-------|---------|----------|
-| H1 | Poppins | 28px | Bold | Ekran başlıkları |
-| H2 | Poppins | 22px | SemiBold | Bölüm başlıkları |
-| H3 | Poppins | 18px | SemiBold | Kart başlıkları |
-| Body | Montserrat | 16px | Regular | Genel metin (minimum!) |
-| Body Small | Montserrat | 14px | Regular | Alt metinler |
-| Caption | Montserrat | 12px | Regular | Etiketler, tarihler |
-| Button | Poppins | 16px | SemiBold | Buton metinleri |
+> Renk paleti, tipografi ve Flutter tema kodları için bkz: [brand.md](./brand.md)
 
 ### Glassmorphism Kılavuzu
 - **Arka plan**: `rgba(255, 255, 255, 0.1)` (koyu temada)

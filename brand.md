@@ -21,10 +21,7 @@
 
 ## 2. Logo
 
-> **Logo dosyası buraya eklenecek**
-> Habil logoyu bu repo'ya ekleyince aşağıdaki satır güncellenecek:
->
-> `![Hear Me Out Logo](./assets/logo.png)`
+![Hear Me Out Logo](./logo.png)
 
 ---
 
@@ -88,28 +85,6 @@
 - ✅ Büyük puntolar tercih edilir
 - ✅ **Yüksek kontrast** — metin/arka plan oranı WCAG AA standardında
 - ✅ Başlıklarda **Poppins**, gövde metinde **Montserrat** — tutarlılık
-
-### Flutter Tanımı
-```dart
-// pubspec.yaml
-dependencies:
-  google_fonts: ^latest
-
-// theme/text_styles.dart
-import 'package:google_fonts/google_fonts.dart';
-
-final headingStyle = GoogleFonts.poppins(
-  fontSize: 28,
-  fontWeight: FontWeight.bold,
-  color: Color(0xFF1E3A5F),
-);
-
-final bodyStyle = GoogleFonts.montserrat(
-  fontSize: 16,
-  fontWeight: FontWeight.w400,
-  color: Color(0xFF1E3A5F),
-);
-```
 
 ---
 
@@ -186,73 +161,3 @@ final bodyStyle = GoogleFonts.montserrat(
 ---
 
 ## 6. Flutter Tema Tanımı
-
-```dart
-// core/theme/app_colors.dart
-class AppColors {
-  // Primary
-  static const primary = Color(0xFF1E3A5F);
-  static const secondary = Color(0xFF4DA8DA);
-  
-  // Neutrals
-  static const softGrey = Color(0xFFF2F4F7);
-  static const midGrey = Color(0xFF8A94A6);
-  
-  // Dark Mode
-  static const darkBackground = Color(0xFF0F172A);
-  static const darkCard = Color(0xFF1E293B);
-  
-  // Semantic
-  static const success = Color(0xFF22C55E);
-  static const warning = Color(0xFFF59E0B);
-  static const error = Color(0xFFEF4444);
-}
-
-// core/theme/app_theme.dart
-ThemeData lightTheme() {
-  return ThemeData(
-    useMaterial3: true,
-    colorScheme: ColorScheme.light(
-      primary: AppColors.primary,
-      secondary: AppColors.secondary,
-      surface: Colors.white,
-      background: AppColors.softGrey,
-      error: AppColors.error,
-    ),
-    textTheme: GoogleFonts.montserratTextTheme(),
-    cardTheme: CardTheme(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        minimumSize: Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-      ),
-    ),
-  );
-}
-
-ThemeData darkTheme() {
-  return ThemeData(
-    useMaterial3: true,
-    colorScheme: ColorScheme.dark(
-      primary: AppColors.secondary,
-      secondary: AppColors.secondary,
-      surface: AppColors.darkCard,
-      background: AppColors.darkBackground,
-      error: AppColors.error,
-    ),
-    scaffoldBackgroundColor: AppColors.darkBackground,
-    textTheme: GoogleFonts.montserratTextTheme(ThemeData.dark().textTheme),
-    cardTheme: CardTheme(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 0,
-      color: AppColors.darkCard,
-    ),
-  );
-}
-```

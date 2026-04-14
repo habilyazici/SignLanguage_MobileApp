@@ -343,117 +343,38 @@ MaterialApp (Riverpod ProviderScope)
 
 ---
 
-## 6. Kamera → AI Pipeline Detayı
+## 6. Kamera → AI Pipeline Akışı
 
-```dart
-// 1. Kamera başlat
-final cameraController = CameraController(
-  cameras.first,
-  ResolutionPreset.medium, // Performans için medium
-  enableAudio: false,       // Ses lazım değil
-  imageFormatGroup: ImageFormatGroup.yuv420,
-);
-
-// 2. Her kareyi dinle
-cameraController.startImageStream((CameraImage image) {
-  // 3. Ana thread'i bloklamadan Isolate'te işle
-  compute(processFrame, image);
-});
-
-// 4. processFrame fonksiyonu (ayrı isolate)
-List<double> processFrame(CameraImage image) {
-  // MediaPipe ile 53 landmark çıkar
-  final landmarks = mediaPipe.process(image);
-  // 106 float değere dönüştür
-  return landmarks.toFlatList(); // [x0, y0, x1, y1, ...]
-}
-
-// 5. Sliding window buffer (son 60 kare)
-final buffer = SlidingWindowBuffer(windowSize: 60);
-buffer.addFrame(coordinates); // Her kare eklenir
-
-// 6. Buffer dolduğunda tahmin yap
-if (buffer.isFull) {
-  final input = buffer.toTensor(); // [1, 60, 106]
-  final output = tfliteInterpreter.run(input);
-  final prediction = output.argmax();
-  final confidence = output.max();
-}
+```
+CameraController (ResolutionPreset.medium, YUV420)
+        ↓ startImageStream
+compute(processFrame) → ayrı Isolate (UI donmaz)
+        ↓ MediaPipe → 53 landmark → 106 float
+SlidingWindowBuffer (son 60 kare)
+        ↓ buffer.isFull → her 5 karede bir
+TFLite .run([1, 60, 106]) → argmax + confidence
+        ↓ Riverpod state güncelleme → UI
 ```
 
 ---
 
 ## 7. Tema ve Tasarım Sistemi
 
-### Renk Paleti (Önerilen)
-```dart
-// Ana renkler
-static const primaryColor = Color(0xFF6C63FF);    // Mor-mavi (ana ton)
-static const secondaryColor = Color(0xFF00D4AA);   // Turkuaz (vurgu)
-static const accentColor = Color(0xFFFF6B6B);       // Kırmızı-turuncu (acil durum)
-
-// Arka plan
-static const backgroundDark = Color(0xFF0A0E21);    // Koyu lacivert
-static const backgroundLight = Color(0xFFF5F7FA);   // Açık gri
-
-// Glassmorphism
-static const glassColor = Colors.white.withOpacity(0.1);
-static const glassBorder = Colors.white.withOpacity(0.2);
-```
-
-### Glassmorphism Kart Stili
-```dart
-Container(
-  decoration: BoxDecoration(
-    color: Colors.white.withOpacity(0.1),
-    borderRadius: BorderRadius.circular(20),
-    border: Border.all(color: Colors.white.withOpacity(0.2)),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.1),
-        blurRadius: 30,
-        offset: Offset(0, 10),
-      ),
-    ],
-  ),
-  child: ClipRRect(
-    borderRadius: BorderRadius.circular(20),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-      child: content,
-    ),
-  ),
-);
-```
+> Renk paleti, tipografi ve UI stili için bkz: [brand.md](./brand.md)
 
 ---
 
 ## 8. Navigasyon Yapısı (go_router)
 
-```dart
-final appRouter = GoRouter(
-  initialLocation: '/home',
-  routes: [
-    // Splash & Onboarding
-    GoRoute(path: '/splash', builder: (_, __) => SplashScreen()),
-    GoRoute(path: '/onboarding', builder: (_, __) => OnboardingScreen()),
-
-    // Ana Shell (Bottom Navigation + PageView)
-    ShellRoute(
-      builder: (_, __, child) => MainShell(child: child),
-      routes: [
-        GoRoute(path: '/dictionary', builder: (_, __) => DictionaryScreen()),
-        GoRoute(path: '/camera', builder: (_, __) => CameraScreen()),
-        GoRoute(path: '/home', builder: (_, __) => HomeScreen()),
-        GoRoute(path: '/translator', builder: (_, __) => TranslatorScreen()),
-        GoRoute(path: '/profile', builder: (_, __) => ProfileScreen()),
-      ],
-    ),
-
-    // Nested Routes
-    GoRoute(path: '/settings', builder: (_, __) => SettingsScreen()),
-    GoRoute(path: '/emergency', builder: (_, __) => EmergencyScreen()),
-    GoRoute(path: '/word/:id', builder: (_, state) => WordDetailScreen(id: state.pathParameters['id']!)),
-  ],
-);
-```
+| Route | Ekran | İçerik |
+|-------|-------|--------|
+| `/splash` | SplashScreen | Model + veri ön yükleme |
+| `/onboarding` | OnboardingScreen | 3 sayfa, ilk açılış |
+| `/home` | HomeScreen | Hub (ShellRoute) |
+| `/dictionary` | DictionaryScreen | Sözlük + Öğren tab |
+| `/camera` | CameraScreen | İşaret → Metin |
+| `/translator` | TranslatorScreen | Metin → İşaret |
+| `/profile` | ProfileScreen | Profil, sağlık kartı |
+| `/settings` | SettingsScreen | Ayarlar |
+| `/emergency` | EmergencyScreen | Acil durum |
+| `/word/:id` | WordDetailScreen | Kelime detayı |

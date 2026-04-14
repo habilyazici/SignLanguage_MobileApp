@@ -222,66 +222,18 @@ main()
 
 ## 5. Kritik Sorgular
 
-### En sık çevrilen kelimeler
-```sql
-SELECT s.word, s.category, COUNT(t.id) as translation_count
-FROM signs s
-JOIN translations t ON s.id = t."signId"
-GROUP BY s.id
-ORDER BY translation_count DESC
-LIMIT 10;
-```
-
-### Kullanıcı istatistikleri
-```sql
-SELECT
-  COUNT(DISTINCT DATE(t."createdAt")) as active_days,
-  COUNT(t.id) as total_translations,
-  AVG(t.confidence) as avg_confidence,
-  COUNT(DISTINCT t."signId") as unique_words
-FROM translations t
-WHERE t."userId" = $1;
-```
-
-### Streak hesaplama (kaç gün üst üste aktif)
-```sql
-WITH daily_activity AS (
-  SELECT DISTINCT DATE("createdAt") as activity_date
-  FROM translations
-  WHERE "userId" = $1
-  ORDER BY activity_date DESC
-),
-streak AS (
-  SELECT activity_date,
-    activity_date - (ROW_NUMBER() OVER ())::int AS grp
-  FROM daily_activity
-)
-SELECT COUNT(*) as streak_days
-FROM streak
-WHERE grp = (SELECT grp FROM streak LIMIT 1);
-```
+| Sorgu | Amaç |
+|-------|------|
+| `Sign` + `Translation` JOIN, GROUP BY count | En sık çevrilen 10 kelime |
+| `Translation WHERE userId`, COUNT + AVG(confidence) | Kullanıcı istatistikleri |
+| Window fonksiyonu ile `DATE(createdAt)` farkı | Streak hesaplama |
 
 ---
 
 ## 6. İndeksler ve Performans
 
-```prisma
-// schema.prisma'ya eklenecek indeksler:
-
-model Sign {
-  // ... mevcut alanlar
-  @@index([category])         // Kategoriye göre filtreleme hızlandır
-  @@index([word])              // Kelime araması hızlandır
-}
-
-model Translation {
-  // ... mevcut alanlar
-  @@index([userId, createdAt]) // Kullanıcının geçmişi hızlandır
-  @@index([signId])            // Kelime bazlı istatistik
-}
-
-model Favorite {
-  // ... mevcut alanlar
-  @@index([userId])            // Kullanıcının favorileri
-}
-```
+| Model | İndeks | Amaç |
+|-------|---------|------|
+| `Sign` | `category`, `word` | Kategori filtresi + kelime arama |
+| `Translation` | `(userId, createdAt)`, `signId` | Geçmiş sorgusu + istatistik |
+| `Favorite` | `userId` | Kullanıcının favorileri |
