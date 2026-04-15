@@ -43,3 +43,6 @@ backend/src/
  ├─ prisma/       (schema.prisma ve seed dosyaları)
  └─ config/       (.env mapperleri, cors, database instances)
 ```
+
+## 4. Geliştirme (Development) Notları
+- **Yerel API Testi (Mobil Cihazlar):** Backend yerel (localhost) ortamda çalışırken, Flutter uygulamasının (gerçek cihaz veya emülatör) ağ kısıtlamalarına takılmadan backend'e erişebilmesi için **Ngrok** kullanılacaktır. Ngrok tüneli üzerinden alınacak URL, mobil uygulamanın API Base URL'si olarak ayarlanmalıdır.

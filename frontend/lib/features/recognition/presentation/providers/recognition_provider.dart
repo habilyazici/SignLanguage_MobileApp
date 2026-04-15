@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../data/data_sources/tflite_service.dart';
 import '../../../../core/utils/label_mapper.dart';
 
@@ -38,13 +39,13 @@ class RecognitionState {
   }
 }
 
-// Riverpod Provider (Arayüzde/UI'da tüketilecek olan global beyin)
+// Riverpod Provider (NotifierProvider yerine AutoDispose kullanıyoruz ki sayfadan çıkınca kamera kapansın!)
 final recognitionProvider =
-    NotifierProvider<RecognitionNotifier, RecognitionState>(
+    AutoDisposeNotifierProvider<RecognitionNotifier, RecognitionState>(
       RecognitionNotifier.new,
     );
 
-class RecognitionNotifier extends Notifier<RecognitionState> {
+class RecognitionNotifier extends AutoDisposeNotifier<RecognitionState> {
   final TFLiteService _tfLiteService = TFLiteService();
   int _frameCount = 0;
   bool _isProcessing = false;
@@ -65,6 +66,11 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
 
   Future<void> _initSystem() async {
     try {
+      // 0. Uygulamanın en başında kamera izni iste (Çökmeyi / Siyah Ekranı Engeller)
+      final status = await Permission.camera.request();
+      if (!status.isGranted)
+        throw Exception('Kullanıcı kamera iznini reddetti.');
+
       // 1. TFLite Modelini ilk saniyede güvenlice Yükle
       await _tfLiteService.initModel();
 

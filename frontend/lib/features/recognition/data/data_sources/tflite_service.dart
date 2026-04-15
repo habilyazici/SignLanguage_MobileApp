@@ -24,11 +24,18 @@ class TFLiteService {
     }
   }
 
+  bool _hasLoggedMissingModel = false;
+
   /// Kameradan/MediaPipe'tan akan koordinat paketini alır ve yapay zekaya yedirip çıkış döndürür.
   /// Beklenen Input Şekli: batch_size, 60 sekans, her sekansta 106 koordinat -> [1, 60, 106]
   List<double>? predict(List<List<List<double>>> sequenceFrames) {
     if (_interpreter == null) {
-      print('Çıkarım (Inference) Hatası: TFLite modeli henüz hazır değil!');
+      if (!_hasLoggedMissingModel) {
+        print(
+          'Çıkarım (Inference) Hatası: TFLite modeli henüz hazır değil (Veya assets klasöründe yok)!',
+        );
+        _hasLoggedMissingModel = true;
+      }
       return null;
     }
 

@@ -49,6 +49,11 @@
 - **ORM:** Prisma 5.x
 - **Database:** PostgreSQL 16
 
+### 4. Altyapı & Geliştirici Araçları (Infrastructure & Tooling)
+- **Containerization:** Docker
+- **Cloud Deployment:** Render / Railway
+- **Tunneling / Mobil API Testi:** Ngrok (Geliştirme aşamasında yerel backend sunucusuna Flutter uygulamasından erişimi sağlamak için kullanılacaktır)
+
 ## Versiyon Ortamı Hedefleri
 
 | Platform     | Min | Hedef |
