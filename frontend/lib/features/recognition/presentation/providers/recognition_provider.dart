@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' show min;
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -109,13 +110,20 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   static const int _numClasses  = 226;
   static const List<int> _poseIndices = [0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16];
 
+  // Canlı çeviri için parametreler:
+  // stride=2 → 30fps'de 15 kare/sn buffer'a girer
+  // İlk inference: 15 kare (~1 sn), sonra her 3 karede bir
+  static const int _stride       = 2;
+  static const int _inferEvery   = 3;   // inference adımı (kare sayısı)
+  static const int _minBuffer    = 15;  // ilk inference için minimum kare
+
   final List<List<double>> _buffer = [];
   int  _frameCounter = 0;
   bool _isProcessing = false;
 
   // ── Temporal smoothing ────────────────────────────────────────────────────
-  // Spec: stride 5 kare; aynı sınıf 8 ardışık inference → göster
-  static const int _stableFrames = 8;
+  // Aynı sınıf 3 ardışık inference → göster (canlı çeviri için düşürüldü)
+  static const int _stableFrames = 3;
   int _lastIdx = -1;
   int _streak  = 0;
 
@@ -179,6 +187,15 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   }
 
   Future<void> _startCamera({CameraLensDirection? lens}) async {
+    // Kamera değişince önceki tespit durumunu sıfırla
+    _noDetectionTimer?.cancel();
+    _noDetectionTimer = null;
+    _clearTimer?.cancel();
+    _clearTimer = null;
+    _lastIdx = -1;
+    _streak = 0;
+    _lastShownWord = '';
+
     _allCameras = await availableCameras();
     if (_allCameras.isEmpty) {
       state = state.copyWith(isError: true);
@@ -225,19 +242,26 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
 
   void _onFrame(CameraImage image) async {
     _frameCounter++;
-    // Spec: stride = 5 kare
-    if (_frameCounter % 5 != 0) return;
+    if (_frameCounter % _stride != 0) return;
     if (_isProcessing) return;
     if (_poseDetector == null || _handDetector == null) return;
     _isProcessing = true;
 
     final bool doLog = (_frameCounter % 150 == 0); // ~15 sn'de bir log
+
+    // ── Merkezi kare kırpma bölgesi ────────────────────────────────────────
+    // AUTSL eğitim videoları 512×512 (kare). Kamera görüntüsü dikdörtgen
+    // (örn. 480×640). Normalize koordinatlar eğitimde 1:1 uzayda hesaplandı;
+    // biz de aynı oranı sağlamak için merkezlenmiş min-kenar kareye kırpıyoruz.
+    final int cropSide = min(image.width, image.height);
+    final int cropXOff = (image.width  - cropSide) ~/ 2;
+    final int cropYOff = (image.height - cropSide) ~/ 2;
+
     if (doLog) {
-      debugPrint('📷 Kare: $_frameCounter | '
-          'boyut: ${image.width}×${image.height} | '
-          'düzlem: ${image.planes.length} | '
-          'stride: ${image.planes[0].bytesPerRow} | '
-          'buffer: ${_buffer.length}/$_windowSize');
+      debugPrint('📷 Kare=$_frameCounter '
+          'sensör=${image.width}x${image.height} '
+          'crop=${cropSide}x$cropSide off=($cropXOff,$cropYOff) '
+          'buf=${_buffer.length}/$_windowSize');
     }
 
     try {
@@ -254,7 +278,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         poseCount = poses.length;
         if (poses.isNotEmpty) {
           anyDetected = true;
-          poseRaw = _fillPose(poses.first, image, frame);
+          poseRaw = _fillPose(poses.first, frame,
+              cropSide: cropSide, cropXOff: cropXOff);
         }
         if (doLog) debugPrint('🧍 Pose: $poseCount tespit');
       }
@@ -265,16 +290,23 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       int handCount = 0;
       final mat = _toMat(image);
       if (mat != null) {
-        final hands = await _handDetector!.detectOnMat(mat);
-        handCount = hands.length;
-        if (hands.isNotEmpty) {
-          anyDetected = true;
-          final filled = _fillHands(hands, image, frame);
-          rightRaw = filled.right;
-          leftRaw  = filled.left;
+        try {
+          final hands = await _handDetector!.detectOnMat(mat);
+          handCount = hands.length;
+          if (hands.isNotEmpty) {
+            anyDetected = true;
+            final filled = _fillHands(hands, frame,
+                cropSide: cropSide, cropXOff: cropXOff);
+            rightRaw = filled.right;
+            leftRaw  = filled.left;
+          }
+          if (doLog) debugPrint('🖐 El: $handCount tespit');
+        } catch (e) {
+          // El tespiti başarısız olsa bile pose verisiyle devam et
+          debugPrint('⚠️ El tespiti hatası (pose devam ediyor): $e');
+        } finally {
+          mat.dispose();
         }
-        if (doLog) debugPrint('🖐 El: $handCount tespit');
-        mat.dispose();
       }
 
       // Dev notifier güncelle (Riverpod rebuild olmaz)
@@ -295,11 +327,12 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         _noDetectionTimer = null;
         _buffer.add(frame);
         if (_buffer.length > _windowSize) _buffer.removeAt(0);
-        // Buffer dolunca VEYA yarısından fazlası dolunca inference çalıştır.
-        // Yarı-dolu buffer son kareyle padding'lenerek 60'a tamamlanır;
-        // bu sayede ilk kelime ~1 sn daha erken görünür.
-        if (_buffer.length == _windowSize ||
-            (_buffer.length >= _windowSize ~/ 2 && _buffer.length % 5 == 0)) {
+        // İlk inference: _minBuffer kare yeterli (~1 sn).
+        // Sonrasında her _inferEvery karede bir inference.
+        // Buffer her zaman 60 kareye resampling ile normalize edilir
+        // (son kare padding yerine uniform interpolasyon → eğitimle uyumlu).
+        if (_buffer.length >= _minBuffer &&
+            _buffer.length % _inferEvery == 0) {
           _runInference();
         }
       } else {
@@ -325,23 +358,45 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   double _maybeFlipX(double nx) =>
       _currentLens == CameraLensDirection.front ? 1.0 - nx : nx;
 
+  // ── Sensör → model koordinat dönüşümü ────────────────────────────────────
+  //
+  // Kamera sensörü landscape görüntü üretir (örn. 720×480).
+  // Model AUTSL portré 512×512 videolarıyla eğitildi; koordinatlar portré uzayında.
+  // sensorOrientation=90° → 90° saat yönünde döndürerek portré elde edilir:
+  //
+  //   model_x (portre yatay, 0=sol 1=sağ) = 1.0 - sensor_y / cropSide
+  //   model_y (portre dikey, 0=üst 1=alt) = (sensor_x - cropXOff) / cropSide
+  //
+  // cropSide = min(sensorW, sensorH) = sensörün kısa kenarı (480 için 720×480)
+  // cropXOff = (sensorW - cropSide) / 2  → sensör_x yönünde ortalanmış kırpma
+  //            bu portrede üst/alt kırpmaya karşılık gelir
+
+  double _sensorToModelX(double sy, int cropSide) =>
+      (1.0 - sy / cropSide).clamp(0.0, 1.0).toDouble();
+
+  double _sensorToModelY(double sx, int cropXOff, int cropSide) =>
+      ((sx - cropXOff) / cropSide).clamp(0.0, 1.0).toDouble();
+
   List<Offset> _fillPose(
-      mlkit.Pose pose, CameraImage image, List<double> frame) {
+      mlkit.Pose pose, List<double> frame, {
+      required int cropSide, required int cropXOff}) {
     final raw = <Offset>[];
     for (int i = 0; i < _poseIndices.length; i++) {
       final lm = pose.landmarks[mlkit.PoseLandmarkType.values[_poseIndices[i]]];
       if (lm == null) continue;
-      final nx = _maybeFlipX(lm.x / image.width);
-      final ny = lm.y / image.height;
-      frame[84 + i * 2]     = nx;
-      frame[84 + i * 2 + 1] = ny;
-      raw.add(Offset(nx, ny));
+      // ML Kit, InputImage.fromBytes ile sensör uzayında koordinat döndürür.
+      final mx = _maybeFlipX(_sensorToModelX(lm.y, cropSide));
+      final my = _sensorToModelY(lm.x, cropXOff, cropSide);
+      frame[84 + i * 2]     = mx;
+      frame[84 + i * 2 + 1] = my;
+      raw.add(Offset(mx, my));
     }
     return raw;
   }
 
   ({List<Offset> right, List<Offset> left}) _fillHands(
-      List<dynamic> hands, CameraImage image, List<double> frame) {
+      List<dynamic> hands, List<double> frame, {
+      required int cropSide, required int cropXOff}) {
     final right = <Offset>[];
     final left  = <Offset>[];
     for (final hand in hands) {
@@ -358,14 +413,34 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       final landmarks = landmarksRaw as List;
       for (int i = 0; i < landmarks.length && i < 21; i++) {
         final lm = landmarks[i];
-        final nx = _maybeFlipX((lm.x as num).toDouble() / image.width);
-        final ny = (lm.y as num).toDouble() / image.height;
-        frame[offset + i * 2]     = nx;
-        frame[offset + i * 2 + 1] = ny;
-        target.add(Offset(nx, ny));
+        final sx = (lm.x as num).toDouble(); // sensör x (landscape yatay)
+        final sy = (lm.y as num).toDouble(); // sensör y (landscape dikey)
+        final mx = _maybeFlipX(_sensorToModelX(sy, cropSide));
+        final my = _sensorToModelY(sx, cropXOff, cropSide);
+        frame[offset + i * 2]     = mx;
+        frame[offset + i * 2 + 1] = my;
+        target.add(Offset(mx, my));
       }
     }
     return (right: right, left: left);
+  }
+
+  // ── Buffer resampling ──────────────────────────────────────────────────────
+  // Buffer'daki N kareyi uniform interpolasyonla _windowSize kareye dönüştürür.
+  // AUTSL eğitiminde her video klip 60 kareye yeniden örneklendi; biz de aynısını
+  // yaparak buffer uzunluğundan bağımsız doğru temporal dağılımı sağlıyoruz.
+  List<List<double>> _resampleBuffer(List<List<double>> buffer) {
+    if (buffer.isEmpty) {
+      return List.generate(
+        _windowSize, (_) => List<double>.filled(_featureSize, 0.0));
+    }
+    if (buffer.length == _windowSize) return buffer;
+    return List.generate(_windowSize, (i) {
+      final src = (i * (buffer.length - 1) / (_windowSize - 1))
+          .round()
+          .clamp(0, buffer.length - 1);
+      return buffer[src];
+    });
   }
 
   // ── TFLite çıkarımı ────────────────────────────────────────────────────────
@@ -374,15 +449,9 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     if (_interpreter == null || _buffer.isEmpty) return;
 
     try {
-      // Buffer 60 kareden azsa son kareyle padding yap (eğitim padding mantığıyla aynı)
-      List<List<double>> window = _buffer;
-      if (_buffer.length < _windowSize) {
-        final last = _buffer.last;
-        window = [
-          ..._buffer,
-          ...List.generate(_windowSize - _buffer.length, (_) => last),
-        ];
-      }
+      // Buffer'ı her zaman _windowSize kareye uniform resampling ile normalize et.
+      // Son kare padding yerine interpolasyon → eğitimle aynı temporal dağılım.
+      final window = _resampleBuffer(_buffer);
       final normalized = LandmarkNormalizer.normalizeWindow(window);
 
       final input = [
@@ -464,8 +533,9 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
           }
         }
       } else {
-        // Skor düşük — streak'i sıfırla ama mevcut cümleye dokunma
+        // Skor düşük — streak ve sınıfı sıfırla (stale lastIdx'den streak devam etmesin)
         _streak = 0;
+        _lastIdx = -1;
       }
     } catch (e, st) {
       debugPrint('❌ Çıkarım hatası: $e\n$st');
@@ -544,8 +614,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     final int uvCols = w ~/ 2;
     for (int r = 0; r < uvRows; r++) {
       for (int c = 0; c < uvCols; c++) {
-        final srcU = r * uPlane.bytesPerRow + c * uPlane.bytesPerPixel!;
-        final srcV = r * vPlane.bytesPerRow + c * vPlane.bytesPerPixel!;
+        final srcU = r * uPlane.bytesPerRow + c * (uPlane.bytesPerPixel ?? 1);
+        final srcV = r * vPlane.bytesPerRow + c * (vPlane.bytesPerPixel ?? 1);
         out[uvOffset++] = vPlane.bytes[srcV];
         out[uvOffset++] = uPlane.bytes[srcU];
       }
@@ -601,7 +671,9 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
 
   void resumeCamera() {
     try {
-      if (_camera != null && _camera!.value.isInitialized) {
+      if (_camera != null &&
+          _camera!.value.isInitialized &&
+          !_camera!.value.isStreamingImages) {
         _camera!.startImageStream(_onFrame);
       }
     } catch (_) {}

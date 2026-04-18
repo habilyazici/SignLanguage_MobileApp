@@ -10,6 +10,9 @@ import '../features/translator/presentation/screens/translator_screen.dart';
 import '../features/emergency/presentation/screens/emergency_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/auth/presentation/screens/register_screen.dart';
+import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import 'scaffold_with_nav.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -69,6 +72,23 @@ final router = GoRouter(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const SettingsScreen(),
+    ),
+
+    // ── Auth rotaları (bottom nav yok) ───────────────────────────────
+    GoRoute(
+      path: '/login',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/register',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const RegisterScreen(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ForgotPasswordScreen(),
     ),
   ],
 );

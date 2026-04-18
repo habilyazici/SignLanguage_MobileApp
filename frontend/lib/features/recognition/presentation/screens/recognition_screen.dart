@@ -26,7 +26,10 @@ class RecognitionScreen extends ConsumerWidget {
         fit: StackFit.expand,
         children: [
           // ── 1. Tam ekran kamera ──────────────────────────────────────────
-          _CameraLayer(state: state, ref: ref),
+          _CameraLayer(
+            state: state,
+            onDoubleTap: () => ref.read(recognitionProvider.notifier).switchCamera(),
+          ),
 
           // ── 2. Dev mode: landmark overlay (ValueNotifier — per-frame güncellenir)
           if (devMode && state.isReady && state.cameraController != null)
@@ -110,10 +113,10 @@ class RecognitionScreen extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CameraLayer extends StatelessWidget {
-  const _CameraLayer({required this.state, required this.ref});
+  const _CameraLayer({required this.state, required this.onDoubleTap});
 
   final RecognitionState state;
-  final WidgetRef ref;
+  final VoidCallback onDoubleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +142,7 @@ class _CameraLayer extends StatelessWidget {
     );
 
     return GestureDetector(
-      onDoubleTap: () => ref.read(recognitionProvider.notifier).switchCamera(),
+      onDoubleTap: onDoubleTap,
       child: preview,
     );
   }

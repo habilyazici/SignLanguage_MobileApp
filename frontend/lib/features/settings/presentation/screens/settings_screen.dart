@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -10,9 +11,10 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider);
-    final n = ref.read(settingsProvider.notifier);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final settings  = ref.watch(settingsProvider);
+    final n         = ref.read(settingsProvider.notifier);
+    final isGuest   = ref.watch(authProvider).isGuest;
+    final isDark    = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.softGrey,
@@ -174,10 +176,13 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.cloud_sync_rounded,
                 iconColor: AppTheme.secondaryBlue,
                 title: 'Bulut Eşzamanlaması',
-                subtitle: 'Ayarları ve Sağlık Kartını senkronize et',
+                subtitle: isGuest
+                    ? 'Giriş yaparak etkinleştir'
+                    : 'Ayarları ve Sağlık Kartını senkronize et',
                 value: settings.cloudSyncEnabled,
-                onChanged: (_) => n.toggleCloudSync(),
-                disabled: true, // backend hazır değil
+                onChanged: isGuest
+                    ? (_) => context.push('/login')
+                    : (_) => n.toggleCloudSync(),
               ),
               _Divider(isDark),
               _ActionRow(
@@ -561,7 +566,6 @@ class _SwitchRow extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
-    this.disabled = false,
   });
 
   final bool isDark;
@@ -571,41 +575,37 @@ class _SwitchRow extends StatelessWidget {
   final String subtitle;
   final bool value;
   final ValueChanged<bool>? onChanged;
-  final bool disabled;
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: disabled ? 0.45 : 1.0,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            _iconBox(icon, iconColor),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 2),
-                  Text(
-                    disabled ? '$subtitle (yakında)' : subtitle,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.midGrey),
-                  ),
-                ],
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          _iconBox(icon, iconColor),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 12, color: AppTheme.midGrey),
+                ),
+              ],
             ),
-            Switch(
-              value: value,
-              onChanged: disabled ? null : onChanged,
-              activeThumbColor: Colors.white,
-              activeTrackColor: AppTheme.secondaryBlue,
-              inactiveThumbColor: isDark ? Colors.white38 : Colors.white,
-              inactiveTrackColor: isDark ? Colors.white12 : Colors.black12,
-            ),
-          ],
-        ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: Colors.white,
+            activeTrackColor: AppTheme.secondaryBlue,
+            inactiveThumbColor: isDark ? Colors.white38 : Colors.white,
+            inactiveTrackColor: isDark ? Colors.white12 : Colors.black12,
+          ),
+        ],
       ),
     );
   }

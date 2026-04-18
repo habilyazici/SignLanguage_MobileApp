@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/presentation/widgets/glass_card.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark  = Theme.of(context).brightness == Brightness.dark;
+    final isGuest = ref.watch(authProvider).isGuest;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -23,7 +26,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // ── Hero başlık ──────────────────────────────────────────────
-                _HeroHeader(isDark: isDark)
+                _HeroHeader(isDark: isDark, isGuest: isGuest)
                     .animate()
                     .fadeIn(duration: 400.ms)
                     .slideY(begin: -0.12, end: 0, curve: Curves.easeOut),
@@ -104,15 +107,16 @@ class HomeScreen extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HeroHeader extends StatelessWidget {
-  const _HeroHeader({required this.isDark});
+  const _HeroHeader({required this.isDark, required this.isGuest});
   final bool isDark;
+  final bool isGuest;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Logo — önceki 56px'den 80px'e çıkarıldı
+        // Logo
         Container(
           width: 80,
           height: 80,
@@ -176,6 +180,37 @@ class _HeroHeader extends StatelessWidget {
             ],
           ),
         ),
+        // Misafir login pill
+        if (isGuest)
+          GestureDetector(
+            onTap: () => context.push('/login'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryBlue.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppTheme.secondaryBlue.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.login_rounded,
+                      size: 14, color: AppTheme.secondaryBlue),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Giriş Yap',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.secondaryBlue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }

@@ -8,6 +8,9 @@
       "Bash(dart analyze *)",
       "Bash(grep -v \"^$\")",
       "Bash(wc -l lib/features/*/presentation/screens/*.dart)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\habil\\.claude\\projects\\c--Users-habil-OneDrive-Belgeler-GitHub-SignLanguageMobileApp\\memory"
     ]
   }
 }
