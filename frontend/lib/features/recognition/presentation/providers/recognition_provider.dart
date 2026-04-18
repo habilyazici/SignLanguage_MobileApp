@@ -99,6 +99,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   mlkit.PoseDetector? _poseDetector;
   HandDetector? _handDetector;
   tflite.Interpreter? _interpreter;
+  tflite.IsolateInterpreter? _isolateInterpreter;
   CameraController? _camera;
   List<CameraDescription> _allCameras = [];
   CameraLensDirection _currentLens = CameraLensDirection.back;
@@ -116,19 +117,21 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   // Çözüm: son 2.5 saniyeyi al → 60'a resample et.
   // Böylece model her zaman doğru temporal ölçekte hareket görür.
   static const int _windowMs =
-      1500; // 1.5 saniyelik kayan pencere (AUTSL ortalama klip süresi)
-  static const int _minWindowMs = 500; // ilk inference için min süre (~0.5 sn)
+      2500; // 2.5 saniyelik kayan pencere — 5fps'de ~12 gerçek kare
+  static const int _minWindowMs = 800; // ilk inference için min süre (~0.8 sn)
   static const int _inferEvery = 5; // her 5 işlenen karede inference
   static const int _stride = 1; // her kare işlenir
 
   // (timestamp_ms, feature_vector) çiftleri
   final List<(int, List<double>)> _timedBuffer = [];
   int _frameCounter = 0;
-  bool _isProcessing = false;
+  bool _isProcessing = false;  // ML tespiti kilidi (pose + el)
+  bool _isInferring = false;   // TFLite inference kilidi (isolate'te çalışır)
 
   // ── Temporal smoothing ────────────────────────────────────────────────────
-  // Aynı sınıf 3 ardışık inference → göster (canlı çeviri için düşürüldü)
-  static const int _stableFrames = 3;
+  // Aynı sınıf 2 ardışık inference → göster.
+  // ~5fps'de inference ~1 sn'de bir gelir → 2 = ~2 sn bekleme (kullanılabilir).
+  static const int _stableFrames = 2;
   int _lastIdx = -1;
   int _streak = 0;
 
@@ -141,8 +144,27 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   // yoksa silinir. Bu sayede kısa okluzyonlarda tanıma sıfırlanmaz.
   Timer? _noDetectionTimer;
 
+  // ── Hareket algılama ───────────────────────────────────────────────────────
+  // Eller sabitken (dinlenme pozisyonu) model çalıştırılmaz; bu sayede
+  // "haklı" gibi boşta el pozisyonunun yanlış tetiklenmesi engellenir.
+  //
+  // Yöntem: ardışık iki frame'deki el landmark koordinatları (0..83) arasındaki
+  // ortalama mutlak fark hesaplanır. Eşiğin altındaysa eller sabit sayılır.
+  //
+  // [0,1] normalize uzayında ~0.8% ortalama yerinden → hareket var.
+  static const double _motionThreshold = 0.008;
+  // Son hareketten bu kadar ms sonra inference tamamen durur.
+  static const int _motionWindowMs = 1500;
+
+  List<double>? _prevFrame;   // Bir önceki frame'in landmark vektörü
+  int _lastMotionMs = 0;      // Son hareket algılanan zaman damgası
+
   // Cihaz sensör açısı (90, 270 vb.)
   int _sensorOrientation = 90;
+
+  // NV21 dönüşüm buffer'ı — her kare yeni tahsis yerine bir kere oluşturulur,
+  // GC baskısını önemli ölçüde azaltır.
+  Uint8List? _nv21Buffer;
 
   // ── Developer modu — per-frame Riverpod rebuild tetiklememek için ─────────
   final devNotifier = ValueNotifier<LandmarkDevData>(
@@ -194,6 +216,9 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       _interpreter = await tflite.Interpreter.fromAsset(
         'assets/models/sign_language_model.tflite',
         options: opts,
+      );
+      _isolateInterpreter = await tflite.IsolateInterpreter.create(
+        address: _interpreter!.address,
       );
 
       await _startCamera();
@@ -281,12 +306,18 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       );
     }
 
+    bool shouldInfer = false;
+
     try {
       final frame = List<double>.filled(_featureSize, 0.0);
       bool anyDetected = false;
 
-      final inputImage = _buildInputImage(image);
-      final mat = _toMat(image);
+      // NV21 yalnızca Android'de bir kere inşa edilir; hem ML Kit hem
+      // OpenCV/hand_detection aynı bayt dizisini kullanır (önceden 2x build ediliyordu).
+      final Uint8List? nv21 = Platform.isAndroid ? _buildNV21(image) : null;
+
+      final inputImage = _buildInputImage(image, nv21);
+      final mat = _toMat(image, nv21);
 
       final poseFuture = (inputImage != null)
           ? _poseDetector!.processImage(inputImage)
@@ -316,7 +347,13 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       // 2. El sonuçları — indeksler 0..83
       final hands = results[1] as List<Hand>;
       final handsData = (hands.isNotEmpty)
-          ? _fillHands(hands, frame, cropSide: cropSide, cropXOff: cropXOff)
+          ? _fillHands(
+              hands,
+              frame,
+              cropSide: cropSide,
+              cropXOff: cropXOff,
+              leftHandMode: ref.read(settingsProvider).leftHandMode,
+            )
           : (left: <Offset>[], right: <Offset>[]);
       if (hands.isNotEmpty) anyDetected = true;
 
@@ -334,22 +371,33 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         _noDetectionTimer?.cancel();
         _noDetectionTimer = null;
 
-        // Zaman damgalı buffer'a ekle
+        // ── Hareket algılama ──────────────────────────────────────────────
+        // El landmark koordinatlarının (0..83) önceki frame'e göre ortalama
+        // mutlak değişimi hesaplanır. Eşiğin üzerindeyse hareket var demektir.
         final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final motion = _computeMotion(frame);
+        _prevFrame = List<double>.from(frame); // bir sonraki frame için sakla
+
+        if (motion >= _motionThreshold) {
+          _lastMotionMs = nowMs; // hareket zamanını güncelle
+        }
+
+        // Zaman damgalı buffer'a ekle
         _timedBuffer.add((nowMs, frame));
 
-        // _windowMs'den eski kareleri çıkar (kayan 2.5-saniyelik pencere)
+        // _windowMs'den eski kareleri çıkar (kayan pencere)
         _timedBuffer.removeWhere((e) => nowMs - e.$1 > _windowMs);
 
-        // Yeterli veri biriktiğinde inference çalıştır.
-        // Koşul: en az _minWindowMs'lik süre VEYA en az 3 kare
-        // Sonrasında her _inferEvery'inci karede tekrar.
+        // Yeterli veri biriktiğinde inference çalıştır —
+        // ANCAK yalnızca son 1.5 sn içinde hareket algılandıysa.
+        final timeSinceMotion = nowMs - _lastMotionMs;
         final windowAge = _timedBuffer.length >= 2
             ? nowMs - _timedBuffer.first.$1
             : 0;
-        if ((windowAge >= _minWindowMs || _timedBuffer.length >= 3) &&
+        if (timeSinceMotion <= _motionWindowMs &&
+            (windowAge >= _minWindowMs || _timedBuffer.length >= 3) &&
             _frameCounter % _inferEvery == 0) {
-          _runInference();
+          shouldInfer = true;
         }
       } else {
         // Tespit yok → hemen silme, 1 saniyelik grace period başlat
@@ -362,8 +410,25 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     } catch (e, st) {
       debugPrint('❌ Frame hatası: $e\n$st');
     } finally {
+      // ML kilidi burada bırakılır — bir sonraki kare artık beklemez.
+      // TFLite inference bağımsız olarak arka planda devam eder.
       _isProcessing = false;
     }
+
+    if (shouldInfer) _runInference();
+  }
+
+  // ── Hareket skoru hesaplama ────────────────────────────────────────────────
+  // El landmark koordinatları (indeks 0..83): sağ el [0..41] + sol el [42..83].
+  // Pose koordinatları (84..105) kasıtlı hariç tutulur — vücut çok az hareket
+  // ettiğinden işaret hareketi için anlamlı sinyal vermez.
+  double _computeMotion(List<double> current) {
+    if (_prevFrame == null) return double.infinity; // ilk kare → her zaman hareket var
+    double sum = 0.0;
+    for (int i = 0; i < 84; i++) {
+      sum += (current[i] - _prevFrame![i]).abs();
+    }
+    return sum / 84.0; // ortalama mutlak yerinden oynama (0..1 normalize uzayında)
   }
 
   // ── Landmark doldurma ──────────────────────────────────────────────────────
@@ -462,6 +527,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     List<double> frame, {
     required int cropSide,
     required int cropXOff,
+    required bool leftHandMode,
   }) {
     final displayRight = <Offset>[];
     final displayLeft = <Offset>[];
@@ -473,9 +539,11 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     for (final hand in hands) {
       // Slot 0: Right (Dökümantasyona göre)
       bool isAnatomicalRight = (hand.handedness == Handedness.right);
+      // Sol el modunda slotları ters çevir — sol baskın kullanıcılar için
+      final bool useRightSlot = leftHandMode ? !isAnatomicalRight : isAnatomicalRight;
 
-      final offset = isAnatomicalRight ? 0 : 42;
-      final displayTarget = isAnatomicalRight ? displayRight : displayLeft;
+      final offset = useRightSlot ? 0 : 42;
+      final displayTarget = useRightSlot ? displayRight : displayLeft;
 
       final landmarksRaw = hand.landmarks;
       if (landmarksRaw == null) continue;
@@ -568,21 +636,24 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
 
   // ── TFLite çıkarımı ────────────────────────────────────────────────────────
 
-  void _runInference() {
-    if (_interpreter == null || _timedBuffer.isEmpty) return;
+  Future<void> _runInference() async {
+    if (_isolateInterpreter == null || _timedBuffer.isEmpty) return;
+    if (_isInferring) return;
 
-    try {
-      // KARARLILIK GUARD'I: Tamponun en az yarısı (30 kare) dolmadan tahmine başlama.
-      // Bu, "boş boş kelimeler" söylenmesini (junk data) büyük oranda engeller.
-      if (_timedBuffer.length < 30) {
-        if (_frameCounter % 50 == 0) {
-          debugPrint(
-            '⏳ Tampon henüz boş (${_timedBuffer.length}/60), çıkarım atlanıyor.',
-          );
-        }
-        return;
+    // KARARLILIK GUARD'I: ~5fps'de 2.5 saniyelik pencere = ~12 gerçek kare.
+    // 8 kare yeterli — resampling ile 60'a tamamlanır (eğitimle aynı padding mantığı).
+    if (_timedBuffer.length < 8) {
+      if (_frameCounter % 50 == 0) {
+        debugPrint(
+          '⏳ Tampon henüz boş (${_timedBuffer.length}/60), çıkarım atlanıyor.',
+        );
       }
+      return;
+    }
 
+    _isInferring = true;
+    try {
+      // Buffer snapshot'ı al — inference arka plandayken ana thread buffer'a yazmaya devam edebilir.
       final frames = _timedBuffer.map((e) => e.$2).toList();
       final window = _resampleBuffer(frames);
       final normalized = LandmarkNormalizer.normalizeWindow(window);
@@ -595,7 +666,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         0.0,
       ).reshape([1, _numClasses]);
 
-      _interpreter!.run(input, output);
+      // TFLite inference arka plan isolate'inde çalışır — ana thread bloklanmaz.
+      await _isolateInterpreter!.run(input, output);
 
       final scores = List<double>.from(output[0] as List);
       var maxScore = 0.0;
@@ -663,25 +735,33 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
                 confidenceScore: 0.0,
                 sentence: [],
               );
-              _lastShownWord = '';
+              // _lastShownWord BURADA sıfırlanmıyor — sıfırlama sadece skor
+              // eşiğin altına düşünce yapılır (aşağıdaki else bloğu).
+              // Bu sayede aynı işaret sürekli tutulurken TTS tekrar tetiklenmez;
+              // ancak el indirilip tekrar kaldırılınca (yeni bir imza başlarken)
+              // yeniden tetiklenebilir.
             });
           } else {
             state = state.copyWith(confidenceScore: maxScore);
           }
         }
       } else {
-        // Skor düşük — streak ve sınıfı sıfırla (stale lastIdx'den streak devam etmesin)
+        // Skor düşük — eller boşta ya da farklı bir işaret başlıyor.
+        // Streak ve son sınıfı sıfırla; artık aynı kelime tekrar tetiklenebilir.
         _streak = 0;
         _lastIdx = -1;
+        _lastShownWord = '';
       }
     } catch (e, st) {
       debugPrint('❌ Çıkarım hatası: $e\n$st');
+    } finally {
+      _isInferring = false;
     }
   }
 
   // ── Yardımcılar ────────────────────────────────────────────────────────────
 
-  mlkit.InputImage? _buildInputImage(CameraImage image) {
+  mlkit.InputImage? _buildInputImage(CameraImage image, Uint8List? nv21) {
     try {
       final rotation =
           mlkit.InputImageRotationValue.fromRawValue(
@@ -700,7 +780,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
           ),
         );
       } else {
-        final bytes = _buildNV21(image);
+        final bytes = nv21 ?? _buildNV21(image);
         return mlkit.InputImage.fromBytes(
           bytes: bytes,
           metadata: mlkit.InputImageMetadata(
@@ -720,11 +800,18 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   Uint8List _buildNV21(CameraImage image) {
     final int w = image.width;
     final int h = image.height;
+    final int size = w * h * 3 ~/ 2;
+
+    // Buffer yoksa veya boyut değiştiyse (kamera geçişi) yeniden tahsis et.
+    // Aynı boyut için mevcut buffer yeniden kullanılır → GC baskısı azalır.
+    if (_nv21Buffer == null || _nv21Buffer!.length != size) {
+      _nv21Buffer = Uint8List(size);
+    }
 
     if (image.planes.length == 1) {
       final int stride = image.planes[0].bytesPerRow;
       if (stride == w) return image.planes[0].bytes;
-      final out = Uint8List(w * h * 3 ~/ 2);
+      final out = _nv21Buffer!;
       final src = image.planes[0].bytes; // Y plane - Hızlı kopyalama
       for (int r = 0; r < h; r++) {
         out.setRange(r * w, (r + 1) * w, src, r * stride);
@@ -762,7 +849,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     final uPlane = image.planes[1];
     final vPlane = image.planes[2];
 
-    final out = Uint8List(w * h * 3 ~/ 2);
+    final out = _nv21Buffer!;
     for (int r = 0; r < h; r++) {
       out.setRange(r * w, (r + 1) * w, yPlane.bytes, r * yPlane.bytesPerRow);
     }
@@ -780,7 +867,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     return out;
   }
 
-  cv.Mat? _toMat(CameraImage image) {
+  cv.Mat? _toMat(CameraImage image, Uint8List? nv21) {
     try {
       if (Platform.isIOS) {
         final bgra = cv.Mat.fromList(
@@ -793,12 +880,12 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         bgra.dispose();
         return bgr;
       } else {
-        final nv21 = _buildNV21(image);
+        final bytes = nv21 ?? _buildNV21(image);
         final yuv = cv.Mat.fromList(
           image.height + image.height ~/ 2,
           image.width,
           cv.MatType.CV_8UC1,
-          nv21,
+          bytes,
         );
         final bgr = cv.cvtColor(yuv, cv.COLOR_YUV2BGR_NV21);
         yuv.dispose();
@@ -823,6 +910,9 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     } catch (_) {}
     try {
       _handDetector?.dispose();
+    } catch (_) {}
+    try {
+      _isolateInterpreter?.close();
     } catch (_) {}
     try {
       _interpreter?.close();

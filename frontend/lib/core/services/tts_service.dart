@@ -12,6 +12,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 class TtsService {
   final FlutterTts _tts = FlutterTts();
   bool _ready = false;
+  // TTS hazır olmadan speak() çağrılırsa kelimeyi beklet; hazır olunca çal.
+  String? _pendingWord;
 
   Future<void> initialize() async {
     try {
@@ -33,6 +35,13 @@ class TtsService {
 
       _ready = true;
       debugPrint('✅ TTS hazır (tr-TR)');
+
+      // Başlatma sırasında gelen kelime varsa şimdi seslendir
+      if (_pendingWord != null) {
+        final word = _pendingWord!;
+        _pendingWord = null;
+        await _tts.speak(word);
+      }
     } catch (e) {
       debugPrint('❌ TTS başlatma hatası: $e');
     }
@@ -40,7 +49,12 @@ class TtsService {
 
   /// Yeni kelime geldiğinde çağrılır — önceki konuşmayı keserek başlar
   Future<void> speak(String word) async {
-    if (!_ready || word.isEmpty) return;
+    if (word.isEmpty) return;
+    if (!_ready) {
+      // TTS henüz hazır değil — en son kelimeyi beklet (eski bekleme iptal)
+      _pendingWord = word;
+      return;
+    }
     try {
       await _tts.stop();
       await _tts.speak(word);

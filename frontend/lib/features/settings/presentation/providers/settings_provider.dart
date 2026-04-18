@@ -58,7 +58,7 @@ class AppSettings {
     this.themeMode = ThemeMode.system,
     this.textSize = AppTextSize.standard,
     this.leftHandMode = false,
-    this.confidenceLevel = ConfidenceLevel.low,
+    this.confidenceLevel = ConfidenceLevel.medium,
     this.fpsLimitEnabled = false,
     this.hapticEnabled = true,
     this.temporalSmoothingEnabled = true,
