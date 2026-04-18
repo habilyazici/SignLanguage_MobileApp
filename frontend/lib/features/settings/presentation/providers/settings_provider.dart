@@ -7,19 +7,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum AppTextSize {
-  standard,   // varsayılan
-  large,      // Büyük
+  standard, // varsayılan
+  large, // Büyük
   extraLarge, // Ekstra Büyük
 }
 
 enum ConfidenceLevel {
-  low,    // %70 — daha duyarlı, daha fazla yanlış pozitif
+  low, // %70 — daha duyarlı, daha fazla yanlış pozitif
   medium, // %80 — dengeli (varsayılan)
-  high,   // %90 — daha katı, daha az tanıma
+  high, // %90 — daha katı, daha az tanıma
 }
 
 enum VideoQuality {
-  high,      // 720p
+  high, // 720p
   dataSaver, // 360p
 }
 
@@ -35,8 +35,8 @@ class AppSettings {
 
   // ── Kamera & Yapay Zeka ───────────────────────────────────────────────────
   final ConfidenceLevel confidenceLevel;
-  final bool fpsLimitEnabled;   // 30fps → 15fps
-  final bool hapticEnabled;     // Titreşim geri bildirimi
+  final bool fpsLimitEnabled; // 30fps → 15fps
+  final bool hapticEnabled; // Titreşim geri bildirimi
   final bool temporalSmoothingEnabled;
 
   // ── Veri & Video (backend hazır olduğunda aktif olacak) ───────────────────
@@ -44,8 +44,8 @@ class AppSettings {
   final VideoQuality videoQuality;
 
   // ── Gizlilik & Veri ───────────────────────────────────────────────────────
-  final bool zeroDataMode;      // Çeviri geçmişini kaydetme
-  final bool cloudSyncEnabled;  // Ayarları buluta senkronize et
+  final bool zeroDataMode; // Çeviri geçmişini kaydetme
+  final bool cloudSyncEnabled; // Ayarları buluta senkronize et
 
   // ── Ses ───────────────────────────────────────────────────────────────────
   final bool ttsEnabled;
@@ -55,105 +55,107 @@ class AppSettings {
   final bool devMode;
 
   const AppSettings({
-    this.themeMode               = ThemeMode.system,
-    this.textSize                = AppTextSize.standard,
-    this.leftHandMode            = false,
-    this.confidenceLevel         = ConfidenceLevel.medium,
-    this.fpsLimitEnabled         = false,
-    this.hapticEnabled           = true,
+    this.themeMode = ThemeMode.system,
+    this.textSize = AppTextSize.standard,
+    this.leftHandMode = false,
+    this.confidenceLevel = ConfidenceLevel.low,
+    this.fpsLimitEnabled = false,
+    this.hapticEnabled = true,
     this.temporalSmoothingEnabled = true,
-    this.cellularVideoDisabled   = false,
-    this.videoQuality            = VideoQuality.high,
-    this.zeroDataMode            = false,
-    this.cloudSyncEnabled        = false,
-    this.ttsEnabled              = true,
-    this.sttEnabled              = true,
-    this.devMode                 = false,
+    this.cellularVideoDisabled = false,
+    this.videoQuality = VideoQuality.high,
+    this.zeroDataMode = false,
+    this.cloudSyncEnabled = false,
+    this.ttsEnabled = true,
+    this.sttEnabled = true,
+    this.devMode = false,
   });
 
   /// Confidence level'ı TFLite threshold değerine dönüştürür.
   double get confidenceThreshold => switch (confidenceLevel) {
-    ConfidenceLevel.low    => 0.70,
+    ConfidenceLevel.low => 0.70,
     ConfidenceLevel.medium => 0.80,
-    ConfidenceLevel.high   => 0.90,
+    ConfidenceLevel.high => 0.90,
   };
 
   /// Hedef FPS değeri.
   int get targetFps => fpsLimitEnabled ? 15 : 30;
 
   AppSettings copyWith({
-    ThemeMode?         themeMode,
-    AppTextSize?       textSize,
-    bool?              leftHandMode,
-    ConfidenceLevel?   confidenceLevel,
-    bool?              fpsLimitEnabled,
-    bool?              hapticEnabled,
-    bool?              temporalSmoothingEnabled,
-    bool?              cellularVideoDisabled,
-    VideoQuality?      videoQuality,
-    bool?              zeroDataMode,
-    bool?              cloudSyncEnabled,
-    bool?              ttsEnabled,
-    bool?              sttEnabled,
-    bool?              devMode,
-  }) =>
-      AppSettings(
-        themeMode:                themeMode                ?? this.themeMode,
-        textSize:                 textSize                 ?? this.textSize,
-        leftHandMode:             leftHandMode             ?? this.leftHandMode,
-        confidenceLevel:          confidenceLevel          ?? this.confidenceLevel,
-        fpsLimitEnabled:          fpsLimitEnabled          ?? this.fpsLimitEnabled,
-        hapticEnabled:            hapticEnabled            ?? this.hapticEnabled,
-        temporalSmoothingEnabled: temporalSmoothingEnabled ?? this.temporalSmoothingEnabled,
-        cellularVideoDisabled:    cellularVideoDisabled    ?? this.cellularVideoDisabled,
-        videoQuality:             videoQuality             ?? this.videoQuality,
-        zeroDataMode:             zeroDataMode             ?? this.zeroDataMode,
-        cloudSyncEnabled:         cloudSyncEnabled         ?? this.cloudSyncEnabled,
-        ttsEnabled:               ttsEnabled               ?? this.ttsEnabled,
-        sttEnabled:               sttEnabled               ?? this.sttEnabled,
-        devMode:                  devMode                  ?? this.devMode,
-      );
+    ThemeMode? themeMode,
+    AppTextSize? textSize,
+    bool? leftHandMode,
+    ConfidenceLevel? confidenceLevel,
+    bool? fpsLimitEnabled,
+    bool? hapticEnabled,
+    bool? temporalSmoothingEnabled,
+    bool? cellularVideoDisabled,
+    VideoQuality? videoQuality,
+    bool? zeroDataMode,
+    bool? cloudSyncEnabled,
+    bool? ttsEnabled,
+    bool? sttEnabled,
+    bool? devMode,
+  }) => AppSettings(
+    themeMode: themeMode ?? this.themeMode,
+    textSize: textSize ?? this.textSize,
+    leftHandMode: leftHandMode ?? this.leftHandMode,
+    confidenceLevel: confidenceLevel ?? this.confidenceLevel,
+    fpsLimitEnabled: fpsLimitEnabled ?? this.fpsLimitEnabled,
+    hapticEnabled: hapticEnabled ?? this.hapticEnabled,
+    temporalSmoothingEnabled:
+        temporalSmoothingEnabled ?? this.temporalSmoothingEnabled,
+    cellularVideoDisabled: cellularVideoDisabled ?? this.cellularVideoDisabled,
+    videoQuality: videoQuality ?? this.videoQuality,
+    zeroDataMode: zeroDataMode ?? this.zeroDataMode,
+    cloudSyncEnabled: cloudSyncEnabled ?? this.cloudSyncEnabled,
+    ttsEnabled: ttsEnabled ?? this.ttsEnabled,
+    sttEnabled: sttEnabled ?? this.sttEnabled,
+    devMode: devMode ?? this.devMode,
+  );
 
   // ── SharedPreferences serileştirme ────────────────────────────────────────
 
   static AppSettings fromPrefs(SharedPreferences prefs) {
     return AppSettings(
-      themeMode: ThemeMode.values[
-          prefs.getInt('themeMode') ?? ThemeMode.system.index],
-      textSize: AppTextSize.values[
-          prefs.getInt('textSize') ?? AppTextSize.standard.index],
-      leftHandMode:             prefs.getBool('leftHandMode')             ?? false,
-      confidenceLevel: ConfidenceLevel.values[
-          prefs.getInt('confidenceLevel') ?? ConfidenceLevel.medium.index],
-      fpsLimitEnabled:          prefs.getBool('fpsLimitEnabled')          ?? false,
-      hapticEnabled:            prefs.getBool('hapticEnabled')            ?? true,
-      temporalSmoothingEnabled: prefs.getBool('temporalSmoothingEnabled') ?? true,
-      cellularVideoDisabled:    prefs.getBool('cellularVideoDisabled')    ?? false,
-      videoQuality: VideoQuality.values[
-          prefs.getInt('videoQuality') ?? VideoQuality.high.index],
-      zeroDataMode:             prefs.getBool('zeroDataMode')             ?? false,
-      cloudSyncEnabled:         prefs.getBool('cloudSyncEnabled')         ?? false,
-      ttsEnabled:               prefs.getBool('ttsEnabled')               ?? true,
-      sttEnabled:               prefs.getBool('sttEnabled')               ?? true,
-      devMode:                  prefs.getBool('devMode')                  ?? false,
+      themeMode:
+          ThemeMode.values[prefs.getInt('themeMode') ?? ThemeMode.system.index],
+      textSize: AppTextSize
+          .values[prefs.getInt('textSize') ?? AppTextSize.standard.index],
+      leftHandMode: prefs.getBool('leftHandMode') ?? false,
+      confidenceLevel:
+          ConfidenceLevel.values[prefs.getInt('confidenceLevel') ??
+              ConfidenceLevel.medium.index],
+      fpsLimitEnabled: prefs.getBool('fpsLimitEnabled') ?? false,
+      hapticEnabled: prefs.getBool('hapticEnabled') ?? true,
+      temporalSmoothingEnabled:
+          prefs.getBool('temporalSmoothingEnabled') ?? true,
+      cellularVideoDisabled: prefs.getBool('cellularVideoDisabled') ?? false,
+      videoQuality: VideoQuality
+          .values[prefs.getInt('videoQuality') ?? VideoQuality.high.index],
+      zeroDataMode: prefs.getBool('zeroDataMode') ?? false,
+      cloudSyncEnabled: prefs.getBool('cloudSyncEnabled') ?? false,
+      ttsEnabled: prefs.getBool('ttsEnabled') ?? true,
+      sttEnabled: prefs.getBool('sttEnabled') ?? true,
+      devMode: prefs.getBool('devMode') ?? false,
     );
   }
 
   Future<void> saveToPrefs(SharedPreferences prefs) async {
-    await prefs.setInt ('themeMode',               themeMode.index);
-    await prefs.setInt ('textSize',                textSize.index);
-    await prefs.setBool('leftHandMode',             leftHandMode);
-    await prefs.setInt ('confidenceLevel',          confidenceLevel.index);
-    await prefs.setBool('fpsLimitEnabled',          fpsLimitEnabled);
-    await prefs.setBool('hapticEnabled',            hapticEnabled);
+    await prefs.setInt('themeMode', themeMode.index);
+    await prefs.setInt('textSize', textSize.index);
+    await prefs.setBool('leftHandMode', leftHandMode);
+    await prefs.setInt('confidenceLevel', confidenceLevel.index);
+    await prefs.setBool('fpsLimitEnabled', fpsLimitEnabled);
+    await prefs.setBool('hapticEnabled', hapticEnabled);
     await prefs.setBool('temporalSmoothingEnabled', temporalSmoothingEnabled);
-    await prefs.setBool('cellularVideoDisabled',    cellularVideoDisabled);
-    await prefs.setInt ('videoQuality',             videoQuality.index);
-    await prefs.setBool('zeroDataMode',             zeroDataMode);
-    await prefs.setBool('cloudSyncEnabled',         cloudSyncEnabled);
-    await prefs.setBool('ttsEnabled',               ttsEnabled);
-    await prefs.setBool('sttEnabled',               sttEnabled);
-    await prefs.setBool('devMode',                  devMode);
+    await prefs.setBool('cellularVideoDisabled', cellularVideoDisabled);
+    await prefs.setInt('videoQuality', videoQuality.index);
+    await prefs.setBool('zeroDataMode', zeroDataMode);
+    await prefs.setBool('cloudSyncEnabled', cloudSyncEnabled);
+    await prefs.setBool('ttsEnabled', ttsEnabled);
+    await prefs.setBool('sttEnabled', sttEnabled);
+    await prefs.setBool('devMode', devMode);
   }
 }
 
@@ -161,8 +163,9 @@ class AppSettings {
 // Provider
 // ─────────────────────────────────────────────────────────────────────────────
 
-final settingsProvider =
-    NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(
+  SettingsNotifier.new,
+);
 
 class SettingsNotifier extends Notifier<AppSettings> {
   SharedPreferences? _prefs;
@@ -208,16 +211,14 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void toggleHaptic() =>
       _persist(state.copyWith(hapticEnabled: !state.hapticEnabled));
 
-  void toggleTemporalSmoothing() =>
-      _persist(state.copyWith(
-        temporalSmoothingEnabled: !state.temporalSmoothingEnabled,
-      ));
+  void toggleTemporalSmoothing() => _persist(
+    state.copyWith(temporalSmoothingEnabled: !state.temporalSmoothingEnabled),
+  );
 
   // Veri & Video
-  void toggleCellularVideo() =>
-      _persist(state.copyWith(
-        cellularVideoDisabled: !state.cellularVideoDisabled,
-      ));
+  void toggleCellularVideo() => _persist(
+    state.copyWith(cellularVideoDisabled: !state.cellularVideoDisabled),
+  );
 
   void setVideoQuality(VideoQuality q) =>
       _persist(state.copyWith(videoQuality: q));
@@ -230,15 +231,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
       _persist(state.copyWith(cloudSyncEnabled: !state.cloudSyncEnabled));
 
   // Ses
-  void toggleTts() =>
-      _persist(state.copyWith(ttsEnabled: !state.ttsEnabled));
+  void toggleTts() => _persist(state.copyWith(ttsEnabled: !state.ttsEnabled));
 
-  void toggleStt() =>
-      _persist(state.copyWith(sttEnabled: !state.sttEnabled));
+  void toggleStt() => _persist(state.copyWith(sttEnabled: !state.sttEnabled));
 
   // Geliştirici
-  void toggleDevMode() =>
-      _persist(state.copyWith(devMode: !state.devMode));
+  void toggleDevMode() => _persist(state.copyWith(devMode: !state.devMode));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
