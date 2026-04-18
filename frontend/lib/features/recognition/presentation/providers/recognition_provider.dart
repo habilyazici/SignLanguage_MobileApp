@@ -16,70 +16,10 @@ import '../../../../../core/providers/tts_provider.dart';
 import '../../../../../core/utils/landmark_normalizer.dart';
 import '../../../../../core/utils/label_mapper.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../domain/entities/recognition_state.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Developer modu için landmark verisi (ValueNotifier ile taşınır)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class LandmarkDevData {
-  final List<Offset> posePoints;
-  final List<Offset> rightHand;
-  final List<Offset> leftHand;
-  final int bufferFill;
-  final int poseCount;
-  final int handCount;
-
-  LandmarkDevData({
-    required this.posePoints,
-    required this.rightHand,
-    required this.leftHand,
-    required this.bufferFill,
-    required this.poseCount,
-    required this.handCount,
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Durum sınıfı
-// ─────────────────────────────────────────────────────────────────────────────
-
-class RecognitionState {
-  final bool isReady;
-  final bool isError;
-  final CameraController? cameraController;
-  // Anlık tahmin (smoothing sonrası)
-  final String predictedWord;
-  final double confidenceScore;
-  // Altyazı biriktirme listesi
-  final List<String> sentence;
-
-  const RecognitionState({
-    this.isReady = false,
-    this.isError = false,
-    this.cameraController,
-    this.predictedWord = '',
-    this.confidenceScore = 0.0,
-    this.sentence = const [],
-  });
-
-  RecognitionState copyWith({
-    bool? isReady,
-    bool? isError,
-    CameraController? cameraController,
-    String? predictedWord,
-    double? confidenceScore,
-    List<String>? sentence,
-  }) {
-    return RecognitionState(
-      isReady: isReady ?? this.isReady,
-      isError: isError ?? this.isError,
-      cameraController: cameraController ?? this.cameraController,
-      predictedWord: predictedWord ?? this.predictedWord,
-      confidenceScore: confidenceScore ?? this.confidenceScore,
-      sentence: sentence ?? this.sentence,
-    );
-  }
-}
+export '../../domain/entities/recognition_state.dart'
+    show RecognitionState, LandmarkDevData;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider  (Riverpod 3.x — NotifierProvider)
@@ -333,13 +273,28 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       mat?.dispose();
 
       // 1. Pose sonuçları — indeksler 84..105
+      //
+      // ML Kit, InputImage'a verilen rotation metadata'sına göre koordinatları
+      // ZATEN döndürülmüş (portrait) uzayda döndürür. Bu nedenle crop offset'leri
+      // portrait boyutlarından hesaplanmalı, ham sensor boyutlarından değil.
+      //   sensorOrientation=90/270 → ML Kit portrait çıktısı: w=image.height, h=image.width
+      //   sensorOrientation=0/180  → ML Kit landscape çıktısı: w=image.width,  h=image.height
+      final bool isRotated90or270 =
+          _sensorOrientation == 90 || _sensorOrientation == 270;
+      final int poseW = isRotated90or270 ? image.height : image.width;
+      final int poseH = isRotated90or270 ? image.width : image.height;
+      final int poseCropSide = min(poseW, poseH);
+      final int poseCropXOff = (poseW - poseCropSide) ~/ 2;
+      final int poseCropYOff = (poseH - poseCropSide) ~/ 2;
+
       final poses = results[0] as List<mlkit.Pose>;
       final posePoints = (poses.isNotEmpty)
           ? _fillPose(
               poses.first,
               frame,
-              cropSide: cropSide,
-              cropXOff: cropXOff,
+              cropSide: poseCropSide,
+              cropXOff: poseCropXOff,
+              cropYOff: poseCropYOff,
             )
           : <Offset>[];
       if (poses.isNotEmpty) anyDetected = true;
@@ -462,9 +417,13 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       case 270:
         // Saat yönünde 270: x' = y, y' = w - x
         return (sy / cropSide).clamp(0.0, 1.0);
+      case 180:
+        // 180°: x' = w - x, y' = h - y
+        return (1.0 - (sx - cropXOff) / cropSide).clamp(0.0, 1.0);
       case 0:
         return ((sx - cropXOff) / cropSide).clamp(0.0, 1.0);
       default:
+        // Bilinmeyen yön: 90° varsayımı (portrait cihazların büyük çoğunluğu)
         return (1.0 - sy / cropSide).clamp(0.0, 1.0);
     }
   }
@@ -483,9 +442,13 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         return ((sx - cropXOff) / cropSide).clamp(0.0, 1.0);
       case 270:
         return (1.0 - (sx - cropXOff) / cropSide).clamp(0.0, 1.0);
+      case 180:
+        // 180°: x' = w - x, y' = h - y
+        return (1.0 - (sy - cropYOff) / cropSide).clamp(0.0, 1.0);
       case 0:
         return ((sy - cropYOff) / cropSide).clamp(0.0, 1.0);
       default:
+        // Bilinmeyen yön: 90° varsayımı
         return ((sx - cropXOff) / cropSide).clamp(0.0, 1.0);
     }
   }
@@ -495,6 +458,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     List<double> frame, {
     required int cropSide,
     required int cropXOff,
+    required int cropYOff,
   }) {
     final displayPoints = <Offset>[];
 
@@ -502,10 +466,11 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       final lm = pose.landmarks[mlkit.PoseLandmarkType.values[_poseIndices[i]]];
       if (lm == null) continue;
 
-      // 1. MODEL KOORDİNATLARI (Crop-Relative [0,1])
-      // 240x320 portrait space'de crop orta kısımdır.
-      double mx_model = (lm.x / cropSide).clamp(0.0, 1.0);
-      double my_model = ((lm.y - cropXOff) / cropSide).clamp(0.0, 1.0);
+      // 1. MODEL KOORDİNATLARI (portrait uzayında crop-relative [0,1])
+      // ML Kit koordinatları zaten portrait uzayında gelir; crop offset'leri de
+      // portrait boyutlarından hesaplanmış poseCropXOff/poseCropYOff'tur.
+      double mx_model = ((lm.x - cropXOff) / cropSide).clamp(0.0, 1.0);
+      double my_model = ((lm.y - cropYOff) / cropSide).clamp(0.0, 1.0);
 
       // 2. GÖRSEL KOORDİNATLAR (Preview-Relative [0,1])
       // Painter tüm preview alanına [0..240, 0..320] çizim yapacağı için bu oranda normalize edilir.
@@ -808,46 +773,28 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       _nv21Buffer = Uint8List(size);
     }
 
-    if (image.planes.length == 1) {
-      final int stride = image.planes[0].bytesPerRow;
-      if (stride == w) return image.planes[0].bytes;
+    // Android YUV_420_888 her zaman 3 plane verir; planes.length == 1
+    // yalnızca teorik bir edge case olup UV plane'lerine erişilemez, bu yüzden
+    // 3-plane path'i kullan.
+    if (image.planes.length < 3) {
+      // Sadece Y plane'i kopyala, UV'yi sıfır bırak (renksiz ama çökmez).
       final out = _nv21Buffer!;
-      final src = image.planes[0].bytes; // Y plane - Hızlı kopyalama
+      final yPlane0 = image.planes[0];
       for (int r = 0; r < h; r++) {
-        out.setRange(r * w, (r + 1) * w, src, r * stride);
+        out.setRange(r * w, (r + 1) * w, yPlane0.bytes, r * yPlane0.bytesPerRow);
       }
-
-      // UV planes (NV21: V U V U...)
-      // Not: Bu kısım FPS'i en çok düşüren yerdir. Sadece gerekli ise yapılmalı.
-      // Drone/Daha hızlı cihazlarda sorun olmaz.
-      final uPlane = image.planes[1];
-      final vPlane = image.planes[2];
-      final uvOffset = w * h;
-      final uBytes = uPlane.bytes;
-      final vBytes = vPlane.bytes;
-
-      // Çoğu Android cihazda UV planları son iki plandadır ve stride=2'dir.
-      // Flutter camera paketinde Plane sınıfında pixelStride yoktur.
-      // Genelde [1] U, [2] V'dir ama bazen çaprazlanmış olabilirler.
-      int outIdx = uvOffset;
-      final int uvH = h ~/ 2;
-      final int uvW = w ~/ 2;
-      final int uRowStride = uPlane.bytesPerRow;
-
-      for (int r = 0; r < uvH; r++) {
-        for (int c = 0; c < uvW; c++) {
-          // pixelStride=2 varsayımı (YUV_420_888 standartı)
-          final int idx = r * uRowStride + c * 2;
-          if (idx < vBytes.length) out[outIdx++] = vBytes[idx];
-          if (idx < uBytes.length) out[outIdx++] = uBytes[idx];
-        }
-      }
+      debugPrint('⚠️ _buildNV21: ${image.planes.length} plane alındı, UV atlandı.');
       return out;
     }
 
     final yPlane = image.planes[0];
     final uPlane = image.planes[1];
     final vPlane = image.planes[2];
+
+    // bytesPerPixel gerçek pixelStride'ı verir (1 veya 2).
+    // Hardcode etmek bazı eski/budget Android cihazlarda UV kaymasına yol açar.
+    final int uPixelStride = uPlane.bytesPerPixel ?? 2;
+    final int vPixelStride = vPlane.bytesPerPixel ?? 2;
 
     final out = _nv21Buffer!;
     for (int r = 0; r < h; r++) {
@@ -858,8 +805,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     final int uvCols = w ~/ 2;
     for (int r = 0; r < uvRows; r++) {
       for (int c = 0; c < uvCols; c++) {
-        final srcU = r * uPlane.bytesPerRow + c * (uPlane.bytesPerPixel ?? 1);
-        final srcV = r * vPlane.bytesPerRow + c * (vPlane.bytesPerPixel ?? 1);
+        final srcU = r * uPlane.bytesPerRow + c * uPixelStride;
+        final srcV = r * vPlane.bytesPerRow + c * vPixelStride;
         out[uvOffset++] = vPlane.bytes[srcV];
         out[uvOffset++] = uPlane.bytes[srcU];
       }

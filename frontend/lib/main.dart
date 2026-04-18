@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'navigation/app_router.dart';
 import 'core/utils/label_mapper.dart';
@@ -8,11 +9,22 @@ import 'features/settings/presentation/providers/settings_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // TFLite etiketlerini cihaz hafızasına ilk saniyede alır
-  await LabelMapper.loadLabels();
+  // TFLite etiketlerini ve SharedPreferences'ı paralel yükle — startup süresini azaltır.
+  final labelsFuture = LabelMapper.loadLabels();
+  final prefsFuture = SharedPreferences.getInstance();
+  await labelsFuture;
+  final prefs = await prefsFuture;
 
-  // Tüm uygulamayı Riverpod beynine (ProviderScope) bağladık
-  runApp(const ProviderScope(child: HearMeOutApp()));
+  // sharedPreferencesProvider'ı override ederek SettingsNotifier'ın
+  // build() içinde senkron erişmesini sağla — settings flicker ortadan kalkar.
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const HearMeOutApp(),
+    ),
+  );
 }
 
 class HearMeOutApp extends ConsumerWidget {

@@ -1,2 +1,6 @@
-// STUB — Backend hazır olunca implement edilecek.
-// Dosya: dictionary_repository
+import '../entities/sign_entry.dart';
+
+abstract interface class DictionaryRepository {
+  /// Tüm işaret kelimelerini döndürür.
+  List<SignEntry> getAllSigns();
+}

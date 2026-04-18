@@ -1,68 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/entities/sign_entry.dart';
+import '../providers/dictionary_provider.dart';
 
 // Türkçe alfabe — harf chip'leri için
 const _kTurkishAlphabet = [
-  'A',
-  'B',
-  'C',
-  'Ç',
-  'D',
-  'E',
-  'F',
-  'G',
-  'Ğ',
-  'H',
-  'I',
-  'İ',
-  'J',
-  'K',
-  'L',
-  'M',
-  'N',
-  'O',
-  'Ö',
-  'P',
-  'R',
-  'S',
-  'Ş',
-  'T',
-  'U',
-  'Ü',
-  'V',
-  'Y',
-  'Z',
+  'A', 'B', 'C', 'Ç', 'D', 'E', 'F', 'G', 'Ğ', 'H',
+  'I', 'İ', 'J', 'K', 'L', 'M', 'N', 'O', 'Ö', 'P',
+  'R', 'S', 'Ş', 'T', 'U', 'Ü', 'V', 'Y', 'Z',
 ];
 
-// Türkçe büyük/küçük harf dönüşümü (I/İ ayrımı)
-String _trLower(String s) =>
-    s.replaceAll('İ', 'i').replaceAll('I', 'ı').toLowerCase();
-
-class DictionaryScreen extends StatefulWidget {
+class DictionaryScreen extends ConsumerStatefulWidget {
   const DictionaryScreen({super.key});
 
   @override
-  State<DictionaryScreen> createState() => _DictionaryScreenState();
+  ConsumerState<DictionaryScreen> createState() => _DictionaryScreenState();
 }
 
-class _DictionaryScreenState extends State<DictionaryScreen> {
-  List<Map<String, String>> _allSigns = [];
-  List<Map<String, String>> _filteredSigns = [];
-  bool _isLoading = true;
-
+class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _letterScrollController = ScrollController();
-
-  // null = Tümü
-  String? _selectedLetter;
 
   @override
   void initState() {
     super.initState();
-    _loadLabels();
-    _searchController.addListener(_applyFilters);
+    _searchController.addListener(() {
+      ref
+          .read(dictionaryProvider.notifier)
+          .setQuery(_searchController.text);
+    });
   }
 
   @override
@@ -72,84 +40,19 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     super.dispose();
   }
 
-  Future<void> _loadLabels() async {
-    try {
-      final String csvData = await rootBundle.loadString(
-        'assets/models/labels.csv',
-      );
-      // Hem \r\n hem \n destekli bölme
-      final lines = csvData.split(RegExp(r'\r?\n'));
-      final loaded = <Map<String, String>>[];
-
-      debugPrint('📖 Sözlük: ${lines.length} satır okundu (başlık dahil)');
-
-      for (int i = 1; i < lines.length; i++) {
-        final line = lines[i].trim();
-        if (line.isEmpty) continue;
-
-        final parts = line.split(',');
-        if (parts.length >= 3) {
-          loaded.add({
-            'id': parts[0].trim(),
-            'en': parts[1].trim(),
-            'tr': parts[2].trim(),
-          });
-        }
-      }
-
-      debugPrint('✅ Sözlük: ${loaded.length} kelime başarıyla yüklendi');
-
-      // Türkçe alfabetik sırala
-      loaded.sort((a, b) => _trLower(a['tr']!).compareTo(_trLower(b['tr']!)));
-
-      setState(() {
-        _allSigns = loaded;
-        _filteredSigns = loaded;
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('❌ Sözlük Yükleme Hatası: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Sözlük yüklenemedi: $e')));
-      }
-    }
-  }
-
-  void _applyFilters() {
-    final query = _searchController.text.trim().toLowerCase();
-    setState(() {
-      if (query.isNotEmpty) {
-        // Arama aktifken harf filtresi devre dışı (arama öncelikli)
-        _filteredSigns = _allSigns.where((s) {
-          return s['tr']!.toLowerCase().contains(query) ||
-              s['en']!.toLowerCase().contains(query);
-        }).toList();
-      } else if (_selectedLetter != null) {
-        _filteredSigns = _allSigns.where((s) {
-          if (s['tr']!.isEmpty) return false;
-          return _trLower(s['tr']![0]) == _trLower(_selectedLetter!);
-        }).toList();
-      } else {
-        _filteredSigns = _allSigns;
-      }
-    });
-  }
-
   void _selectLetter(String? letter) {
-    _searchController.clear(); // harfe basınca arama temizlenir
-    setState(() => _selectedLetter = letter);
-    _applyFilters();
+    _searchController.clear();
+    ref.read(dictionaryProvider.notifier).setLetter(letter);
   }
 
   bool get _isFiltered =>
-      _selectedLetter != null || _searchController.text.trim().isNotEmpty;
+      ref.read(dictionaryProvider).selectedLetter != null ||
+      _searchController.text.trim().isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dict = ref.watch(dictionaryProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -158,8 +61,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
           children: [
             // ── Başlık ───────────────────────────────────────────────────
             _Header(
-              totalCount: _allSigns.length,
-              filteredCount: _filteredSigns.length,
+              totalCount: dict.allSigns.length,
+              filteredCount: dict.filteredSigns.length,
               isFiltered: _isFiltered,
             ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.1),
 
@@ -172,18 +75,16 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
             // ── Harf filtre şeridi ────────────────────────────────────────
             _LetterStrip(
               scrollController: _letterScrollController,
-              selected: _selectedLetter,
+              selected: dict.selectedLetter,
               onSelect: _selectLetter,
               isDark: isDark,
             ).animate().fadeIn(delay: 140.ms, duration: 300.ms),
 
             // ── Sonuç listesi ─────────────────────────────────────────────
             Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredSigns.isEmpty
+              child: dict.filteredSigns.isEmpty
                   ? _EmptyState(isDark: isDark)
-                  : _SignList(signs: _filteredSigns, isDark: isDark),
+                  : _SignList(signs: dict.filteredSigns, isDark: isDark),
             ),
           ],
         ),
@@ -209,9 +110,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = isFiltered
-        ? '$filteredCount / $totalCount'
-        : '$totalCount Kelime';
+    final label = isFiltered ? '$filteredCount / $totalCount' : '$totalCount Kelime';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
@@ -239,9 +138,7 @@ class _Header extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: isFiltered
-                      ? AppTheme.secondaryBlue
-                      : AppTheme.primaryBlue,
+                  color: isFiltered ? AppTheme.secondaryBlue : AppTheme.primaryBlue,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -272,7 +169,7 @@ class _SearchBar extends StatelessWidget {
         controller: controller,
         style: TextStyle(color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
-          hintText: 'Kelime ara (TR / EN)...',
+          hintText: 'Kelime ara...',
           hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
           prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryBlue),
           suffixIcon: ListenableBuilder(
@@ -329,7 +226,6 @@ class _LetterStrip extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         children: [
-          // "Tümü" chip'i
           _LetterChip(
             label: 'Tümü',
             isSelected: selected == null,
@@ -338,7 +234,6 @@ class _LetterStrip extends StatelessWidget {
             isAll: true,
           ),
           const SizedBox(width: 6),
-          // A–Z harf chip'leri
           for (final letter in _kTurkishAlphabet) ...[
             _LetterChip(
               label: letter,
@@ -411,13 +306,13 @@ class _LetterChip extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Kelime listesi — animasyon sadece ilk yüklemede
+// Kelime listesi
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SignList extends StatelessWidget {
   const _SignList({required this.signs, required this.isDark});
 
-  final List<Map<String, String>> signs;
+  final List<SignEntry> signs;
   final bool isDark;
 
   @override
@@ -425,10 +320,8 @@ class _SignList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 120),
       itemCount: signs.length,
-      itemBuilder: (context, index) {
-        final sign = signs[index];
-        return _SignCard(sign: sign, isDark: isDark);
-      },
+      itemBuilder: (context, index) =>
+          _SignCard(sign: signs[index], isDark: isDark),
     );
   }
 }
@@ -436,7 +329,7 @@ class _SignList extends StatelessWidget {
 class _SignCard extends StatelessWidget {
   const _SignCard({required this.sign, required this.isDark});
 
-  final Map<String, String> sign;
+  final SignEntry sign;
   final bool isDark;
 
   @override
@@ -465,7 +358,7 @@ class _SignCard extends StatelessWidget {
           ),
           child: Center(
             child: Text(
-              sign['tr']!.isEmpty ? '?' : sign['tr']![0].toUpperCase(),
+              sign.label.isEmpty ? '?' : sign.label[0].toUpperCase(),
               style: TextStyle(
                 color: AppTheme.secondaryBlue,
                 fontWeight: FontWeight.bold,
@@ -475,16 +368,8 @@ class _SignCard extends StatelessWidget {
           ),
         ),
         title: Text(
-          sign['tr']!,
+          sign.label,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: Text(
-          sign['en']!.toUpperCase(),
-          style: TextStyle(
-            color: AppTheme.midGrey,
-            fontSize: 11,
-            letterSpacing: 0.8,
-          ),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios_rounded,
