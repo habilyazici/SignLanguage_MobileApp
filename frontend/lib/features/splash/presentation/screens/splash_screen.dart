@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_theme.dart';
+
+/// Onboarding tamamlandı flag'i için SharedPreferences anahtarı.
+/// OnboardingScreen tamamlandığında bu anahtara `true` yazılmalı.
+abstract final class OnboardingKeys {
+  static const String completed = 'onboarding_completed';
+}
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,10 +22,15 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // 2.8s sonra ana sayfaya geç
-    Future.delayed(const Duration(milliseconds: 2800), () {
-      if (mounted) context.go('/home');
-    });
+    Future.delayed(const Duration(milliseconds: 2800), _navigate);
+  }
+
+  Future<void> _navigate() async {
+    if (!mounted) return;
+    final prefs = await SharedPreferences.getInstance();
+    final done = prefs.getBool(OnboardingKeys.completed) ?? false;
+    if (!mounted) return;
+    context.go(done ? '/home' : '/onboarding');
   }
 
   @override
@@ -62,28 +74,28 @@ class _SplashScreenState extends State<SplashScreen> {
               children: [
                 // Logo
                 Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.15),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (ctx, err, st) => const Icon(
-                        Icons.hearing,
-                        size: 56,
-                        color: Colors.white,
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
                       ),
-                    ),
-                  ),
-                )
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (ctx, err, st) => const Icon(
+                            Icons.hearing,
+                            size: 56,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    )
                     .animate()
                     .scale(
                       begin: const Offset(0.5, 0.5),
@@ -96,14 +108,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
                 // Uygulama adı
                 Text(
-                  'Hear Me Out',
-                  style: GoogleFonts.poppins(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                )
+                      'Hear Me Out',
+                      style: GoogleFonts.poppins(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    )
                     .animate()
                     .fadeIn(delay: 350.ms, duration: 500.ms)
                     .slideY(begin: 0.15, end: 0),
@@ -119,9 +131,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     fontWeight: FontWeight.w400,
                   ),
                   textAlign: TextAlign.center,
-                )
-                    .animate()
-                    .fadeIn(delay: 600.ms, duration: 500.ms),
+                ).animate().fadeIn(delay: 600.ms, duration: 500.ms),
 
                 const SizedBox(height: 64),
 

@@ -11,10 +11,10 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings  = ref.watch(settingsProvider);
-    final n         = ref.read(settingsProvider.notifier);
-    final isGuest   = ref.watch(authProvider).isGuest;
-    final isDark    = Theme.of(context).brightness == Brightness.dark;
+    final settings = ref.watch(settingsProvider);
+    final n = ref.read(settingsProvider.notifier);
+    final isGuest = ref.watch(authProvider).isGuest;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.softGrey,
@@ -42,182 +42,217 @@ class SettingsScreen extends ConsumerWidget {
           // ── Genel Cihaz & Görünüm ──────────────────────────────────────────
           _SectionHeader('Genel Cihaz & Görünüm'),
           _SettingsCard(
-            isDark: isDark,
-            children: [
-              _ThemeRow(current: settings.themeMode, onChanged: n.setThemeMode, isDark: isDark),
-              _Divider(isDark),
-              _TextSizeRow(current: settings.textSize, onChanged: n.setTextSize, isDark: isDark),
-              _Divider(isDark),
-              _SwitchRow(
                 isDark: isDark,
-                icon: Icons.back_hand_rounded,
-                iconColor: const Color(0xFF7C4DFF),
-                title: 'Solak Modu',
-                subtitle: 'Kamera deklanşörünü sola hizalar',
-                value: settings.leftHandMode,
-                onChanged: (_) => n.toggleLeftHandMode(),
-              ),
-            ],
-          ).animate().fadeIn(delay: 60.ms, duration: 350.ms).slideY(begin: 0.06),
+                children: [
+                  _ThemeRow(
+                    current: settings.themeMode,
+                    onChanged: n.setThemeMode,
+                    isDark: isDark,
+                  ),
+                  _Divider(isDark),
+                  _TextSizeRow(
+                    current: settings.textSize,
+                    onChanged: n.setTextSize,
+                    isDark: isDark,
+                  ),
+                  _Divider(isDark),
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.back_hand_rounded,
+                    iconColor: const Color(0xFF7C4DFF),
+                    title: 'Solak Modu',
+                    subtitle: 'Kamera deklanşörünü sola hizalar',
+                    value: settings.leftHandMode,
+                    onChanged: (_) => n.toggleLeftHandMode(),
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(delay: 60.ms, duration: 350.ms)
+              .slideY(begin: 0.06),
 
           // ── Kamera & Yapay Zeka ────────────────────────────────────────────
           _SectionHeader('Kamera & Yapay Zeka'),
           _SettingsCard(
-            isDark: isDark,
-            children: [
-              _ConfidenceRow(current: settings.confidenceLevel, onChanged: n.setConfidenceLevel, isDark: isDark),
-              _Divider(isDark),
-              _SwitchRow(
                 isDark: isDark,
-                icon: Icons.blur_on_rounded,
-                iconColor: Colors.purpleAccent,
-                title: 'Temporal Düzleme',
-                subtitle: '2 ardışık onay eşleşirse kelimeyi ekrana yaz',
-                value: settings.temporalSmoothingEnabled,
-                onChanged: (_) => n.toggleTemporalSmoothing(),
-              ),
-              _Divider(isDark),
-              _SwitchRow(
-                isDark: isDark,
-                icon: Icons.speed_rounded,
-                iconColor: Colors.orangeAccent,
-                title: 'Düşük Güç Modu (15 FPS)',
-                subtitle: 'Pil tasarrufu — kamera kare hızını 15\'e indirir',
-                value: settings.fpsLimitEnabled,
-                onChanged: (_) => n.toggleFpsLimit(),
-              ),
-              _Divider(isDark),
-              _SwitchRow(
-                isDark: isDark,
-                icon: Icons.vibration_rounded,
-                iconColor: Colors.tealAccent,
-                title: 'Titreşim Geri Bildirimi',
-                subtitle: 'Kelime tanındığında hafif titreşim',
-                value: settings.hapticEnabled,
-                onChanged: (_) => n.toggleHaptic(),
-              ),
-            ],
-          ).animate().fadeIn(delay: 120.ms, duration: 350.ms).slideY(begin: 0.06),
+                children: [
+                  _ConfidenceRow(
+                    current: settings.confidenceLevel,
+                    onChanged: n.setConfidenceLevel,
+                    isDark: isDark,
+                  ),
+                  _Divider(isDark),
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.blur_on_rounded,
+                    iconColor: Colors.purpleAccent,
+                    title: 'Temporal Düzleme',
+                    subtitle: '2 ardışık onay eşleşirse kelimeyi ekrana yaz',
+                    value: settings.temporalSmoothingEnabled,
+                    onChanged: (_) => n.toggleTemporalSmoothing(),
+                  ),
+                  _Divider(isDark),
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.speed_rounded,
+                    iconColor: Colors.orangeAccent,
+                    title: 'Düşük Güç Modu (15 FPS)',
+                    subtitle:
+                        'Pil tasarrufu — kamera kare hızını 15\'e indirir',
+                    value: settings.fpsLimitEnabled,
+                    onChanged: (_) => n.toggleFpsLimit(),
+                  ),
+                  _Divider(isDark),
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.vibration_rounded,
+                    iconColor: Colors.tealAccent,
+                    title: 'Titreşim Geri Bildirimi',
+                    subtitle: 'Kelime tanındığında hafif titreşim',
+                    value: settings.hapticEnabled,
+                    onChanged: (_) => n.toggleHaptic(),
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(delay: 120.ms, duration: 350.ms)
+              .slideY(begin: 0.06),
 
           // ── Ses ───────────────────────────────────────────────────────────
           _SectionHeader('Ses'),
           _SettingsCard(
-            isDark: isDark,
-            children: [
-              _SwitchRow(
                 isDark: isDark,
-                icon: Icons.volume_up_rounded,
-                iconColor: Colors.deepOrangeAccent,
-                title: 'Sesli Okuma (TTS)',
-                subtitle: 'Tanınan kelimeyi Türkçe seslendir',
-                value: settings.ttsEnabled,
-                onChanged: (_) => n.toggleTts(),
-              ),
-              _Divider(isDark),
-              _SwitchRow(
-                isDark: isDark,
-                icon: Icons.mic_rounded,
-                iconColor: Colors.pinkAccent,
-                title: 'Sesli Giriş (STT)',
-                subtitle: 'Metin→İşaret ekranında mikrofon',
-                value: settings.sttEnabled,
-                onChanged: (_) => n.toggleStt(),
-              ),
-            ],
-          ).animate().fadeIn(delay: 160.ms, duration: 350.ms).slideY(begin: 0.06),
+                children: [
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.volume_up_rounded,
+                    iconColor: Colors.deepOrangeAccent,
+                    title: 'Sesli Okuma (TTS)',
+                    subtitle: 'Tanınan kelimeyi Türkçe seslendir',
+                    value: settings.ttsEnabled,
+                    onChanged: (_) => n.toggleTts(),
+                  ),
+                  _Divider(isDark),
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.mic_rounded,
+                    iconColor: Colors.pinkAccent,
+                    title: 'Sesli Giriş (STT)',
+                    subtitle: 'Metin→İşaret ekranında mikrofon',
+                    value: settings.sttEnabled,
+                    onChanged: (_) => n.toggleStt(),
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(delay: 160.ms, duration: 350.ms)
+              .slideY(begin: 0.06),
 
           // ── Veri Kullanımı & Video ─────────────────────────────────────────
           _SectionHeader('Veri Kullanımı & Video'),
           _SettingsCard(
-            isDark: isDark,
-            children: [
-              _SwitchRow(
                 isDark: isDark,
-                icon: Icons.signal_cellular_off_rounded,
-                iconColor: Colors.redAccent,
-                title: 'Mobil Veri\'de Video Kapalı',
-                subtitle: 'Wi-Fi yokken işaret videoları oynatılmaz',
-                value: settings.cellularVideoDisabled,
-                onChanged: (_) => n.toggleCellularVideo(),
-              ),
-              _Divider(isDark),
-              _VideoQualityRow(current: settings.videoQuality, onChanged: n.setVideoQuality, isDark: isDark),
-              _Divider(isDark),
-              _ActionRow(
-                isDark: isDark,
-                icon: Icons.cleaning_services_rounded,
-                iconColor: Colors.blueAccent,
-                title: 'Önbelleği Temizle',
-                subtitle: 'İndirilen videoları sil',
-                label: 'Temizle',
-                labelColor: Colors.blueAccent,
-                onTap: () => _showCacheDialog(context, isDark),
-              ),
-            ],
-          ).animate().fadeIn(delay: 200.ms, duration: 350.ms).slideY(begin: 0.06),
+                children: [
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.signal_cellular_off_rounded,
+                    iconColor: Colors.redAccent,
+                    title: 'Mobil Veri\'de Video Kapalı',
+                    subtitle: 'Wi-Fi yokken işaret videoları oynatılmaz',
+                    value: settings.cellularVideoDisabled,
+                    onChanged: (_) => n.toggleCellularVideo(),
+                  ),
+                  _Divider(isDark),
+                  _VideoQualityRow(
+                    current: settings.videoQuality,
+                    onChanged: n.setVideoQuality,
+                    isDark: isDark,
+                  ),
+                  _Divider(isDark),
+                  _ActionRow(
+                    isDark: isDark,
+                    icon: Icons.cleaning_services_rounded,
+                    iconColor: Colors.blueAccent,
+                    title: 'Önbelleği Temizle',
+                    subtitle: 'İndirilen videoları sil',
+                    label: 'Temizle',
+                    labelColor: Colors.blueAccent,
+                    onTap: () => _showCacheDialog(context, isDark),
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(delay: 200.ms, duration: 350.ms)
+              .slideY(begin: 0.06),
 
           // ── Gizlilik & Veri Kontrolü ───────────────────────────────────────
           _SectionHeader('Gizlilik & Veri Kontrolü'),
           _SettingsCard(
-            isDark: isDark,
-            children: [
-              _SwitchRow(
                 isDark: isDark,
-                icon: Icons.visibility_off_rounded,
-                iconColor: Colors.grey,
-                title: 'Sıfır-Veri Modu',
-                subtitle: 'Çeviri geçmişini hiç kaydetme',
-                value: settings.zeroDataMode,
-                onChanged: (_) => n.toggleZeroDataMode(),
-              ),
-              _Divider(isDark),
-              _SwitchRow(
-                isDark: isDark,
-                icon: Icons.cloud_sync_rounded,
-                iconColor: AppTheme.secondaryBlue,
-                title: 'Bulut Eşzamanlaması',
-                subtitle: isGuest
-                    ? 'Giriş yaparak etkinleştir'
-                    : 'Ayarları ve Sağlık Kartını senkronize et',
-                value: settings.cloudSyncEnabled,
-                onChanged: isGuest
-                    ? (_) => context.push('/login')
-                    : (_) => n.toggleCloudSync(),
-              ),
-              _Divider(isDark),
-              _ActionRow(
-                isDark: isDark,
-                icon: Icons.delete_forever_rounded,
-                iconColor: Colors.red,
-                title: 'Hesabı Sil',
-                subtitle: 'Tüm verilerini kalıcı olarak sil (GDPR/KVKK)',
-                label: 'Sil',
-                labelColor: Colors.red,
-                onTap: () => _showDeleteAccountDialog(context, isDark),
-              ),
-            ],
-          ).animate().fadeIn(delay: 240.ms, duration: 350.ms).slideY(begin: 0.06),
+                children: [
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.visibility_off_rounded,
+                    iconColor: Colors.grey,
+                    title: 'Sıfır-Veri Modu',
+                    subtitle: 'Çeviri geçmişini hiç kaydetme',
+                    value: settings.zeroDataMode,
+                    onChanged: (_) => n.toggleZeroDataMode(),
+                  ),
+                  _Divider(isDark),
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.cloud_sync_rounded,
+                    iconColor: AppTheme.secondaryBlue,
+                    title: 'Bulut Eşzamanlaması',
+                    subtitle: isGuest
+                        ? 'Giriş yaparak etkinleştir'
+                        : 'Ayarları ve Sağlık Kartını senkronize et',
+                    value: settings.cloudSyncEnabled,
+                    onChanged: isGuest
+                        ? (_) => context.push('/login')
+                        : (_) => n.toggleCloudSync(),
+                  ),
+                  _Divider(isDark),
+                  _ActionRow(
+                    isDark: isDark,
+                    icon: Icons.delete_forever_rounded,
+                    iconColor: Colors.red,
+                    title: 'Hesabı Sil',
+                    subtitle: 'Tüm verilerini kalıcı olarak sil (GDPR/KVKK)',
+                    label: 'Sil',
+                    labelColor: Colors.red,
+                    onTap: () => _showDeleteAccountDialog(context, isDark),
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(delay: 240.ms, duration: 350.ms)
+              .slideY(begin: 0.06),
 
           // ── Geliştirici ────────────────────────────────────────────────────
           _SectionHeader('Geliştirici'),
           _SettingsCard(
-            isDark: isDark,
-            children: [
-              _SwitchRow(
                 isDark: isDark,
-                icon: Icons.developer_mode_rounded,
-                iconColor: Colors.cyanAccent,
-                title: 'Geliştirici Modu',
-                subtitle: 'Landmark noktaları + istatistik paneli',
-                value: settings.devMode,
-                onChanged: (_) => n.toggleDevMode(),
-              ),
-              if (settings.devMode) ...[
-                _Divider(isDark),
-                _LandmarkLegend(isDark: isDark),
-              ],
-            ],
-          ).animate().fadeIn(delay: 280.ms, duration: 350.ms).slideY(begin: 0.06),
+                children: [
+                  _SwitchRow(
+                    isDark: isDark,
+                    icon: Icons.developer_mode_rounded,
+                    iconColor: Colors.cyanAccent,
+                    title: 'Geliştirici Modu',
+                    subtitle: 'Landmark noktaları + istatistik paneli',
+                    value: settings.devMode,
+                    onChanged: (_) => n.toggleDevMode(),
+                  ),
+                  if (settings.devMode) ...[
+                    _Divider(isDark),
+                    _LandmarkLegend(isDark: isDark),
+                  ],
+                ],
+              )
+              .animate()
+              .fadeIn(delay: 280.ms, duration: 350.ms)
+              .slideY(begin: 0.06),
 
           const SizedBox(height: 16),
         ],
@@ -231,12 +266,20 @@ class SettingsScreen extends ConsumerWidget {
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
         title: const Text('Önbelleği Temizle'),
-        content: const Text('İndirilen tüm videolar silinecek. Devam edilsin mi?'),
+        content: const Text(
+          'İndirilen tüm videolar silinecek. Devam edilsin mi?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Temizle', style: TextStyle(color: Colors.blueAccent)),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Temizle',
+              style: TextStyle(color: Colors.blueAccent),
+            ),
           ),
         ],
       ),
@@ -253,7 +296,10 @@ class SettingsScreen extends ConsumerWidget {
           'Tüm verileriniz (geçmiş, profil, sağlık kartı) kalıcı olarak silinecek. Bu işlem geri alınamaz.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Sil', style: TextStyle(color: Colors.red)),
@@ -323,7 +369,11 @@ class _SettingsCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ThemeRow extends StatelessWidget {
-  const _ThemeRow({required this.current, required this.onChanged, required this.isDark});
+  const _ThemeRow({
+    required this.current,
+    required this.onChanged,
+    required this.isDark,
+  });
   final ThemeMode current;
   final ValueChanged<ThemeMode> onChanged;
   final bool isDark;
@@ -336,13 +386,18 @@ class _ThemeRow extends StatelessWidget {
         children: [
           _iconBox(Icons.palette_rounded, AppTheme.secondaryBlue),
           const SizedBox(width: 14),
-          const Expanded(child: Text('Tema', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
+          const Expanded(
+            child: Text(
+              'Tema',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+          ),
           _SegmentButtons<ThemeMode>(
             isDark: isDark,
             items: const [
-              (ThemeMode.light,  Icons.wb_sunny_rounded,        'Açık'),
-              (ThemeMode.system, Icons.brightness_auto_rounded, 'Sistem'),
-              (ThemeMode.dark,   Icons.nightlight_round,        'Koyu'),
+              (ThemeMode.light, 'Açık'),
+              (ThemeMode.system, 'Sistem'),
+              (ThemeMode.dark, 'Koyu'),
             ],
             current: current,
             onChanged: onChanged,
@@ -358,7 +413,11 @@ class _ThemeRow extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TextSizeRow extends StatelessWidget {
-  const _TextSizeRow({required this.current, required this.onChanged, required this.isDark});
+  const _TextSizeRow({
+    required this.current,
+    required this.onChanged,
+    required this.isDark,
+  });
   final AppTextSize current;
   final ValueChanged<AppTextSize> onChanged;
   final bool isDark;
@@ -375,9 +434,15 @@ class _TextSizeRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Metin Boyutu', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                Text(
+                  'Metin Boyutu',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
                 SizedBox(height: 2),
-                Text('Dinamik tipografi', style: TextStyle(fontSize: 12, color: AppTheme.midGrey)),
+                Text(
+                  'Dinamik tipografi',
+                  style: TextStyle(fontSize: 12, color: AppTheme.midGrey),
+                ),
               ],
             ),
           ),
@@ -385,9 +450,9 @@ class _TextSizeRow extends StatelessWidget {
           _SegmentButtons<AppTextSize>(
             isDark: isDark,
             items: const [
-              (AppTextSize.standard,   Icons.text_decrease_rounded, 'S'),
-              (AppTextSize.large,      Icons.text_fields_rounded,   'M'),
-              (AppTextSize.extraLarge, Icons.text_increase_rounded, 'L'),
+              (AppTextSize.standard, 'S'),
+              (AppTextSize.large, 'M'),
+              (AppTextSize.extraLarge, 'L'),
             ],
             current: current,
             onChanged: onChanged,
@@ -403,15 +468,19 @@ class _TextSizeRow extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ConfidenceRow extends StatelessWidget {
-  const _ConfidenceRow({required this.current, required this.onChanged, required this.isDark});
+  const _ConfidenceRow({
+    required this.current,
+    required this.onChanged,
+    required this.isDark,
+  });
   final ConfidenceLevel current;
   final ValueChanged<ConfidenceLevel> onChanged;
   final bool isDark;
 
   String get _label => switch (current) {
-    ConfidenceLevel.low    => 'Düşük (%70)',
+    ConfidenceLevel.low => 'Düşük (%70)',
     ConfidenceLevel.medium => 'Orta (%80)',
-    ConfidenceLevel.high   => 'Yüksek (%90)',
+    ConfidenceLevel.high => 'Yüksek (%90)',
   };
 
   @override
@@ -426,18 +495,24 @@ class _ConfidenceRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Çeviri Hassasiyeti', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                const Text(
+                  'Çeviri Hassasiyeti',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 2),
-                Text('Şu an: $_label', style: const TextStyle(fontSize: 12, color: AppTheme.midGrey)),
+                Text(
+                  'Şu an: $_label',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.midGrey),
+                ),
               ],
             ),
           ),
           _SegmentButtons<ConfidenceLevel>(
             isDark: isDark,
-            items: [
-              (ConfidenceLevel.low,    Icons.filter_1_rounded, 'Düş'),
-              (ConfidenceLevel.medium, Icons.filter_2_rounded, 'Ort'),
-              (ConfidenceLevel.high,   Icons.filter_3_rounded, 'Yük'),
+            items: const [
+              (ConfidenceLevel.low, 'Düş'),
+              (ConfidenceLevel.medium, 'Ort'),
+              (ConfidenceLevel.high, 'Yük'),
             ],
             current: current,
             onChanged: onChanged,
@@ -453,7 +528,11 @@ class _ConfidenceRow extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _VideoQualityRow extends StatelessWidget {
-  const _VideoQualityRow({required this.current, required this.onChanged, required this.isDark});
+  const _VideoQualityRow({
+    required this.current,
+    required this.onChanged,
+    required this.isDark,
+  });
   final VideoQuality current;
   final ValueChanged<VideoQuality> onChanged;
   final bool isDark;
@@ -470,9 +549,15 @@ class _VideoQualityRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Video Kalitesi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                Text(
+                  'Video Kalitesi',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
                 SizedBox(height: 2),
-                Text('İşaret video oynatma kalitesi', style: TextStyle(fontSize: 12, color: AppTheme.midGrey)),
+                Text(
+                  'İşaret video oynatma kalitesi',
+                  style: TextStyle(fontSize: 12, color: AppTheme.midGrey),
+                ),
               ],
             ),
           ),
@@ -480,8 +565,8 @@ class _VideoQualityRow extends StatelessWidget {
           _SegmentButtons<VideoQuality>(
             isDark: isDark,
             items: const [
-              (VideoQuality.high,      Icons.hd_rounded,               '720p'),
-              (VideoQuality.dataSaver, Icons.sd_card_alert_rounded,    '360p'),
+              (VideoQuality.high, '720p'),
+              (VideoQuality.dataSaver, '360p'),
             ],
             current: current,
             onChanged: onChanged,
@@ -504,7 +589,7 @@ class _SegmentButtons<T> extends StatelessWidget {
     required this.isDark,
   });
 
-  final List<(T, IconData, String)> items;
+  final List<(T, String)> items;
   final T current;
   final ValueChanged<T> onChanged;
   final bool isDark;
@@ -522,7 +607,7 @@ class _SegmentButtons<T> extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: items.map((item) {
-          final (value, icon, label) = item;
+          final (value, label) = item;
           final isSelected = current == value;
           return GestureDetector(
             onTap: () => onChanged(value),
@@ -588,7 +673,13 @@ class _SwitchRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
@@ -648,9 +739,18 @@ class _ActionRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: AppTheme.midGrey)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 12, color: AppTheme.midGrey),
+                ),
               ],
             ),
           ),
@@ -662,7 +762,10 @@ class _ActionRow extends StatelessWidget {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: labelColor)),
+            child: Text(
+              label,
+              style: TextStyle(fontWeight: FontWeight.w600, color: labelColor),
+            ),
           ),
         ],
       ),
@@ -687,22 +790,28 @@ class _LandmarkLegend extends StatelessWidget {
         children: [
           Text(
             'Kamera üzerinde gösterilen noktalar:',
-            style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : AppTheme.midGrey),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white54 : AppTheme.midGrey,
+            ),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              _dot(Colors.yellowAccent), const SizedBox(width: 6),
+              _dot(Colors.yellowAccent),
+              const SizedBox(width: 6),
               const Text('Pose iskelet (11)', style: TextStyle(fontSize: 12)),
               const SizedBox(width: 16),
-              _dot(Colors.redAccent), const SizedBox(width: 6),
+              _dot(Colors.redAccent),
+              const SizedBox(width: 6),
               const Text('Sağ el (21)', style: TextStyle(fontSize: 12)),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              _dot(Colors.blueAccent), const SizedBox(width: 6),
+              _dot(Colors.blueAccent),
+              const SizedBox(width: 6),
               const Text('Sol el (21)', style: TextStyle(fontSize: 12)),
             ],
           ),
@@ -712,9 +821,10 @@ class _LandmarkLegend extends StatelessWidget {
   }
 
   Widget _dot(Color color) => Container(
-        width: 10, height: 10,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -740,10 +850,11 @@ class _Divider extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 Widget _iconBox(IconData icon, Color color) => Container(
-      width: 36, height: 36,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(icon, color: color, size: 18),
-    );
+  width: 36,
+  height: 36,
+  decoration: BoxDecoration(
+    color: color.withValues(alpha: 0.15),
+    borderRadius: BorderRadius.circular(10),
+  ),
+  child: Icon(icon, color: color, size: 18),
+);

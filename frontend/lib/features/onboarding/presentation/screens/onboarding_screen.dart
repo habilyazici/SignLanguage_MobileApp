@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../splash/presentation/screens/splash_screen.dart'
+    show OnboardingKeys;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Onboarding slayt verisi
@@ -85,11 +88,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      context.go('/home');
+      _completeAndNavigate();
     }
   }
 
-  void _skip() => context.go('/home');
+  void _skip() => _completeAndNavigate();
+
+  Future<void> _completeAndNavigate() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(OnboardingKeys.completed, true);
+    if (!mounted) return;
+    context.go('/home');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -214,18 +224,18 @@ class _PageContent extends StatelessWidget {
         children: [
           // İkon
           Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: page.iconColor.withValues(alpha: 0.1),
-              border: Border.all(
-                color: page.iconColor.withValues(alpha: 0.2),
-                width: 2,
-              ),
-            ),
-            child: Icon(page.icon, size: 64, color: page.iconColor),
-          )
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: page.iconColor.withValues(alpha: 0.1),
+                  border: Border.all(
+                    color: page.iconColor.withValues(alpha: 0.2),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(page.icon, size: 64, color: page.iconColor),
+              )
               .animate()
               .scale(
                 begin: const Offset(0.7, 0.7),
@@ -238,14 +248,17 @@ class _PageContent extends StatelessWidget {
 
           // Başlık
           Text(
-            page.title,
-            style: GoogleFonts.poppins(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : AppTheme.primaryBlue,
-            ),
-            textAlign: TextAlign.center,
-          ).animate().fadeIn(delay: 150.ms, duration: 400.ms).slideY(begin: 0.1),
+                page.title,
+                style: GoogleFonts.poppins(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppTheme.primaryBlue,
+                ),
+                textAlign: TextAlign.center,
+              )
+              .animate()
+              .fadeIn(delay: 150.ms, duration: 400.ms)
+              .slideY(begin: 0.1),
 
           const SizedBox(height: 10),
 

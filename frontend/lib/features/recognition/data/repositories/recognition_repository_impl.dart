@@ -23,9 +23,9 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     required CameraDataSource cameraDataSource,
     required MlPipelineDatasource mlPipelineDataSource,
     required InferenceDatasource inferenceDataSource,
-  })  : _camera = cameraDataSource,
-        _ml = mlPipelineDataSource,
-        _inference = inferenceDataSource;
+  }) : _camera = cameraDataSource,
+       _ml = mlPipelineDataSource,
+       _inference = inferenceDataSource;
 
   final CameraDataSource _camera;
   final MlPipelineDatasource _ml;
@@ -113,7 +113,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     if (_isProcessing || !_ml.isReady) return;
     _isProcessing = true;
 
-    final bool doLog = (_frameCounter % 150 == 0);
+    final bool doLog = kDebugMode && (_frameCounter % 300 == 0);
     bool shouldInfer = false;
 
     try {
@@ -132,14 +132,16 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
       }
 
       // Developer modu landmark stream'i
-      _landmarkCtrl.add(LandmarkDevData(
-        posePoints: result.posePoints,
-        rightHand: result.rightHandPoints,
-        leftHand: result.leftHandPoints,
-        bufferFill: _timedBuffer.length,
-        poseCount: result.poseCount,
-        handCount: result.handCount,
-      ));
+      _landmarkCtrl.add(
+        LandmarkDevData(
+          posePoints: result.posePoints,
+          rightHand: result.rightHandPoints,
+          leftHand: result.leftHandPoints,
+          bufferFill: _timedBuffer.length,
+          poseCount: result.poseCount,
+          handCount: result.handCount,
+        ),
+      );
 
       if (result.anyDetected) {
         _noDetectionTimer?.cancel();
@@ -210,10 +212,12 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
       final frames = _timedBuffer.map((e) => e.$2).toList();
       final result = await _inference.run(frames);
       if (result != null) {
-        debugPrint(
-          '🧠 Inference → idx:${result.classIndex} '
-          'skor:${(result.confidence * 100).toStringAsFixed(1)}%',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '🧠 Inference → idx:${result.classIndex} '
+            'skor:${(result.confidence * 100).toStringAsFixed(1)}%',
+          );
+        }
         _inferenceCtrl.add(result);
       }
     } catch (e, st) {

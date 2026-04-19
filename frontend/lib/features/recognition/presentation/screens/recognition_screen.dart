@@ -214,7 +214,10 @@ class _LandmarkPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_LandmarkPainter oldDelegate) => true;
+  bool shouldRepaint(_LandmarkPainter old) =>
+      data != old.data ||
+      cameraAspect != old.cameraAspect ||
+      screenSize != old.screenSize;
 }
 
 class _TopOverlay extends StatelessWidget {

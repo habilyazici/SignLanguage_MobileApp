@@ -17,9 +17,7 @@ class MlPipelineDatasource {
   HandDetector? _handDetector;
   Uint8List? _nv21Buffer;
 
-  static const List<int> _poseIndices = [
-    0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16,
-  ];
+  static const List<int> _poseIndices = [0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16];
 
   // ── Başlatma ────────────────────────────────────────────────────────────────
 
@@ -122,8 +120,7 @@ class MlPipelineDatasource {
   }) {
     final displayPoints = <Offset>[];
     for (int i = 0; i < _poseIndices.length; i++) {
-      final lm =
-          pose.landmarks[mlkit.PoseLandmarkType.values[_poseIndices[i]]];
+      final lm = pose.landmarks[mlkit.PoseLandmarkType.values[_poseIndices[i]]];
       if (lm == null) continue;
 
       double mx = ((lm.x - cropXOff) / cropSide).clamp(0.0, 1.0);
@@ -157,8 +154,9 @@ class MlPipelineDatasource {
 
     for (final hand in hands) {
       final bool isAnatomicalRight = (hand.handedness == Handedness.right);
-      final bool useRightSlot =
-          leftHandMode ? !isAnatomicalRight : isAnatomicalRight;
+      final bool useRightSlot = leftHandMode
+          ? !isAnatomicalRight
+          : isAnatomicalRight;
 
       final offset = useRightSlot ? 0 : 42;
       final displayTarget = useRightSlot ? displayRight : displayLeft;
@@ -177,8 +175,20 @@ class MlPipelineDatasource {
           sy *= sh;
         }
 
-        double mx = _sensorXToModelX(sx, sy, cropSide, cropXOff, sensorOrientation);
-        double my = _sensorYToModelY(sx, sy, cropSide, cropXOff, sensorOrientation);
+        double mx = _sensorXToModelX(
+          sx,
+          sy,
+          cropSide,
+          cropXOff,
+          sensorOrientation,
+        );
+        double my = _sensorYToModelY(
+          sx,
+          sy,
+          cropSide,
+          cropXOff,
+          sensorOrientation,
+        );
         if (isFlipped) mx = 1.0 - mx;
 
         // Portrait önizleme koordinatları (240×320)
@@ -187,9 +197,7 @@ class MlPipelineDatasource {
 
         frame[offset + i * 2] = mx;
         frame[offset + i * 2 + 1] = my;
-        displayTarget.add(
-          Offset(dx.clamp(0.0, 1.0), dy.clamp(0.0, 1.0)),
-        );
+        displayTarget.add(Offset(dx.clamp(0.0, 1.0), dy.clamp(0.0, 1.0)));
       }
     }
     return (right: displayRight, left: displayLeft);
@@ -243,24 +251,25 @@ class MlPipelineDatasource {
   }
 
   // ── NV21 yapımı ───────────────────────────────────────────────────────────
+  // Döküm: NV21 = Y düzlemi (parlaklık) + V-U ikili renk düzlemi.
+  // Eğer kamera 3 düzlem sağlamazsa null döndür — çağıranlar bu frame'i atlar.
 
-  Uint8List _buildNV21(CameraImage image) {
+  Uint8List? _buildNV21(CameraImage image) {
+    if (image.planes.length < 3) {
+      if (kDebugMode) {
+        debugPrint(
+          '⚠️ _buildNV21: ${image.planes.length} plane alındı, UV eksik — frame atlandı.',
+        );
+      }
+      return null; // Bozuk NV21 üretmek yerine frame'i atla
+    }
+
     final int w = image.width;
     final int h = image.height;
     final int size = w * h * 3 ~/ 2;
 
     if (_nv21Buffer == null || _nv21Buffer!.length != size) {
       _nv21Buffer = Uint8List(size);
-    }
-
-    if (image.planes.length < 3) {
-      final out = _nv21Buffer!;
-      final yPlane = image.planes[0];
-      for (int r = 0; r < h; r++) {
-        out.setRange(r * w, (r + 1) * w, yPlane.bytes, r * yPlane.bytesPerRow);
-      }
-      debugPrint('⚠️ _buildNV21: ${image.planes.length} plane alındı, UV atlandı.');
-      return out;
     }
 
     final yPlane = image.planes[0];
@@ -311,6 +320,7 @@ class MlPipelineDatasource {
         );
       } else {
         final bytes = nv21 ?? _buildNV21(image);
+        if (bytes == null) return null; // UV plane eksik — frame atla
         return mlkit.InputImage.fromBytes(
           bytes: bytes,
           metadata: mlkit.InputImageMetadata(
@@ -343,6 +353,7 @@ class MlPipelineDatasource {
         return bgr;
       } else {
         final bytes = nv21 ?? _buildNV21(image);
+        if (bytes == null) return null; // UV plane eksik — frame atla
         final yuv = cv.Mat.fromList(
           image.height + image.height ~/ 2,
           image.width,
@@ -361,7 +372,11 @@ class MlPipelineDatasource {
   // ── Temizlik ──────────────────────────────────────────────────────────────
 
   void dispose() {
-    try { _poseDetector?.close(); } catch (_) {}
-    try { _handDetector?.dispose(); } catch (_) {}
+    try {
+      _poseDetector?.close();
+    } catch (_) {}
+    try {
+      _handDetector?.dispose();
+    } catch (_) {}
   }
 }

@@ -167,7 +167,9 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
           if (settings.ttsEnabled) {
             ref.read(ttsProvider.notifier).speak(word);
           }
-          if (maxScore >= 0.90) HapticFeedback.mediumImpact();
+          if (settings.hapticEnabled && maxScore >= 0.90) {
+            HapticFeedback.mediumImpact();
+          }
 
           _clearTimer?.cancel();
           _clearTimer = Timer(const Duration(seconds: 4), () {
