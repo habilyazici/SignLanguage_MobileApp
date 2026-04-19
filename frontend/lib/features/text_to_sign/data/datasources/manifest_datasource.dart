@@ -12,7 +12,7 @@ import 'package:flutter/foundation.dart';
 /// Video URL'leri: {baseUrl}/{ilkHarf}/{kelime}.mp4
 ///
 /// Backend hazır olmadan STUB_MODE=true ile çalışır — boş manifest döner.
-/// TODO: Backend aktifleştiğinde http/Dio import edilerek fetchManifest() doldurulacak.
+/// Backend aktifleştiğinde fetchManifest() metodu Gerçek API çağrıları ile doldurulacaktır.
 class ManifestDatasource {
   ManifestDatasource({required this.baseApiUrl});
 
@@ -28,7 +28,7 @@ class ManifestDatasource {
       return {};
     }
 
-    // TODO: Backend hazır olduğunda http paketi ile implement edilecek.
+    // Gelecekte http/Dio paketi ile implement edilecek.
     // Örnek: GET $baseApiUrl/manifest → { baseUrl, words: [...] }
     throw UnimplementedError('ManifestDatasource: backend henüz bağlı değil.');
   }

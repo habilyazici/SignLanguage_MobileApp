@@ -15,13 +15,13 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _formKey   = GlobalKey<FormState>();
-  final _nameCtrl  = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
-  final _passCtrl  = TextEditingController();
+  final _passCtrl = TextEditingController();
   final _pass2Ctrl = TextEditingController();
-  bool _obscure1   = true;
-  bool _obscure2   = true;
+  bool _obscure1 = true;
+  bool _obscure2 = true;
 
   @override
   void dispose() {
@@ -34,17 +34,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final ok = await ref.read(authProvider.notifier).register(
-      name:     _nameCtrl.text.trim(),
-      email:    _emailCtrl.text.trim(),
-      password: _passCtrl.text,
-    );
+    final ok = await ref
+        .read(authProvider.notifier)
+        .register(
+          name: _nameCtrl.text.trim(),
+          email: _emailCtrl.text.trim(),
+          password: _passCtrl.text,
+        );
     if (ok && mounted) context.go('/home');
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth   = ref.watch(authProvider);
+    final auth = ref.watch(authProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -68,6 +70,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   padding: EdgeInsets.zero,
                 ).animate().fadeIn(duration: 300.ms),
+
+                const SizedBox(height: 24),
+
+                // ── Logo ve Proje Adı ────────────────────────────────────
+                Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Hero(
+                          tag: 'app_logo',
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 90,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          'Hear Me Out',
+                          style: GoogleFonts.poppins(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : AppTheme.primaryBlue,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
+                    )
+                    .animate()
+                    .fadeIn(duration: 400.ms)
+                    .scale(begin: const Offset(0.8, 0.8)),
 
                 const SizedBox(height: 24),
 
@@ -98,10 +129,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 AuthFieldLabel('Ad Soyad', isDark),
                 const SizedBox(height: 8),
                 AuthTextField(
-                  controller:   _nameCtrl,
-                  hint:         'Adın ve soyadın',
-                  icon:         Icons.person_outline_rounded,
-                  isDark:       isDark,
+                  controller: _nameCtrl,
+                  hint: 'Adın ve soyadın',
+                  icon: Icons.person_outline_rounded,
+                  isDark: isDark,
                   keyboardType: TextInputType.name,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Ad gerekli';
@@ -116,10 +147,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 AuthFieldLabel('E-posta', isDark),
                 const SizedBox(height: 8),
                 AuthTextField(
-                  controller:   _emailCtrl,
-                  hint:         'ornek@mail.com',
-                  icon:         Icons.email_outlined,
-                  isDark:       isDark,
+                  controller: _emailCtrl,
+                  hint: 'ornek@mail.com',
+                  icon: Icons.email_outlined,
+                  isDark: isDark,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'E-posta gerekli';
@@ -135,10 +166,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: 8),
                 AuthTextField(
                   controller: _passCtrl,
-                  hint:       'En az 6 karakter',
-                  icon:       Icons.lock_outline_rounded,
-                  isDark:     isDark,
-                  obscure:    _obscure1,
+                  hint: 'En az 6 karakter',
+                  icon: Icons.lock_outline_rounded,
+                  isDark: isDark,
+                  obscure: _obscure1,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscure1
@@ -163,10 +194,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: 8),
                 AuthTextField(
                   controller: _pass2Ctrl,
-                  hint:       'Şifreni tekrar gir',
-                  icon:       Icons.lock_outline_rounded,
-                  isDark:     isDark,
-                  obscure:    _obscure2,
+                  hint: 'Şifreni tekrar gir',
+                  icon: Icons.lock_outline_rounded,
+                  isDark: isDark,
+                  obscure: _obscure2,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscure2
@@ -188,10 +219,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 // ── Hata banner ──────────────────────────────────────────
                 if (auth.errorMessage != null)
-                  AuthErrorBanner(auth.errorMessage!)
-                      .animate()
-                      .fadeIn()
-                      .shake(),
+                  AuthErrorBanner(
+                    auth.errorMessage!,
+                  ).animate().fadeIn().shake(),
 
                 // ── Kayıt butonu ─────────────────────────────────────────
                 SizedBox(

@@ -75,7 +75,9 @@ class CameraDataSource {
     await _startCamera(lens: next);
   }
 
-  Future<void> dispose() async {
+  /// Kamera donanımını serbest bırakır (yeşil nokta söner) ama stream açık
+  /// kalır — resumeCamera() sonrasında yeniden initialize edilebilir.
+  Future<void> release() async {
     try {
       await _camera?.stopImageStream();
     } catch (_) {}
@@ -83,6 +85,12 @@ class CameraDataSource {
       await _camera?.dispose();
     } catch (_) {}
     _camera = null;
-    _controllerCtrl.add(null);
+    if (!_controllerCtrl.isClosed) _controllerCtrl.add(null);
+  }
+
+  /// Kalıcı temizlik — stream de kapatılır, artık kullanılamaz.
+  Future<void> dispose() async {
+    await release();
+    if (!_controllerCtrl.isClosed) _controllerCtrl.close();
   }
 }

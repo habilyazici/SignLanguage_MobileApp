@@ -74,10 +74,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void toggleHaptic() =>
       _persist(state.copyWith(hapticEnabled: !state.hapticEnabled));
 
-  void toggleTemporalSmoothing() => _persist(
-    state.copyWith(temporalSmoothingEnabled: !state.temporalSmoothingEnabled),
-  );
-
   // ── Veri & Video ──────────────────────────────────────────────────────────
   void toggleCellularVideo() => _persist(
     state.copyWith(cellularVideoDisabled: !state.cellularVideoDisabled),

@@ -31,8 +31,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   final MlPipelineDatasource _ml;
   final InferenceDatasource _inference;
 
-  // ── Streams ────────────────────────────────────────────────────────────────
-
+  // ── Streams
   final _cameraCtrl = StreamController<CameraController?>.broadcast();
   final _inferenceCtrl = StreamController<InferenceResult>.broadcast();
   final _landmarkCtrl = StreamController<LandmarkDevData>.broadcast();
@@ -44,8 +43,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   @override
   Stream<LandmarkDevData> get landmarkStream => _landmarkCtrl.stream;
 
-  // ── Çalışma zamanı durumu ─────────────────────────────────────────────────
-
+  // ── Çalışma zamanı durumu
   final List<(int, List<double>)> _timedBuffer = [];
   int _frameCounter = 0;
   bool _isProcessing = false;
@@ -89,8 +87,8 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     // UI'a hemen haber ver ki buildPreview() yaparken hata almasın
     _cameraCtrl.add(null);
 
-    // Donanımı tamamen serbest bırak (Yeşil nokta söner)
-    await _camera.dispose();
+    // Donanımı serbest bırak (yeşil nokta söner) — stream açık kalır
+    await _camera.release();
   }
 
   @override
@@ -141,7 +139,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     _lastFrameTimeMs = now;
     _isProcessing = true;
 
-    // Kare logu: Her 150 karede bir (yaklaşık 5 saniyede bir) durum bas.
+    // Kare logu: Her 150 karede bir durum bas.
     final bool doLog = (_frameCounter % 150 == 0);
     bool shouldInfer = false;
 

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../core/providers/label_provider.dart';
+import '../../../../../core/utils/turkish_normalizer.dart';
 import '../../data/datasources/dictionary_local_datasource.dart';
 import '../../data/repositories/dictionary_repository_impl.dart';
 import '../../domain/entities/sign_entry.dart';
@@ -11,9 +11,7 @@ import '../../domain/repositories/dictionary_repository.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 final _dictionaryRepositoryProvider = Provider<DictionaryRepository>(
-  (ref) => DictionaryRepositoryImpl(
-    DictionaryLocalDatasource(ref.read(labelRepositoryProvider)),
-  ),
+  (_) => const DictionaryRepositoryImpl(DictionaryLocalDatasource()),
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,16 +62,20 @@ class DictionaryNotifier extends Notifier<DictionaryState> {
   @override
   DictionaryState build() {
     final repo = ref.read(_dictionaryRepositoryProvider);
-    final all = repo.getAllSigns()
-      ..sort((a, b) => _trLower(a.label).compareTo(_trLower(b.label)));
+    final all = List.of(repo.getAllSigns())
+      ..sort((a, b) =>
+          TurkishNormalizer.trLower(a.label)
+              .compareTo(TurkishNormalizer.trLower(b.label)));
     return DictionaryState(allSigns: all, filteredSigns: all);
   }
 
   void setQuery(String raw) {
-    final q = raw.trim().toLowerCase();
+    final q = TurkishNormalizer.trLower(raw.trim());
     final filtered = q.isEmpty
         ? state.allSigns
-        : state.allSigns.where((s) => _trLower(s.label).contains(q)).toList();
+        : state.allSigns
+            .where((s) => TurkishNormalizer.trLower(s.label).contains(q))
+            .toList();
     state = state.copyWith(
       query: q,
       filteredSigns: filtered,
@@ -85,28 +87,17 @@ class DictionaryNotifier extends Notifier<DictionaryState> {
     final filtered = letter == null
         ? state.allSigns
         : state.allSigns
-              .where(
-                (s) =>
-                    s.label.isNotEmpty &&
-                    _trLower(s.label[0]) == _trLower(letter),
-              )
-              .toList();
+            .where(
+              (s) =>
+                  s.label.isNotEmpty &&
+                  TurkishNormalizer.trLower(s.label[0]) ==
+                      TurkishNormalizer.trLower(letter),
+            )
+            .toList();
     state = state.copyWith(
       selectedLetter: letter,
       filteredSigns: filtered,
       query: '',
     );
   }
-
-  // ── Türkçe küçük harf normalizer ─────────────────────────────────────────
-
-  static String _trLower(String s) => s
-      .replaceAll('İ', 'i')
-      .replaceAll('I', 'ı')
-      .replaceAll('Ğ', 'ğ')
-      .replaceAll('Ü', 'ü')
-      .replaceAll('Ş', 'ş')
-      .replaceAll('Ö', 'ö')
-      .replaceAll('Ç', 'ç')
-      .toLowerCase();
 }

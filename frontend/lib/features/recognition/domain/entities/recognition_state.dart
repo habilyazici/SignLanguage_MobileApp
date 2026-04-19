@@ -1,5 +1,4 @@
 import 'dart:ui' show Offset;
-import 'package:camera/camera.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Developer modu için landmark görselleştirme verisi
@@ -13,6 +12,9 @@ class LandmarkDevData {
   final int poseCount;
   final int handCount;
 
+  /// Modelin en yüksek olasılıklı ilk 3 tahmini (Türkçe etiket + güven skoru).
+  final List<({String word, double confidence})> topPredictions;
+
   LandmarkDevData({
     required this.posePoints,
     required this.rightHand,
@@ -20,17 +22,18 @@ class LandmarkDevData {
     required this.bufferFill,
     required this.poseCount,
     required this.handCount,
+    this.topPredictions = const [],
   });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Recognition durum entity'si
+// Recognition durum entity'si — platform bağımlılığı yok
+// CameraController presentation katmanında tutulur (cameraControllerProvider)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class RecognitionState {
   final bool isReady;
   final bool isError;
-  final CameraController? cameraController;
   final String predictedWord;
   final double confidenceScore;
   final List<String> sentence;
@@ -38,7 +41,6 @@ class RecognitionState {
   const RecognitionState({
     this.isReady = false,
     this.isError = false,
-    this.cameraController,
     this.predictedWord = '',
     this.confidenceScore = 0.0,
     this.sentence = const [],
@@ -47,17 +49,12 @@ class RecognitionState {
   RecognitionState copyWith({
     bool? isReady,
     bool? isError,
-    CameraController? cameraController,
-    bool clearCameraController = false,
     String? predictedWord,
     double? confidenceScore,
     List<String>? sentence,
   }) => RecognitionState(
     isReady: isReady ?? this.isReady,
     isError: isError ?? this.isError,
-    cameraController: clearCameraController
-        ? null
-        : (cameraController ?? this.cameraController),
     predictedWord: predictedWord ?? this.predictedWord,
     confidenceScore: confidenceScore ?? this.confidenceScore,
     sentence: sentence ?? this.sentence,

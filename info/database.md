@@ -2,7 +2,7 @@
   UYGULAMA DURUMU (2026-04-17)
   ⬜ PostgreSQL + Prisma henüz kurulmadı — sadece schema tasarımı mevcut
   ⬜ Flutter local storage (Hive) da henüz eklenmedi
-  ⬜ User, HealthCard, Sign, Translation, Favorite, Category modelleri tanımlı ama boşta
+  ⬜ User, Sign, Translation, Favorite, Category modelleri tanımlı ama boşta
 -->
 
 # 🗄️ HEAR ME OUT — Database Schema Referansı
@@ -22,21 +22,8 @@ model User {
   role      String   @default("USER")
   createdAt DateTime @default(now())
 
-  healthCard   HealthCard?
   translations Translation[]
   favorites    Favorite[]
-}
-
-model HealthCard {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  bloodType        String?  
-  allergies        String[] 
-  chronicDiseases  String[] 
-  medications      String[] 
-  notes            String?  
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Sign {

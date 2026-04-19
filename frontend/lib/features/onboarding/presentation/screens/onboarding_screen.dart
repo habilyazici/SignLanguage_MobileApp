@@ -3,9 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/constants/app_keys.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../splash/presentation/screens/splash_screen.dart'
-    show OnboardingKeys;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Onboarding slayt verisi
@@ -118,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _completeAndNavigate() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(OnboardingKeys.completed, true);
+    await prefs.setBool(AppKeys.onboardingCompleted, true);
     if (!mounted) return;
     context.go('/home');
   }

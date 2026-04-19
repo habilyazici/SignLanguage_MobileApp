@@ -177,7 +177,7 @@ class ScaffoldWithNav extends ConsumerWidget {
                 Expanded(
                   child: _NavBarItem(
                     icon: Icons.visibility_rounded,
-                    label: 'İşaretten Metne',
+                    label: 'İşaret Oku',
                     isSelected: currentIndex == 1,
                     onTap: () => _onTap(context, ref, 1),
                   ),
@@ -282,82 +282,94 @@ class _NavBarItem extends StatelessWidget {
       final bgColor = isSelected
           ? AppTheme.primaryBlue
           : AppTheme.secondaryBlue;
-      return GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                color: bgColor.withValues(alpha: 0.35),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: Colors.white, size: 26),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+      return Tooltip(
+        message: label,
+        preferBelow: false,
+        verticalOffset: 48,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: bgColor.withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: Colors.white, size: 26),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     // Normal butonlar — her zaman etiket göster
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? activeColor : inactiveColor,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+    return Tooltip(
+      message: label,
+      preferBelow: false,
+      verticalOffset: 48,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
                 color: isSelected ? activeColor : inactiveColor,
+                size: 24,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            // Seçim göstergesi nokta
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: isSelected ? 16 : 0,
-              height: isSelected ? 3 : 0,
-              decoration: BoxDecoration(
-                color: activeColor,
-                borderRadius: BorderRadius.circular(2),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? activeColor : inactiveColor,
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              // Seçim göstergesi nokta
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: isSelected ? 16 : 0,
+                height: isSelected ? 3 : 0,
+                decoration: BoxDecoration(
+                  color: activeColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

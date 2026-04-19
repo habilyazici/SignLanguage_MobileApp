@@ -85,25 +85,11 @@ class SettingsScreen extends ConsumerWidget {
                 isDark: isDark,
               ),
               SettingsDivider(isDark: isDark),
-              SettingsSwitchRow(
+              StabilityRow(
                 isDark: isDark,
-                icon: Icons.blur_on_rounded,
-                iconColor: Colors.purpleAccent,
-                title: 'Temporal Düzleme',
-                subtitle: 'Ardışık onay mekanizmasını etkinleştir',
-                value: settings.temporalSmoothingEnabled,
-                helpText:
-                    'AI\'nın bir kelimeyi ekrana yazmadan önce onu birkaç kez doğrulamasını sağlar. Bu, el titremelerinden kaynaklanan yanlış tahminleri engeller.',
-                onChanged: (_) => n.toggleTemporalSmoothing(),
+                current: settings.stableFramesThreshold,
+                onChanged: n.setStableFramesThreshold,
               ),
-              if (settings.temporalSmoothingEnabled) ...[
-                SettingsDivider(isDark: isDark),
-                StabilityRow(
-                  isDark: isDark,
-                  current: settings.stableFramesThreshold,
-                  onChanged: n.setStableFramesThreshold,
-                ),
-              ],
               SettingsDivider(isDark: isDark),
               FpsRow(
                 isDark: isDark,

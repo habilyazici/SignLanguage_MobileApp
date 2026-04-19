@@ -10,5 +10,8 @@ class LabelRepositoryImpl implements LabelRepository {
   String getTrWord(int index) => LabelMapper.getTrWord(index);
 
   @override
+  int get count => LabelMapper.count;
+
+  @override
   List<(int, String)> getAllEntries() => LabelMapper.getAllEntries();
 }

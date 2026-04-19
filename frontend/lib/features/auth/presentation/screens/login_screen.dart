@@ -15,10 +15,10 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey   = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passCtrl  = TextEditingController();
-  bool _obscure    = true;
+  final _passCtrl = TextEditingController();
+  bool _obscure = true;
 
   @override
   void dispose() {
@@ -29,16 +29,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final ok = await ref.read(authProvider.notifier).signIn(
-      email:    _emailCtrl.text.trim(),
-      password: _passCtrl.text,
-    );
+    final ok = await ref
+        .read(authProvider.notifier)
+        .signIn(email: _emailCtrl.text.trim(), password: _passCtrl.text);
     if (ok && mounted) context.go('/home');
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth   = ref.watch(authProvider);
+    final auth = ref.watch(authProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -55,13 +54,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 // ── Geri ────────────────────────────────────────────────
                 IconButton(
-                  onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+                  onPressed: () =>
+                      context.canPop() ? context.pop() : context.go('/home'),
                   icon: Icon(
                     Icons.arrow_back_ios_rounded,
                     color: isDark ? Colors.white70 : AppTheme.primaryBlue,
                   ),
                   padding: EdgeInsets.zero,
                 ).animate().fadeIn(duration: 300.ms),
+
+                const SizedBox(height: 24),
+
+                // ── Logo ve Proje Adı ────────────────────────────────────
+                Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Hero(
+                          tag: 'app_logo',
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 90,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Text(
+                          'Hear Me Out',
+                          style: GoogleFonts.poppins(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : AppTheme.primaryBlue,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
+                    )
+                    .animate()
+                    .fadeIn(duration: 400.ms)
+                    .scale(begin: const Offset(0.8, 0.8)),
 
                 const SizedBox(height: 24),
 
@@ -92,10 +121,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 AuthFieldLabel('E-posta', isDark),
                 const SizedBox(height: 8),
                 AuthTextField(
-                  controller:   _emailCtrl,
-                  hint:         'ornek@mail.com',
-                  icon:         Icons.email_outlined,
-                  isDark:       isDark,
+                  controller: _emailCtrl,
+                  hint: 'ornek@mail.com',
+                  icon: Icons.email_outlined,
+                  isDark: isDark,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'E-posta gerekli';
@@ -111,10 +140,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 8),
                 AuthTextField(
                   controller: _passCtrl,
-                  hint:       '••••••••',
-                  icon:       Icons.lock_outline_rounded,
-                  isDark:     isDark,
-                  obscure:    _obscure,
+                  hint: '••••••••',
+                  icon: Icons.lock_outline_rounded,
+                  isDark: isDark,
+                  obscure: _obscure,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscure
@@ -149,10 +178,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 // ── Hata banner ──────────────────────────────────────────
                 if (auth.errorMessage != null)
-                  AuthErrorBanner(auth.errorMessage!)
-                      .animate()
-                      .fadeIn()
-                      .shake(),
+                  AuthErrorBanner(
+                    auth.errorMessage!,
+                  ).animate().fadeIn().shake(),
 
                 const SizedBox(height: 8),
 

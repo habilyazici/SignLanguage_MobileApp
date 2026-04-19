@@ -3,7 +3,9 @@ import '../../domain/repositories/dictionary_repository.dart';
 import '../datasources/dictionary_local_datasource.dart';
 
 class DictionaryRepositoryImpl implements DictionaryRepository {
-  const DictionaryRepositoryImpl(this._datasource);
+  const DictionaryRepositoryImpl([
+    this._datasource = const DictionaryLocalDatasource(),
+  ]);
 
   final DictionaryLocalDatasource _datasource;
 

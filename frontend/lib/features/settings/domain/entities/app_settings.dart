@@ -42,7 +42,6 @@ class AppSettings {
   final ConfidenceLevel confidenceLevel;
   final FpsPreference fpsPreference;
   final bool hapticEnabled;
-  final bool temporalSmoothingEnabled;
 
   // ── Veri & Video ──────────────────────────────────────────────────────────
   final bool cellularVideoDisabled;
@@ -70,7 +69,6 @@ class AppSettings {
     this.confidenceLevel = ConfidenceLevel.medium,
     this.fpsPreference = FpsPreference.performance,
     this.hapticEnabled = true,
-    this.temporalSmoothingEnabled = true,
     this.cellularVideoDisabled = false,
     this.videoQuality = VideoQuality.high,
     this.zeroDataMode = false,
@@ -79,7 +77,7 @@ class AppSettings {
     this.sttEnabled = true,
     this.devMode = false,
     this.showDevButton = false,
-    this.stableFramesThreshold = 5,
+    this.stableFramesThreshold = 3,
   });
 
   /// Confidence level'ı TFLite threshold değerine dönüştürür.
@@ -105,7 +103,6 @@ class AppSettings {
     ConfidenceLevel? confidenceLevel,
     FpsPreference? fpsPreference,
     bool? hapticEnabled,
-    bool? temporalSmoothingEnabled,
     bool? cellularVideoDisabled,
     VideoQuality? videoQuality,
     bool? zeroDataMode,
@@ -122,8 +119,6 @@ class AppSettings {
     confidenceLevel: confidenceLevel ?? this.confidenceLevel,
     fpsPreference: fpsPreference ?? this.fpsPreference,
     hapticEnabled: hapticEnabled ?? this.hapticEnabled,
-    temporalSmoothingEnabled:
-        temporalSmoothingEnabled ?? this.temporalSmoothingEnabled,
     cellularVideoDisabled: cellularVideoDisabled ?? this.cellularVideoDisabled,
     videoQuality: videoQuality ?? this.videoQuality,
     zeroDataMode: zeroDataMode ?? this.zeroDataMode,

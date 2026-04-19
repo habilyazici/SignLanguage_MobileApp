@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,10 +19,8 @@ import '../../domain/repositories/recognition_repository.dart';
 export '../../domain/entities/recognition_state.dart'
     show RecognitionState, LandmarkDevData;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Repository provider
-// ─────────────────────────────────────────────────────────────────────────────
 
+// Repository provider
 final _recognitionRepositoryProvider = Provider<RecognitionRepository>(
   (_) => RecognitionRepositoryImpl(
     cameraDataSource: CameraDataSource(),
@@ -30,10 +29,7 @@ final _recognitionRepositoryProvider = Provider<RecognitionRepository>(
   ),
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Notifier provider
-// ─────────────────────────────────────────────────────────────────────────────
-
 final recognitionProvider =
     NotifierProvider<RecognitionNotifier, RecognitionState>(
       RecognitionNotifier.new,
@@ -48,6 +44,13 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   String _lastShownWord = '';
   Timer? _clearTimer;
 
+  // ── Dev modu top-3 (per-inference güncellenir) ────────────────────────────
+  List<({String word, double confidence})> _topPredictions = [];
+
+  // ── Kamera controller — presentation katmanında tutuluyor, domain'e girmez ─
+  /// CameraController değiştiğinde (kamera geçişi dahil) listener'lar tetiklenir.
+  final cameraNotifier = ValueNotifier<CameraController?>(null);
+
   // ── Developer modu — per-frame Riverpod rebuild tetiklemez ───────────────
   final devNotifier = ValueNotifier<LandmarkDevData>(
     LandmarkDevData(
@@ -60,20 +63,16 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     ),
   );
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // build()
-  // ─────────────────────────────────────────────────────────────────────────
-
   @override
   RecognitionState build() {
     ref.keepAlive();
     _repo = ref.read(_recognitionRepositoryProvider);
 
-    // Kamera controller → state (kamera hazır / kamera geçişi)
+    // Kamera controller → cameraNotifier (platform nesnesi domain'e girmez)
     final cameraSub = _repo.cameraControllerStream.listen((ctrl) {
+      cameraNotifier.value = ctrl;
       state = state.copyWith(
         isReady: ctrl != null,
-        cameraController: ctrl,
         isError: false,
         predictedWord: '',
         confidenceScore: 0.0,
@@ -84,8 +83,17 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     final inferenceSub = _repo.inferenceStream.listen(_onInferenceResult);
 
     // Landmark verisi → devNotifier (Riverpod rebuild yok)
+    // _topPredictions her inference'ta güncellenir, burada devNotifier'a eklenir.
     final landmarkSub = _repo.landmarkStream.listen((data) {
-      devNotifier.value = data;
+      devNotifier.value = LandmarkDevData(
+        posePoints: data.posePoints,
+        rightHand: data.rightHand,
+        leftHand: data.leftHand,
+        bufferFill: data.bufferFill,
+        poseCount: data.poseCount,
+        handCount: data.handCount,
+        topPredictions: _topPredictions,
+      );
     });
 
     // Ayarlar değişince repository'ye bildir
@@ -109,6 +117,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       landmarkSub.cancel();
       _clearTimer?.cancel();
       _repo.dispose();
+      cameraNotifier.dispose();
       devNotifier.dispose();
     });
 
@@ -126,9 +135,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     return const RecognitionState();
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Inference sonucu işleme — smoothing + TTS + haptic
-  // ─────────────────────────────────────────────────────────────────────────
 
   void _onInferenceResult(InferenceResult result) {
     // Sentinel: tespit yok / buffer temizlendi → ekranı sıfırla
@@ -140,8 +147,15 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       return;
     }
 
+    // Top-3'ü Türkçe etikete çevir ve devNotifier için sakla
+    if (result.topPredictions.isNotEmpty) {
+      final labelRepo = ref.read(labelRepositoryProvider);
+      _topPredictions = result.topPredictions
+          .map((p) => (word: labelRepo.getTrWord(p.classIndex), confidence: p.confidence))
+          .toList();
+    }
+
     final settings = ref.read(settingsProvider);
-    final smoothingOn = settings.temporalSmoothingEnabled;
     final scoreThreshold = settings.confidenceThreshold;
     final maxIdx = result.classIndex;
     final maxScore = result.confidence;
@@ -154,7 +168,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         _streak = 1;
       }
 
-      final threshold = smoothingOn ? settings.stableFramesThreshold : 1;
+      final threshold = settings.stableFramesThreshold;
       if (_streak >= threshold) {
         final word = ref.read(labelRepositoryProvider).getTrWord(maxIdx);
 
@@ -180,6 +194,11 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
 
           _clearTimer?.cancel();
           _clearTimer = Timer(const Duration(seconds: 4), () {
+            // Smoothing state'ini de sıfırla; yoksa aynı kelime bir daha
+            // gösterilemiyor (_lastShownWord hâlâ dolu kalıyordu).
+            _lastShownWord = '';
+            _streak = 0;
+            _lastIdx = -1;
             state = state.copyWith(
               predictedWord: '',
               confidenceScore: 0.0,
@@ -198,9 +217,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Public API — ekran ve navigasyon katmanına açık
-  // ─────────────────────────────────────────────────────────────────────────
 
   void pauseCamera() => _repo.pauseCamera();
   void resumeCamera() => _repo.resumeCamera();

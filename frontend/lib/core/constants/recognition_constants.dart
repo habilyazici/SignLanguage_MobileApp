@@ -10,12 +10,15 @@ abstract final class RecognitionConstants {
   /// [0..41] sağ el · [42..83] sol el · [84..105] pose (11 nokta × 2)
   static const int featureSize = 106;
 
-  /// Toplam sınıf sayısı (labels.csv ile eşleşmeli)
+  /// Referans sınıf sayısı — sadece dokümantasyon amaçlı.
+  /// Gerçek inference sınıf sayısı InferenceDatasource.numClasses'tan okunur
+  /// (modelin çıkış tensor shape'i). Yeni model yüklendiğinde burayı
+  /// güncellemeye gerek yok; model otomatik algılar.
   static const int numClasses = 226;
 
   // ── Zaman tabanlı pencere ─────────────────────────────────────────────────
   /// Kayan pencere süresi (ms) — son N ms'lik kareler pencereye alınır
-  static const int windowMs = 2500;
+  static const int windowMs = 2000;
 
   /// İlk inference için gereken minimum pencere süresi (ms)
   static const int minWindowMs = 800;
@@ -29,9 +32,11 @@ abstract final class RecognitionConstants {
   static const int stableFrames = 5;
 
   // ── Hareket algılama ─────────────────────────────────────────────────────
-  /// Normalize uzayında ortalama mutlak fark eşiği (0..1 arası)
-  static const double motionThreshold = 0.008;
+  /// Normalize uzayında ortalama mutlak fark eşiği (0..1 arası).
+  /// 0.008 = nefes/kamera titremesi yeterli (çok hassas).
+  /// 0.025 = gerçek el hareketi gerektirir.
+  static const double motionThreshold = 0.025;
 
   /// Son hareketten bu kadar ms sonra inference durur
-  static const int motionWindowMs = 1500;
+  static const int motionWindowMs = 1000;
 }

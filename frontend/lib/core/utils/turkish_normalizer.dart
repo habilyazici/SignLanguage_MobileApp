@@ -62,7 +62,7 @@ abstract final class TurkishNormalizer {
   /// Tam eşleşme yoksa suffix kırparak bilinen en uzun gövdeyi bulur.
   /// Hiç bulunamazsa null döner.
   static String? findStem(String word, Set<String> knownWords) {
-    final normalized = _trLower(word.trim());
+    final normalized = trLower(word.trim());
     if (normalized.isEmpty) return null;
 
     // 1. Tam eşleşme
@@ -85,12 +85,14 @@ abstract final class TurkishNormalizer {
   static List<String> tokenize(String text) {
     return text
         .split(RegExp(r'[\s,\.!?;:\-]+'))
-        .map(_trLower)
+        .map(trLower)
         .where((w) => w.length >= 2)
         .toList();
   }
 
-  static String _trLower(String s) => s
+  /// Türkçe karakterlere duyarlı küçük harf dönüşümü.
+  /// Dart'ın varsayılan [toLowerCase] İ→i ve I→ı dönüşümünü yapmaz.
+  static String trLower(String s) => s
       .replaceAll('İ', 'i')
       .replaceAll('I', 'ı')
       .replaceAll('Ğ', 'ğ')

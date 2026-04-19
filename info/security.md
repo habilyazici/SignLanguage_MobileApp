@@ -12,12 +12,9 @@
 ## 3. KVKK Veri Haritası
 - **Kamera Görüntüleri:** (YOK/TOPLANMIYOR)
 - **Email, Ad Soyad:** (Meşru menfaat / Açık Rıza, hesap silimi durumunda anonimize edilir veya veritabanından tamamen drop atılır).
-- **Sağlık Kartı (Hassas Veri):** Sadece kullanıcı inisiyatifindedir ve açık bir rıza onayı alınca db'ye kaydolur. Silinme menüsü sunulmak zorundadır.
-
 ## 4. API Düzeyi Güvenlikleri
 - **Helmet:** XSS ve sniffing'e karşı express middleware korumaları.
 - **Zod:** Tüm POST payload string ve regex format checkleri backend düzeyinde reddedilir.
-- **Rate Limit:** Brute force kalkanı loginde.
 
 ## 5. Uygulama Düzeyi Güvelik (Flutter)
 - **Local Cache (Hive):** Hassas credential bilgiler Encryption key ile saklanır.

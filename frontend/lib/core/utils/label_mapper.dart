@@ -32,6 +32,9 @@ class LabelMapper {
     }
   }
 
+  /// Yüklü kelime sayısını döndürür.
+  static int get count => _trLabels.length;
+
   /// Yüklü tüm etiketleri (id, kelime) çifti olarak döndürür.
   static List<(int, String)> getAllEntries() =>
       _trLabels.entries.map((e) => (e.key, e.value)).toList();

@@ -24,8 +24,6 @@ class SettingsLocalDatasource {
       FpsPreference.performance,
     ),
     hapticEnabled: _prefs.getBool('hapticEnabled') ?? true,
-    temporalSmoothingEnabled:
-        _prefs.getBool('temporalSmoothingEnabled') ?? true,
     cellularVideoDisabled: _prefs.getBool('cellularVideoDisabled') ?? false,
     videoQuality: _enumVal(
       VideoQuality.values,
@@ -37,6 +35,8 @@ class SettingsLocalDatasource {
     ttsEnabled: _prefs.getBool('ttsEnabled') ?? true,
     sttEnabled: _prefs.getBool('sttEnabled') ?? true,
     devMode: _prefs.getBool('devMode') ?? false,
+    showDevButton: _prefs.getBool('showDevButton') ?? false,
+    stableFramesThreshold: _prefs.getInt('stableFramesThreshold') ?? 3,
   );
 
   Future<void> write(AppSettings s) async {
@@ -46,10 +46,6 @@ class SettingsLocalDatasource {
     await _prefs.setInt('confidenceLevel', s.confidenceLevel.index);
     await _prefs.setInt('fpsPreference', s.fpsPreference.index);
     await _prefs.setBool('hapticEnabled', s.hapticEnabled);
-    await _prefs.setBool(
-      'temporalSmoothingEnabled',
-      s.temporalSmoothingEnabled,
-    );
     await _prefs.setBool('cellularVideoDisabled', s.cellularVideoDisabled);
     await _prefs.setInt('videoQuality', s.videoQuality.index);
     await _prefs.setBool('zeroDataMode', s.zeroDataMode);
@@ -57,6 +53,8 @@ class SettingsLocalDatasource {
     await _prefs.setBool('ttsEnabled', s.ttsEnabled);
     await _prefs.setBool('sttEnabled', s.sttEnabled);
     await _prefs.setBool('devMode', s.devMode);
+    await _prefs.setBool('showDevButton', s.showDevButton);
+    await _prefs.setInt('stableFramesThreshold', s.stableFramesThreshold);
   }
 
   /// Kaydedilmiş index enum sınırları dışındaysa (uygulama güncellemesi

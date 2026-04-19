@@ -13,7 +13,7 @@
 - **Tech:** Node.js, Express.js, TypeScript.
 - **Güvenlik & Validasyon:** JWT, bcrypt, Zod, Helmet.
 - **Database:** PostgreSQL (Prisma ORM ile).
-- **Görev:** İsteğe bağlı cloud data (Kullanıcı hesapları, sağlık kartları senkronsazyonları, translation history, CDN referans url'leri).
+- **Görev:** İsteğe bağlı cloud data (Kullanıcı hesapları, translation history, CDN referans url'leri).
 
 ## 2. API Endpoints Map
 
@@ -25,10 +25,8 @@
 - `GET /me` -> Auth required
 
 ### Profil (`/api/profile`) - Auth Required
-- `GET /` -> Profil + HealthCard + Stats
+- `GET /` -> Profil + Stats
 - `PUT /` `({name, avatar})`
-- `GET /health-card`
-- `PUT /health-card` `({bloodType, allergies, ...})`
 
 ### İşaret Kelime Verileri (`/api/signs`) - Guest Access
 - `GET /` -> Tüm sözlük indexi 

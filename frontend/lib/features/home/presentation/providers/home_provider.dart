@@ -13,5 +13,5 @@ final _homeRepositoryProvider = Provider<HomeRepository>(
 );
 
 final dailyWordProvider = Provider<DailyWord>(
-  (ref) => ref.read(_homeRepositoryProvider).getDailyWord(),
+  (ref) => ref.watch(_homeRepositoryProvider).getDailyWord(),
 );

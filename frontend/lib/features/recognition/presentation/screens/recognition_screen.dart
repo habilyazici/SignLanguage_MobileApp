@@ -66,29 +66,33 @@ class RecognitionScreen extends ConsumerWidget {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(28),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              _CameraLayer(
-                                state: state,
-                                onDoubleTap: () => notifier.switchCamera(),
-                              ),
-                              if (devMode &&
-                                  state.isReady &&
-                                  state.cameraController != null)
-                                _LandmarkOverlay(
-                                  notifier: notifier.devNotifier,
-                                  cameraController: state.cameraController!,
+                          // ValueListenableBuilder: kamera geçişinde sadece
+                          // kamera bölümü rebuild olur, tüm ekran değil.
+                          child: ValueListenableBuilder<CameraController?>(
+                            valueListenable: notifier.cameraNotifier,
+                            builder: (context, cameraCtrl, _) => Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                _CameraLayer(
+                                  isReady: state.isReady,
+                                  cameraController: cameraCtrl,
+                                  onDoubleTap: () => notifier.switchCamera(),
                                 ),
-                              if (devMode)
-                                Positioned(
-                                  top: 12,
-                                  right: 12,
-                                  child: _DevStatsPanel(
-                                    devNotifier: notifier.devNotifier,
+                                if (devMode && state.isReady && cameraCtrl != null)
+                                  _LandmarkOverlay(
+                                    notifier: notifier.devNotifier,
+                                    cameraController: cameraCtrl,
                                   ),
-                                ),
-                            ],
+                                if (devMode)
+                                  Positioned(
+                                    top: 12,
+                                    right: 12,
+                                    child: _DevStatsPanel(
+                                      devNotifier: notifier.devNotifier,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -313,20 +317,25 @@ class _ErrorOverlay extends StatelessWidget {
 }
 
 class _CameraLayer extends StatelessWidget {
-  const _CameraLayer({required this.state, required this.onDoubleTap});
-  final RecognitionState state;
+  const _CameraLayer({
+    required this.isReady,
+    required this.cameraController,
+    required this.onDoubleTap,
+  });
+  final bool isReady;
+  final CameraController? cameraController;
   final VoidCallback onDoubleTap;
 
   @override
   Widget build(BuildContext context) {
-    if (!state.isReady || state.cameraController == null) {
+    if (!isReady || cameraController == null) {
       return Shimmer.fromColors(
         baseColor: const Color(0xFF1A1A1A),
         highlightColor: const Color(0xFF2E2E2E),
         child: Container(color: const Color(0xFF1A1A1A)),
       );
     }
-    final controller = state.cameraController!;
+    final controller = cameraController!;
     return GestureDetector(
       onDoubleTap: onDoubleTap,
       child: SizedBox.expand(
@@ -455,6 +464,13 @@ class _DevStatsPanel extends StatelessWidget {
                 _statRow('HAND', '${d.handCount}', Colors.white70),
                 _statRow('R', '${d.rightHand.length}pt', Colors.redAccent),
                 _statRow('L', '${d.leftHand.length}pt', Colors.blueAccent),
+                if (d.topPredictions.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(height: 1, color: Colors.white12),
+                  const SizedBox(height: 4),
+                  for (int i = 0; i < d.topPredictions.length; i++)
+                    _predRow(i + 1, d.topPredictions[i].word, d.topPredictions[i].confidence),
+                ],
               ],
             ),
           );
@@ -485,6 +501,44 @@ class _DevStatsPanel extends StatelessWidget {
               fontWeight: FontWeight.bold,
               fontFamily: 'monospace',
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _predRow(int rank, String word, double confidence) {
+    final color = rank == 1
+        ? Colors.greenAccent
+        : rank == 2
+            ? Colors.yellowAccent
+            : Colors.white38;
+    final pct = '${(confidence * 100).toStringAsFixed(0)}%';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$rank ',
+            style: TextStyle(color: color, fontSize: 10, fontFamily: 'monospace'),
+          ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 72),
+            child: Text(
+              word,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          Text(
+            ' $pct',
+            style: const TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'monospace'),
           ),
         ],
       ),
@@ -608,35 +662,25 @@ class _SentenceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 6,
-      runSpacing: 6,
-      children: sentence.asMap().entries.map((entry) {
-        final isLast = entry.key == sentence.length - 1;
-        return AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: TextStyle(
-                color: isLast
-                    ? (isDark ? Colors.white : AppTheme.primaryBlue)
-                    : (isDark
-                          ? Colors.white60
-                          : AppTheme.primaryBlue.withOpacity(0.4)),
-                fontSize: isLast ? 30 : 22,
-                fontWeight: isLast ? FontWeight.bold : FontWeight.normal,
-                height: 1.2,
-              ),
-              child: Text(entry.value),
-            )
-            .animate(key: ValueKey(entry.key))
-            .fadeIn(duration: 250.ms)
-            .scale(
-              begin: const Offset(0.75, 0.75),
-              end: const Offset(1, 1),
-              duration: 300.ms,
-              curve: Curves.easeOutBack,
-            );
-      }).toList(),
+    final textStyle = TextStyle(
+      color: isDark ? Colors.white : AppTheme.primaryBlue,
+      fontSize: 26,
+      fontWeight: FontWeight.w600,
+      height: 1.3,
+    );
+
+    return SingleChildScrollView(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
+        children: sentence.map((word) {
+          return Text(
+            word,
+            style: textStyle,
+          ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.1, end: 0);
+        }).toList(),
+      ),
     );
   }
 }

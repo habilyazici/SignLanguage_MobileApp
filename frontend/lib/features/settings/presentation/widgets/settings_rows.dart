@@ -285,7 +285,7 @@ class StabilityRow extends StatelessWidget {
       label: current.toString(),
       labelColor: AppTheme.primaryBlue,
       helpText:
-          'AI\'nın bir kelimeyi ekrana yazması için onu kaç kez üst üste doğrulaması gerektiğini belirler. \n\nÖnerilen: 5\nHızlı: 3\nÇok Hassas: 10+',
+          'AI\'nın bir kelimeyi ekrana yazması için onu kaç kez üst üste doğrulaması gerektiğini belirler.\n\n1 = Smoothing kapalı, her tespit anında kabul edilir\nÖnerilen: 3\nKatı: 5+',
       onTap: () => SettingsDialogs.showNumberPickerDialog(
         context: context,
         isDark: isDark,
