@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/providers/label_provider.dart';
 import '../../data/datasources/dictionary_local_datasource.dart';
 import '../../data/repositories/dictionary_repository_impl.dart';
 import '../../domain/entities/sign_entry.dart';
@@ -10,7 +11,9 @@ import '../../domain/repositories/dictionary_repository.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 final _dictionaryRepositoryProvider = Provider<DictionaryRepository>(
-  (ref) => DictionaryRepositoryImpl(DictionaryLocalDatasource()),
+  (ref) => DictionaryRepositoryImpl(
+    DictionaryLocalDatasource(ref.read(labelRepositoryProvider)),
+  ),
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

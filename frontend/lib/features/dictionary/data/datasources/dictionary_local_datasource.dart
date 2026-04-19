@@ -1,10 +1,14 @@
-import '../../../../../core/utils/label_mapper.dart';
+import '../../../../../core/domain/repositories/label_repository.dart';
 import '../../domain/entities/sign_entry.dart';
 
-/// LabelMapper'dan zaten yüklü olan etiketleri okur.
-/// main.dart'ta LabelMapper.loadLabels() çağrıldıktan sonra kullanılabilir.
+/// LabelRepository üzerinden zaten yüklü olan etiketleri okur.
 class DictionaryLocalDatasource {
-  List<SignEntry> readAll() => LabelMapper.getAllEntries()
+  const DictionaryLocalDatasource(this._labels);
+
+  final LabelRepository _labels;
+
+  List<SignEntry> readAll() => _labels
+      .getAllEntries()
       .map((e) => SignEntry(id: e.$1, label: e.$2))
       .toList();
 }

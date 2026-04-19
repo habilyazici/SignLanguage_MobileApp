@@ -10,19 +10,20 @@ class SettingsLocalDatasource {
   final SharedPreferences _prefs;
 
   AppSettings read() => AppSettings(
-    themeMode:
-        ThemeMode.values[_prefs.getInt('themeMode') ?? ThemeMode.system.index],
-    textSize: AppTextSize
-        .values[_prefs.getInt('textSize') ?? AppTextSize.standard.index],
+    themeMode: _enumVal(ThemeMode.values, 'themeMode', ThemeMode.system),
+    textSize: _enumVal(AppTextSize.values, 'textSize', AppTextSize.standard),
     leftHandMode: _prefs.getBool('leftHandMode') ?? false,
-    confidenceLevel: ConfidenceLevel
-        .values[_prefs.getInt('confidenceLevel') ?? ConfidenceLevel.medium.index],
+    confidenceLevel: _enumVal(
+      ConfidenceLevel.values,
+      'confidenceLevel',
+      ConfidenceLevel.medium,
+    ),
     fpsLimitEnabled: _prefs.getBool('fpsLimitEnabled') ?? false,
     hapticEnabled: _prefs.getBool('hapticEnabled') ?? true,
-    temporalSmoothingEnabled: _prefs.getBool('temporalSmoothingEnabled') ?? true,
+    temporalSmoothingEnabled:
+        _prefs.getBool('temporalSmoothingEnabled') ?? true,
     cellularVideoDisabled: _prefs.getBool('cellularVideoDisabled') ?? false,
-    videoQuality: VideoQuality
-        .values[_prefs.getInt('videoQuality') ?? VideoQuality.high.index],
+    videoQuality: _enumVal(VideoQuality.values, 'videoQuality', VideoQuality.high),
     zeroDataMode: _prefs.getBool('zeroDataMode') ?? false,
     cloudSyncEnabled: _prefs.getBool('cloudSyncEnabled') ?? false,
     ttsEnabled: _prefs.getBool('ttsEnabled') ?? true,
@@ -45,5 +46,13 @@ class SettingsLocalDatasource {
     await _prefs.setBool('ttsEnabled', s.ttsEnabled);
     await _prefs.setBool('sttEnabled', s.sttEnabled);
     await _prefs.setBool('devMode', s.devMode);
+  }
+
+  /// Kaydedilmiş index enum sınırları dışındaysa (uygulama güncellemesi
+  /// sonrası enum küçüldüyse vb.) varsayılan değere düşer.
+  T _enumVal<T>(List<T> values, String key, T fallback) {
+    final idx = _prefs.getInt(key);
+    if (idx == null || idx < 0 || idx >= values.length) return fallback;
+    return values[idx];
   }
 }

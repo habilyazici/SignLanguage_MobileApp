@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/tts_service.dart';
+import '../services/tts_service_impl.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TTS Provider — uygulama boyunca tek bir TtsService örneği
 // ─────────────────────────────────────────────────────────────────────────────
+
+final _ttsServiceProvider = Provider<TtsService>((_) => TtsServiceImpl());
 
 final ttsProvider =
     NotifierProvider<TtsNotifier, void>(TtsNotifier.new);
@@ -14,7 +17,7 @@ class TtsNotifier extends Notifier<void> {
   @override
   void build() {
     ref.keepAlive();
-    _service = TtsService();
+    _service = ref.read(_ttsServiceProvider);
     _service.initialize();
     ref.onDispose(_service.dispose);
   }

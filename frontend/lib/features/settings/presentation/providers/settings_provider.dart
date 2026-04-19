@@ -25,7 +25,8 @@ final sharedPreferencesProvider = Provider<SharedPreferences>(
 // Repository provider — data katmanını presentation'a bağlar
 // ─────────────────────────────────────────────────────────────────────────────
 
-final _settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+/// Public — diğer feature'lar doğrudan SettingsRepository'e bağlanabilir.
+final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   final prefs = ref.read(sharedPreferencesProvider);
   return SettingsRepositoryImpl(SettingsLocalDatasource(prefs));
 });
@@ -44,7 +45,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
   @override
   AppSettings build() {
     ref.keepAlive();
-    _repo = ref.read(_settingsRepositoryProvider);
+    _repo = ref.read(settingsRepositoryProvider);
     return _repo.load();
   }
 

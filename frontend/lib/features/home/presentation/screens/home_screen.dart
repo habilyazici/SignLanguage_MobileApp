@@ -6,14 +6,16 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/presentation/widgets/glass_card.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../providers/home_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark  = Theme.of(context).brightness == Brightness.dark;
-    final isGuest = ref.watch(authProvider).isGuest;
+    final isDark     = Theme.of(context).brightness == Brightness.dark;
+    final isGuest    = ref.watch(authProvider).isGuest;
+    final dailyWord  = ref.watch(dailyWordProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -34,7 +36,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 32),
 
                 // ── Günün İşareti ────────────────────────────────────────────
-                _DailyWordCard(isDark: isDark)
+                _DailyWordCard(isDark: isDark, word: dailyWord.word)
                     .animate()
                     .fadeIn(delay: 120.ms, duration: 400.ms)
                     .slideY(begin: 0.12, end: 0, curve: Curves.easeOut),
@@ -221,8 +223,9 @@ class _HeroHeader extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DailyWordCard extends StatelessWidget {
-  const _DailyWordCard({required this.isDark});
+  const _DailyWordCard({required this.isDark, required this.word});
   final bool isDark;
+  final String word;
 
   @override
   Widget build(BuildContext context) {
@@ -246,7 +249,7 @@ class _DailyWordCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '"Merhaba"',
+                  '"$word"',
                   style: GoogleFonts.poppins(
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
