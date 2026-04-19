@@ -6,7 +6,7 @@ import '../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/recognition/presentation/screens/recognition_screen.dart';
 import '../features/dictionary/presentation/screens/dictionary_screen.dart';
-import '../features/translator/presentation/screens/translator_screen.dart';
+import '../features/text_to_sign/presentation/screens/translator_screen.dart';
 import '../features/emergency/presentation/screens/emergency_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
