@@ -21,9 +21,6 @@ abstract interface class RecognitionRepository {
   /// Ayarlar değiştiğinde çağrılır — sol el modu frame işlemede kullanılır.
   void updateLeftHandMode(bool leftHand);
 
-  /// Geliştirici modu değiştiğinde terminal loglarını açar/kapatır.
-  void updateDebugMode(bool debugLog);
-
   /// FPS limitini günceller (ör. 15 veya 30).
   void updateFpsLimit(int targetFps);
 

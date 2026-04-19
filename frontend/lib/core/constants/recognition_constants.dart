@@ -26,7 +26,7 @@ abstract final class RecognitionConstants {
 
   // ── Temporal smoothing ────────────────────────────────────────────────────
   /// Aynı sınıfın kaç ardışık inference'ta görülmesi gerektiği
-  static const int stableFrames = 2;
+  static const int stableFrames = 5;
 
   // ── Hareket algılama ─────────────────────────────────────────────────────
   /// Normalize uzayında ortalama mutlak fark eşiği (0..1 arası)

@@ -58,6 +58,10 @@ class AppSettings {
 
   // ── Geliştirici ───────────────────────────────────────────────────────────
   final bool devMode;
+  final bool showDevButton;
+
+  // ── AI Kararlılık (Dynamic) ────────────────────────────────────────────────
+  final int stableFramesThreshold;
 
   const AppSettings({
     this.themeMode = ThemeMode.system,
@@ -74,6 +78,8 @@ class AppSettings {
     this.ttsEnabled = true,
     this.sttEnabled = true,
     this.devMode = false,
+    this.showDevButton = false,
+    this.stableFramesThreshold = 5,
   });
 
   /// Confidence level'ı TFLite threshold değerine dönüştürür.
@@ -107,6 +113,8 @@ class AppSettings {
     bool? ttsEnabled,
     bool? sttEnabled,
     bool? devMode,
+    bool? showDevButton,
+    int? stableFramesThreshold,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     textSize: textSize ?? this.textSize,
@@ -123,5 +131,7 @@ class AppSettings {
     ttsEnabled: ttsEnabled ?? this.ttsEnabled,
     sttEnabled: sttEnabled ?? this.sttEnabled,
     devMode: devMode ?? this.devMode,
+    showDevButton: showDevButton ?? this.showDevButton,
+    stableFramesThreshold: stableFramesThreshold ?? this.stableFramesThreshold,
   );
 }

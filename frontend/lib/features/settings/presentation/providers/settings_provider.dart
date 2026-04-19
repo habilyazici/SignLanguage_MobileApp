@@ -100,4 +100,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   // ── Geliştirici ───────────────────────────────────────────────────────────
   void toggleDevMode() => _persist(state.copyWith(devMode: !state.devMode));
+
+  void toggleShowDevButton() =>
+      _persist(state.copyWith(showDevButton: !state.showDevButton));
+
+  void setStableFramesThreshold(int val) =>
+      _persist(state.copyWith(stableFramesThreshold: val));
 }

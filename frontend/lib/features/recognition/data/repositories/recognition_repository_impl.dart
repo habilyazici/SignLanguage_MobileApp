@@ -53,7 +53,6 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   List<double>? _prevFrame;
   int _lastMotionMs = 0;
   bool _leftHandMode = false;
-  bool _debugLog = false;
   bool _isStreaming = false;
   int _targetFps = 30;
   int _lastFrameTimeMs = 0;
@@ -121,9 +120,6 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
 
   @override
   void updateLeftHandMode(bool leftHand) => _leftHandMode = leftHand;
-
-  @override
-  void updateDebugMode(bool debugLog) => _debugLog = debugLog;
 
   @override
   void updateFpsLimit(int targetFps) => _targetFps = targetFps;

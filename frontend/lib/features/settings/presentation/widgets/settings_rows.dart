@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
+import 'settings_dialogs.dart';
 import 'settings_widgets.dart';
 
 // ── Tema Satırı ──────────────────────────────────────────────────────────────
@@ -256,6 +257,41 @@ class FpsRow extends StatelessWidget {
             onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Kararlılık (Stabilizasyon) Satırı ───────────────────────────────────────
+class StabilityRow extends StatelessWidget {
+  const StabilityRow({
+    super.key,
+    required this.current,
+    required this.onChanged,
+    required this.isDark,
+  });
+  final int current;
+  final ValueChanged<int> onChanged;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsActionRow(
+      isDark: isDark,
+      icon: Icons.filter_alt_rounded,
+      iconColor: Colors.purpleAccent,
+      title: 'Kararlılık Eşiği',
+      subtitle: 'Daha yüksek = Daha az gürültü',
+      label: current.toString(),
+      labelColor: AppTheme.primaryBlue,
+      helpText:
+          'AI\'nın bir kelimeyi ekrana yazması için onu kaç kez üst üste doğrulaması gerektiğini belirler. \n\nÖnerilen: 5\nHızlı: 3\nÇok Hassas: 10+',
+      onTap: () => SettingsDialogs.showNumberPickerDialog(
+        context: context,
+        isDark: isDark,
+        title: 'Kararlılık Eşiği',
+        current: current,
+        onChanged: onChanged,
       ),
     );
   }

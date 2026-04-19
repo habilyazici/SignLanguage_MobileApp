@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import 'settings_dialogs.dart';
 
 // ── Bölüm Başlığı ────────────────────────────────────────────────────────────
 class SettingsSection extends StatelessWidget {
@@ -75,6 +76,7 @@ class SettingsSwitchRow extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
+    this.helpText,
   });
 
   final bool isDark;
@@ -82,45 +84,60 @@ class SettingsSwitchRow extends StatelessWidget {
   final Color iconColor;
   final String title;
   final String subtitle;
+  final String? helpText;
   final bool value;
   final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          _iconBox(icon, iconColor),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
+    return InkWell(
+      onLongPress: helpText != null
+          ? () => SettingsDialogs.showHelpDialog(
+              context,
+              isDark,
+              title,
+              helpText!,
+            )
+          : null,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            _iconBox(icon, iconColor),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.midGrey),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.midGrey,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: Colors.white,
-            activeTrackColor: AppTheme.secondaryBlue,
-            inactiveThumbColor: isDark ? Colors.white38 : Colors.white,
-            inactiveTrackColor: isDark ? Colors.white12 : Colors.black12,
-          ),
-        ],
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: Colors.white,
+              activeTrackColor: AppTheme.secondaryBlue,
+              inactiveThumbColor: isDark ? Colors.white38 : Colors.white,
+              inactiveTrackColor: isDark ? Colors.white12 : Colors.black12,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -138,6 +155,7 @@ class SettingsActionRow extends StatelessWidget {
     required this.label,
     required this.labelColor,
     required this.onTap,
+    this.helpText,
   });
 
   final bool isDark;
@@ -145,51 +163,73 @@ class SettingsActionRow extends StatelessWidget {
   final Color iconColor;
   final String title;
   final String subtitle;
+  final String? helpText;
   final String label;
   final Color labelColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          _iconBox(icon, iconColor),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
+    return InkWell(
+      onLongPress: helpText != null
+          ? () => SettingsDialogs.showHelpDialog(
+              context,
+              isDark,
+              title,
+              helpText!,
+            )
+          : null,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            _iconBox(icon, iconColor),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.midGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: onTap,
+              style: TextButton.styleFrom(
+                foregroundColor: labelColor,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.midGrey),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: labelColor,
                 ),
-              ],
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: onTap,
-            style: TextButton.styleFrom(
-              foregroundColor: labelColor,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              label,
-              style: TextStyle(fontWeight: FontWeight.w600, color: labelColor),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

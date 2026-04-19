@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../core/constants/recognition_constants.dart';
 import '../../../../../core/providers/camera_lifecycle_provider.dart';
 import '../../../../../core/providers/label_provider.dart';
 import '../../../../../core/providers/tts_provider.dart';
@@ -92,7 +91,6 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     // Ayarlar değişince repository'ye bildir
     ref.listen<AppSettings>(settingsProvider, (_, next) {
       _repo.updateLeftHandMode(next.leftHandMode);
-      _repo.updateDebugMode(next.devMode);
       _repo.updateFpsLimit(next.targetFps);
     });
 
@@ -119,7 +117,6 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         .then((_) {
           final s = ref.read(settingsProvider);
           _repo.updateLeftHandMode(s.leftHandMode);
-          _repo.updateDebugMode(s.devMode);
           _repo.updateFpsLimit(s.targetFps);
         })
         .catchError((e) {
@@ -157,7 +154,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         _streak = 1;
       }
 
-      final threshold = smoothingOn ? RecognitionConstants.stableFrames : 1;
+      final threshold = smoothingOn ? settings.stableFramesThreshold : 1;
       if (_streak >= threshold) {
         final word = ref.read(labelRepositoryProvider).getTrWord(maxIdx);
 

@@ -36,11 +36,11 @@ class RecognitionScreen extends ConsumerWidget {
         child: SafeArea(
           child: Column(
             children: [
-              // ── Başlık ───────────────────────────────────────────────────
               _TopHeader(
                 devMode: devMode,
                 onDevToggle: settingsNotifier.toggleDevMode,
                 isDark: isDark,
+                showDevButton: ref.watch(settingsProvider).showDevButton,
               ),
 
               const SizedBox(height: 12),
@@ -145,10 +145,12 @@ class _TopHeader extends StatelessWidget {
     required this.devMode,
     required this.onDevToggle,
     required this.isDark,
+    required this.showDevButton,
   });
   final bool devMode;
   final VoidCallback onDevToggle;
   final bool isDark;
+  final bool showDevButton;
 
   @override
   Widget build(BuildContext context) {
@@ -189,36 +191,41 @@ class _TopHeader extends StatelessWidget {
               ),
             ],
           ),
-          const Spacer(),
-          GestureDetector(
-            onTap: onDevToggle,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: devMode
-                    ? Colors.cyanAccent.withValues(alpha: 0.1)
-                    : Colors.transparent,
-                border: Border.all(
-                  color: devMode
-                      ? Colors.cyanAccent
-                      : (isDark ? Colors.white10 : Colors.black12),
-                  width: 1,
+          if (showDevButton) ...[
+            const Spacer(),
+            GestureDetector(
+              onTap: onDevToggle,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
                 ),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                'DEV',
-                style: TextStyle(
+                decoration: BoxDecoration(
                   color: devMode
-                      ? Colors.cyanAccent
-                      : (isDark ? Colors.white24 : Colors.black26),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
+                      ? Colors.cyanAccent.withValues(alpha: 0.1)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: devMode
+                        ? Colors.cyanAccent
+                        : (isDark ? Colors.white10 : Colors.black12),
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'DEV',
+                  style: TextStyle(
+                    color: devMode
+                        ? (isDark ? Colors.cyanAccent : Colors.cyan[700])
+                        : (isDark ? Colors.white24 : Colors.black26),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1),
     );
@@ -257,7 +264,7 @@ class _ResultPanel extends StatelessWidget {
           Expanded(
             child: Center(
               child: hasWords
-                  ? _SentenceRow(sentence: state.sentence)
+                  ? _SentenceRow(sentence: state.sentence, isDark: isDark)
                   : Text(
                       'Kameraya ellerinizi gösterin',
                       style: TextStyle(
@@ -272,6 +279,7 @@ class _ResultPanel extends StatelessWidget {
           _ConfidenceBar(score: state.confidenceScore, active: hasWords),
           const SizedBox(height: 16),
           _ActionBar(
+            isDark: isDark,
             onTtsReplay: onTtsReplay,
             onCopy: onCopy,
             onShare: onShare,
@@ -485,7 +493,13 @@ class _DevStatsPanel extends StatelessWidget {
 }
 
 class _ActionBar extends StatelessWidget {
-  const _ActionBar({this.onTtsReplay, this.onCopy, this.onShare});
+  const _ActionBar({
+    required this.isDark,
+    this.onTtsReplay,
+    this.onCopy,
+    this.onShare,
+  });
+  final bool isDark;
   final VoidCallback? onTtsReplay;
   final VoidCallback? onCopy;
   final VoidCallback? onShare;
@@ -498,22 +512,25 @@ class _ActionBar extends StatelessWidget {
         _ActionBtn(
           icon: Icons.volume_up_rounded,
           label: 'Seslendir',
-          color: Colors.cyanAccent,
+          color: isDark ? Colors.cyanAccent : Colors.cyan[700]!,
           onTap: onTtsReplay,
+          isDark: isDark,
         ),
         const SizedBox(width: 12),
         _ActionBtn(
           icon: Icons.copy_rounded,
           label: 'Kopyala',
-          color: Colors.white70,
+          color: isDark ? Colors.white70 : Colors.black54,
           onTap: onCopy,
+          isDark: isDark,
         ),
         const SizedBox(width: 12),
         _ActionBtn(
           icon: Icons.share_rounded,
           label: 'Paylaş',
-          color: AppTheme.secondaryBlue,
+          color: isDark ? AppTheme.secondaryBlue : AppTheme.primaryBlue,
           onTap: onShare,
+          isDark: isDark,
         ),
       ],
     );
@@ -526,11 +543,13 @@ class _ActionBtn extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onTap,
+    required this.isDark,
   });
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback? onTap;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -546,16 +565,22 @@ class _ActionBtn extends StatelessWidget {
             decoration: BoxDecoration(
               color: enabled
                   ? color.withValues(alpha: 0.15)
-                  : Colors.white.withValues(alpha: 0.05),
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.black.withValues(alpha: 0.05)),
               shape: BoxShape.circle,
               border: Border.all(
-                color: enabled ? color.withValues(alpha: 0.4) : Colors.white12,
+                color: enabled
+                    ? color.withValues(alpha: 0.4)
+                    : (isDark ? Colors.white12 : Colors.black12),
                 width: 1,
               ),
             ),
             child: Icon(
               icon,
-              color: enabled ? color : Colors.white24,
+              color: enabled
+                  ? color
+                  : (isDark ? Colors.white24 : Colors.black26),
               size: 20,
             ),
           ),
@@ -563,7 +588,9 @@ class _ActionBtn extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: enabled ? color.withValues(alpha: 0.8) : Colors.white24,
+              color: enabled
+                  ? color.withValues(alpha: 0.8)
+                  : (isDark ? Colors.white24 : Colors.black26),
               fontSize: 10,
               fontWeight: FontWeight.w500,
             ),
@@ -575,8 +602,9 @@ class _ActionBtn extends StatelessWidget {
 }
 
 class _SentenceRow extends StatelessWidget {
-  const _SentenceRow({required this.sentence});
+  const _SentenceRow({required this.sentence, required this.isDark});
   final List<String> sentence;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -589,7 +617,11 @@ class _SentenceRow extends StatelessWidget {
         return AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
-                color: isLast ? Colors.white : Colors.white60,
+                color: isLast
+                    ? (isDark ? Colors.white : AppTheme.primaryBlue)
+                    : (isDark
+                          ? Colors.white60
+                          : AppTheme.primaryBlue.withOpacity(0.4)),
                 fontSize: isLast ? 30 : 22,
                 fontWeight: isLast ? FontWeight.bold : FontWeight.normal,
                 height: 1.2,
