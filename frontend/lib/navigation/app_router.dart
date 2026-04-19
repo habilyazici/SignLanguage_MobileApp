@@ -7,7 +7,6 @@ import '../features/home/presentation/screens/home_screen.dart';
 import '../features/recognition/presentation/screens/recognition_screen.dart';
 import '../features/dictionary/presentation/screens/dictionary_screen.dart';
 import '../features/text_to_sign/presentation/screens/translator_screen.dart';
-import '../features/emergency/presentation/screens/emergency_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
@@ -39,10 +38,7 @@ final router = GoRouter(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) => ScaffoldWithNav(child: child),
       routes: [
-        GoRoute(
-          path: '/home',
-          builder: (context, state) => const HomeScreen(),
-        ),
+        GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
         GoRoute(
           path: '/live-translation',
           builder: (context, state) => const RecognitionScreen(),
@@ -63,11 +59,6 @@ final router = GoRouter(
     ),
 
     // ── Tam ekran rotalar (bottom nav yok) ───────────────────────────
-    GoRoute(
-      path: '/emergency',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const EmergencyScreen(),
-    ),
     GoRoute(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,

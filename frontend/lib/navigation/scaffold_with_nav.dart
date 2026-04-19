@@ -145,7 +145,7 @@ class ScaffoldWithNav extends ConsumerWidget {
                 ),
                 _NavBarItem(
                   icon: Icons.sign_language_rounded,
-                  label: 'Avatar',
+                  label: 'Çevirmen',
                   isSelected: currentIndex == 3,
                   onTap: () => _onTap(context, ref, 3),
                 ),

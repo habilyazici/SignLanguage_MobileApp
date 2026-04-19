@@ -12,9 +12,9 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth     = ref.watch(authProvider);
+    final auth = ref.watch(authProvider);
     final settings = ref.watch(settingsProvider);
-    final isDark   = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -48,53 +48,35 @@ class ProfileScreen extends ConsumerWidget {
 
             // ── Ayarlar ───────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _NavTile(
-                isDark: isDark,
-                icon: Icons.settings_rounded,
-                iconColor: AppTheme.secondaryBlue,
-                title: 'Ayarlar',
-                subtitle: 'Tema, kamera, ses, gizlilik',
-                onTap: () => context.push('/settings'),
-              ),
-            )
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _NavTile(
+                    isDark: isDark,
+                    icon: Icons.settings_rounded,
+                    iconColor: AppTheme.secondaryBlue,
+                    title: 'Ayarlar',
+                    subtitle: 'Tema, kamera, ses, gizlilik',
+                    onTap: () => context.push('/settings'),
+                  ),
+                )
                 .animate()
                 .fadeIn(delay: 180.ms, duration: 350.ms)
-                .slideY(begin: 0.06),
-
-            const SizedBox(height: 10),
-
-            // ── Acil Durum ────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _NavTile(
-                isDark: isDark,
-                icon: Icons.emergency_rounded,
-                iconColor: Colors.redAccent,
-                title: 'Acil Durum',
-                subtitle: 'Hızlı mesajlar ve sağlık kartı',
-                onTap: () => context.push('/emergency'),
-              ),
-            )
-                .animate()
-                .fadeIn(delay: 220.ms, duration: 350.ms)
                 .slideY(begin: 0.06),
 
             // ── Çıkış (sadece giriş yapılmışsa) ──────────────────────────
             if (auth.isAuthenticated) ...[
               const SizedBox(height: 10),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _NavTile(
-                  isDark: isDark,
-                  icon: Icons.logout_rounded,
-                  iconColor: Colors.orangeAccent,
-                  title: 'Çıkış Yap',
-                  subtitle: auth.email ?? '',
-                  onTap: () => _confirmSignOut(context, ref),
-                  showArrow: false,
-                ),
-              )
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _NavTile(
+                      isDark: isDark,
+                      icon: Icons.logout_rounded,
+                      iconColor: Colors.orangeAccent,
+                      title: 'Çıkış Yap',
+                      subtitle: auth.email ?? '',
+                      onTap: () => _confirmSignOut(context, ref),
+                      showArrow: false,
+                    ),
+                  )
                   .animate()
                   .fadeIn(delay: 250.ms, duration: 350.ms)
                   .slideY(begin: 0.06),
@@ -104,9 +86,9 @@ class ProfileScreen extends ConsumerWidget {
 
             // ── Hakkında ──────────────────────────────────────────────────
             _SectionTitle('Hakkında'),
-            _InfoCard(isDark: isDark)
-                .animate()
-                .fadeIn(delay: 300.ms, duration: 350.ms),
+            _InfoCard(
+              isDark: isDark,
+            ).animate().fadeIn(delay: 300.ms, duration: 350.ms),
           ],
         ),
       ),
@@ -129,8 +111,10 @@ class ProfileScreen extends ConsumerWidget {
               Navigator.pop(context);
               ref.read(authProvider.notifier).signOut();
             },
-            child: const Text('Çıkış Yap',
-                style: TextStyle(color: Colors.orangeAccent)),
+            child: const Text(
+              'Çıkış Yap',
+              style: TextStyle(color: Colors.orangeAccent),
+            ),
           ),
         ],
       ),
@@ -178,12 +162,17 @@ class _ProfileHeader extends StatelessWidget {
               shape: BoxShape.circle,
               color: Colors.white.withValues(alpha: 0.15),
               border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4), width: 2),
+                color: Colors.white.withValues(alpha: 0.4),
+                width: 2,
+              ),
             ),
             child: Center(
               child: auth.isGuest
-                  ? const Icon(Icons.person_outline_rounded,
-                      color: Colors.white70, size: 30)
+                  ? const Icon(
+                      Icons.person_outline_rounded,
+                      color: Colors.white70,
+                      size: 30,
+                    )
                   : Text(
                       auth.initials,
                       style: const TextStyle(
@@ -201,9 +190,7 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  auth.isGuest
-                      ? 'Misafir'
-                      : (auth.displayName ?? 'Kullanıcı'),
+                  auth.isGuest ? 'Misafir' : (auth.displayName ?? 'Kullanıcı'),
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 17,
@@ -246,15 +233,19 @@ class _GuestBanner extends StatelessWidget {
         color: AppTheme.secondaryBlue.withValues(alpha: isDark ? 0.12 : 0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: AppTheme.secondaryBlue.withValues(alpha: 0.25)),
+          color: AppTheme.secondaryBlue.withValues(alpha: 0.25),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.cloud_off_rounded,
-                  color: AppTheme.secondaryBlue, size: 18),
+              Icon(
+                Icons.cloud_off_rounded,
+                color: AppTheme.secondaryBlue,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Misafir modunda kullanıyorsun',
@@ -310,8 +301,8 @@ class _GuestBanner extends StatelessWidget {
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                          color:
-                              AppTheme.secondaryBlue.withValues(alpha: 0.5)),
+                        color: AppTheme.secondaryBlue.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Center(
                       child: Text(
@@ -368,8 +359,7 @@ class _StatusSummary extends StatelessWidget {
         children: chips.map((c) {
           final (icon, label, color) = c;
           return Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
@@ -380,11 +370,14 @@ class _StatusSummary extends StatelessWidget {
               children: [
                 Icon(icon, size: 13, color: color),
                 const SizedBox(width: 5),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: color,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           );
@@ -428,8 +421,7 @@ class _NavTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black
-                  .withValues(alpha: isDark ? 0.3 : 0.06),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -451,13 +443,21 @@ class _NavTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppTheme.midGrey)),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.midGrey,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -524,24 +524,49 @@ class _InfoCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _row(isDark, Icons.info_outline_rounded,
-              AppTheme.midGrey, 'Sürüm', 'v1.0.0'),
+          _row(
+            isDark,
+            Icons.info_outline_rounded,
+            AppTheme.midGrey,
+            'Sürüm',
+            'v1.0.0',
+          ),
           _divider(isDark),
-          _row(isDark, Icons.school_rounded,
-              Colors.amber, 'Veri Seti', 'AUTSL · 226 işaret'),
+          _row(
+            isDark,
+            Icons.school_rounded,
+            Colors.amber,
+            'Veri Seti',
+            'AUTSL · 226 işaret',
+          ),
           _divider(isDark),
-          _row(isDark, Icons.memory_rounded,
-              AppTheme.secondaryBlue, 'Model', 'BiLSTM · ~637 KB'),
+          _row(
+            isDark,
+            Icons.memory_rounded,
+            AppTheme.secondaryBlue,
+            'Model',
+            'BiLSTM · ~637 KB',
+          ),
           _divider(isDark),
-          _row(isDark, Icons.accessibility_new_rounded,
-              AppTheme.primaryBlue, 'Amaç', 'TİD → Türkçe'),
+          _row(
+            isDark,
+            Icons.accessibility_new_rounded,
+            AppTheme.primaryBlue,
+            'Amaç',
+            'TİD → Türkçe',
+          ),
         ],
       ),
     );
   }
 
-  Widget _row(bool isDark, IconData icon, Color color, String title,
-      String value) {
+  Widget _row(
+    bool isDark,
+    IconData icon,
+    Color color,
+    String title,
+    String value,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -557,9 +582,10 @@ class _InfoCard extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(title,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w500)),
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            ),
           ),
           Text(
             value,
@@ -575,10 +601,8 @@ class _InfoCard extends StatelessWidget {
   }
 
   Widget _divider(bool isDark) => Divider(
-        height: 1,
-        indent: 58,
-        color: isDark
-            ? Colors.white10
-            : Colors.black.withValues(alpha: 0.06),
-      );
+    height: 1,
+    indent: 58,
+    color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06),
+  );
 }

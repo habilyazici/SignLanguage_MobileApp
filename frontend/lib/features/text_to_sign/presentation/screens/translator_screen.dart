@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../../../../core/theme/app_theme.dart';
-import '../../../../settings/presentation/providers/settings_provider.dart';
+import '../../../../features/settings/presentation/providers/settings_provider.dart';
 import '../../domain/entities/sign_token.dart';
 import '../providers/text_to_sign_provider.dart';
 import '../widgets/sign_token_card.dart';
