@@ -62,6 +62,24 @@ class ProfileScreen extends ConsumerWidget {
                 .fadeIn(delay: 180.ms, duration: 350.ms)
                 .slideY(begin: 0.06),
 
+            const SizedBox(height: 10),
+
+            // ── Turu Tekrarla ──────────────────────────────────────────────
+            Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _NavTile(
+                    isDark: isDark,
+                    icon: Icons.help_outline_rounded,
+                    iconColor: AppTheme.primaryStatusYellow,
+                    title: 'Nasıl Kullanılır?',
+                    subtitle: 'Uygulama turunu tekrar başlat',
+                    onTap: () => context.push('/onboarding'),
+                  ),
+                )
+                .animate()
+                .fadeIn(delay: 220.ms, duration: 350.ms)
+                .slideY(begin: 0.06),
+
             // ── Çıkış (sadece giriş yapılmışsa) ──────────────────────────
             if (auth.isAuthenticated) ...[
               const SizedBox(height: 10),
@@ -135,7 +153,7 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -228,96 +246,56 @@ class _GuestBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: AppTheme.secondaryBlue.withValues(alpha: isDark ? 0.12 : 0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.secondaryBlue.withValues(alpha: 0.25),
+          color: AppTheme.secondaryBlue.withValues(alpha: 0.2),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.cloud_off_rounded,
-                color: AppTheme.secondaryBlue,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Misafir modunda kullanıyorsun',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: AppTheme.secondaryBlue,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Misafir Modu',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: AppTheme.secondaryBlue,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Giriş yaparak ilerlemenin kaydedilmesini ve\nbulut senkronizasyonunu etkinleştir.',
-            style: TextStyle(
-              fontSize: 12,
-              color: isDark ? Colors.white54 : AppTheme.midGrey,
-              height: 1.4,
+                Text(
+                  'İlerlemeni kaydetmek için giriş yap.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.white54 : AppTheme.midGrey,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => context.push('/login'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Giriş Yap',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => context.push('/login'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Giriş Yap',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => context.push('/register'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppTheme.secondaryBlue.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Kayıt Ol',
-                        style: TextStyle(
-                          color: AppTheme.secondaryBlue,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -537,7 +515,7 @@ class _InfoCard extends StatelessWidget {
             Icons.school_rounded,
             Colors.amber,
             'Veri Seti',
-            'AUTSL · 226 işaret',
+            'AUTSL · 1500+ işaret',
           ),
           _divider(isDark),
           _row(

@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/manifest_datasource.dart';
@@ -13,8 +12,7 @@ import '../../domain/repositories/text_to_sign_repository.dart';
 final _textToSignRepositoryProvider = Provider<TextToSignRepository>((ref) {
   return TextToSignRepositoryImpl(
     datasource: ManifestDatasource(
-      dio: Dio(),
-      // Backend URL hazır olunca burası güncellenir
+      // TODO: Backend aktifleştiğinde baseApiUrl production URL ile güncellenir
       baseApiUrl: 'https://api.hearmeout.app',
     ),
   );
@@ -42,8 +40,7 @@ class TextToSignState {
   bool get hasTokens => tokens.isNotEmpty;
   bool get isLastToken => currentIndex >= tokens.length - 1;
 
-  SignToken? get currentToken =>
-      tokens.isEmpty ? null : tokens[currentIndex];
+  SignToken? get currentToken => tokens.isEmpty ? null : tokens[currentIndex];
 
   TextToSignState copyWith({
     List<SignToken>? tokens,
@@ -66,8 +63,8 @@ class TextToSignState {
 
 final textToSignProvider =
     NotifierProvider<TextToSignNotifier, TextToSignState>(
-  TextToSignNotifier.new,
-);
+      TextToSignNotifier.new,
+    );
 
 class TextToSignNotifier extends Notifier<TextToSignState> {
   late final TextToSignRepository _repo;

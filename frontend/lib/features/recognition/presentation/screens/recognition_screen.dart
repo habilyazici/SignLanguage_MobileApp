@@ -206,11 +206,15 @@ class _LandmarkPainter extends CustomPainter {
       ..color = Colors.blueAccent
       ..style = PaintingStyle.fill;
 
-    for (final p in data.posePoints)
+    for (final p in data.posePoints) {
       canvas.drawCircle(toScreen(p), 4, posePaint);
-    for (final p in data.rightHand)
+    }
+    for (final p in data.rightHand) {
       canvas.drawCircle(toScreen(p), 4, rightPaint);
-    for (final p in data.leftHand) canvas.drawCircle(toScreen(p), 4, leftPaint);
+    }
+    for (final p in data.leftHand) {
+      canvas.drawCircle(toScreen(p), 4, leftPaint);
+    }
   }
 
   @override

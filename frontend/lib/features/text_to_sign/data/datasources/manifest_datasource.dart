@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 /// Backend manifest endpoint'ini çeker ve word → videoUrl haritasını döndürür.
@@ -13,10 +12,10 @@ import 'package:flutter/foundation.dart';
 /// Video URL'leri: {baseUrl}/{ilkHarf}/{kelime}.mp4
 ///
 /// Backend hazır olmadan STUB_MODE=true ile çalışır — boş manifest döner.
+/// TODO: Backend aktifleştiğinde http/Dio import edilerek fetchManifest() doldurulacak.
 class ManifestDatasource {
-  ManifestDatasource({required this.dio, required this.baseApiUrl});
+  ManifestDatasource({required this.baseApiUrl});
 
-  final Dio dio;
   final String baseApiUrl;
 
   // Backend hazır olana kadar stub modda çalış
@@ -29,19 +28,8 @@ class ManifestDatasource {
       return {};
     }
 
-    try {
-      final response = await dio.get('$baseApiUrl/manifest');
-      final data = response.data as Map<String, dynamic>;
-      final videoBase = data['baseUrl'] as String;
-      final words = (data['words'] as List).cast<String>();
-
-      return {
-        for (final word in words)
-          word: '$videoBase/${word[0]}/$word.mp4',
-      };
-    } catch (e) {
-      debugPrint('❌ Manifest fetch hatası: $e');
-      return {};
-    }
+    // TODO: Backend hazır olduğunda http paketi ile implement edilecek.
+    // Örnek: GET $baseApiUrl/manifest → { baseUrl, words: [...] }
+    throw UnimplementedError('ManifestDatasource: backend henüz bağlı değil.');
   }
 }

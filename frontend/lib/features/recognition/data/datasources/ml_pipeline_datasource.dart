@@ -256,12 +256,10 @@ class MlPipelineDatasource {
 
   Uint8List? _buildNV21(CameraImage image) {
     if (image.planes.length < 3) {
-      if (kDebugMode) {
-        debugPrint(
-          '⚠️ _buildNV21: ${image.planes.length} plane alındı, UV eksik — frame atlandı.',
-        );
-      }
-      return null; // Bozuk NV21 üretmek yerine frame'i atla
+      // Eğer tek plane geliyorsa bu büyük ihtimalle BGRA formatıdır (NV21 değil).
+      // Bu durumda null döneriz, çağıranlar _buildInputImage/toMat içinde
+      // doğrudan plane[0] üzerinden BGRA olarak işleme yapar.
+      return null;
     }
 
     final int w = image.width;
@@ -308,7 +306,10 @@ class MlPipelineDatasource {
           mlkit.InputImageRotationValue.fromRawValue(sensorOrientation) ??
           mlkit.InputImageRotation.rotation90deg;
 
-      if (Platform.isIOS) {
+      // iOS her zaman bgra8888; Android ise nv21 (3-plane) veya bgra (1-plane) olabilir.
+      final bool useBGRA = Platform.isIOS || image.planes.length == 1;
+
+      if (useBGRA) {
         return mlkit.InputImage.fromBytes(
           bytes: image.planes[0].bytes,
           metadata: mlkit.InputImageMetadata(
@@ -320,7 +321,7 @@ class MlPipelineDatasource {
         );
       } else {
         final bytes = nv21 ?? _buildNV21(image);
-        if (bytes == null) return null; // UV plane eksik — frame atla
+        if (bytes == null) return null; // Sıra dışı bir durum
         return mlkit.InputImage.fromBytes(
           bytes: bytes,
           metadata: mlkit.InputImageMetadata(
@@ -332,7 +333,7 @@ class MlPipelineDatasource {
         );
       }
     } catch (e) {
-      debugPrint('❌ _buildInputImage hatası: $e');
+      if (kDebugMode) debugPrint('❌ _buildInputImage hatası: $e');
       return null;
     }
   }
@@ -341,7 +342,9 @@ class MlPipelineDatasource {
 
   cv.Mat? _toMat(CameraImage image, Uint8List? nv21) {
     try {
-      if (Platform.isIOS) {
+      final bool isBGRA = Platform.isIOS || image.planes.length == 1;
+
+      if (isBGRA) {
         final bgra = cv.Mat.fromList(
           image.height,
           image.width,
@@ -353,7 +356,7 @@ class MlPipelineDatasource {
         return bgr;
       } else {
         final bytes = nv21 ?? _buildNV21(image);
-        if (bytes == null) return null; // UV plane eksik — frame atla
+        if (bytes == null) return null;
         final yuv = cv.Mat.fromList(
           image.height + image.height ~/ 2,
           image.width,

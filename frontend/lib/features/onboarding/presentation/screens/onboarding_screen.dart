@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,6 +17,8 @@ class _OnboardingPage {
   final String title;
   final String subtitle;
   final String body;
+  final String detailsTitle;
+  final String detailsBody;
 
   const _OnboardingPage({
     required this.icon,
@@ -24,39 +26,50 @@ class _OnboardingPage {
     required this.title,
     required this.subtitle,
     required this.body,
+    required this.detailsTitle,
+    required this.detailsBody,
   });
 }
 
 const _pages = [
   _OnboardingPage(
-    icon: Icons.back_hand_rounded,
+    icon: Icons.visibility_rounded,
     iconColor: AppTheme.secondaryBlue,
-    title: 'İşareti Metne Çevir',
+    title: 'İşaret Oku',
     subtitle: 'Kamera ile anlık tanıma',
     body:
-        'Kamerayı açıp işaret yapmanız yeterli. '
-        'Yapay zeka modelimiz 226 farklı Türk İşaret Dili kelimesini '
-        'gerçek zamanlı olarak tanır ve metne dönüştürür.',
+        'Kamerayı açıp işaret yapmanız yeterli. Gerçek zamanlı olarak tanır ve metne dönüştürür.',
+    detailsTitle: 'Kamera & Işık İpuçları',
+    detailsBody:
+        '• En iyi sonuç için yeterli ışıkta kullanın.\n'
+        '• Ellerinizi kamera çerçevesi içinde tutun.\n'
+        '• Ayarlardan haptik geri bildirimi açabilirsiniz.',
   ),
   _OnboardingPage(
     icon: Icons.sign_language_rounded,
     iconColor: AppTheme.primaryBlue,
-    title: 'Metni İşarete Çevir',
+    title: 'İşaret Anlat',
     subtitle: 'Yaz ya da sesli söyle',
     body:
-        'Metin giriş alanına yazın ya da mikrofon butonuna basarak '
-        'sesli giriş yapın. Uygulama kelimeye karşılık gelen '
-        'işaret videosunu otomatik olarak oynatır.',
+        'Uygulama yazdıklarınıza veya söylediklerinize karşılık gelen videoları oynatır.',
+    detailsTitle: 'Giriş Yöntemleri',
+    detailsBody:
+        '• Metin kutusuna kelime yazarak arama yapın.\n'
+        '• Mikrofon butonuna basarak sesli komut verin.\n'
+        '• Videoları yavaşlatabilir veya tekrar oynatabilirsiniz.',
   ),
   _OnboardingPage(
     icon: Icons.menu_book_rounded,
     iconColor: AppTheme.primaryStatusGreen,
     title: 'Sözlük & Profil',
-    subtitle: '226 işaret · Offline çalışır',
+    subtitle: '1500+ işaret · Offline',
     body:
-        'Tüm işaret kelimelerini sözlükten keşfedin, '
-        'acil durum mesajlarınızı kaydedin ve sağlık kartınızı oluşturun. '
-        'Model tamamen cihazda çalışır — internet gerektirmez.',
+        'İnternet gerektirmeden tüm işaretleri keşfedin ve bilgilerinizi kaydedin.',
+    detailsTitle: 'Ek Özellikler',
+    detailsBody:
+        '• Acil durum mesajlarınızı tek tuşla gösterin.\n'
+        '• Sağlık kartınızı oluşturup profile ekleyin.\n'
+        '• Tüm veriler cihazınızda güvenle saklanır.',
   ),
 ];
 
@@ -94,6 +107,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _skip() => _completeAndNavigate();
 
+  void _back() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   Future<void> _completeAndNavigate() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(OnboardingKeys.completed, true);
@@ -111,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Üst bar: atlama ──────────────────────────────────────────
+            // ── Üst bar ──────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
@@ -135,21 +157,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       );
                     }),
                   ),
-                  TextButton(
-                    onPressed: _skip,
-                    child: Text(
-                      'Atla',
-                      style: TextStyle(
-                        color: isDark ? Colors.white54 : AppTheme.midGrey,
-                        fontSize: 14,
+                  Row(
+                    children: [
+                      // Geri butonu — ilk sayfada soluk
+                      AnimatedOpacity(
+                        opacity: _currentPage > 0 ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: TextButton(
+                          onPressed: _currentPage > 0 ? _back : null,
+                          child: Text(
+                            'Geri',
+                            style: TextStyle(
+                              color: isDark ? Colors.white54 : AppTheme.midGrey,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      TextButton(
+                        onPressed: _skip,
+                        child: Text(
+                          'Atla',
+                          style: TextStyle(
+                            color: isDark ? Colors.white54 : AppTheme.midGrey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
 
-            // ── Sayfa içeriği ────────────────────────────────────────────
+            // ── Sayfa içeriği ─────────────────────────────────────────────
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -160,7 +202,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            // ── Alt buton ────────────────────────────────────────────────
+            // ── Alt buton ─────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
               child: SizedBox(
@@ -209,32 +251,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 // Tek slayt içeriği
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _PageContent extends StatelessWidget {
+class _PageContent extends StatefulWidget {
   const _PageContent({required this.page, required this.isDark});
 
   final _OnboardingPage page;
   final bool isDark;
 
   @override
+  State<_PageContent> createState() => _PageContentState();
+}
+
+class _PageContentState extends State<_PageContent> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          const SizedBox(height: 20),
           // İkon
           Container(
                 width: 140,
                 height: 140,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: page.iconColor.withValues(alpha: 0.1),
+                  color: widget.page.iconColor.withValues(alpha: 0.1),
                   border: Border.all(
-                    color: page.iconColor.withValues(alpha: 0.2),
+                    color: widget.page.iconColor.withValues(alpha: 0.2),
                     width: 2,
                   ),
                 ),
-                child: Icon(page.icon, size: 64, color: page.iconColor),
+                child: Icon(
+                  widget.page.icon,
+                  size: 64,
+                  color: widget.page.iconColor,
+                ),
               )
               .animate()
               .scale(
@@ -248,11 +302,11 @@ class _PageContent extends StatelessWidget {
 
           // Başlık
           Text(
-                page.title,
+                widget.page.title,
                 style: GoogleFonts.poppins(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppTheme.primaryBlue,
+                  color: widget.isDark ? Colors.white : AppTheme.primaryBlue,
                 ),
                 textAlign: TextAlign.center,
               )
@@ -266,14 +320,14 @@ class _PageContent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
-              color: page.iconColor.withValues(alpha: 0.1),
+              color: widget.page.iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              page.subtitle,
+              widget.page.subtitle,
               style: TextStyle(
                 fontSize: 13,
-                color: page.iconColor,
+                color: widget.page.iconColor,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -283,14 +337,95 @@ class _PageContent extends StatelessWidget {
 
           // Açıklama
           Text(
-            page.body,
+            widget.page.body,
             style: TextStyle(
               fontSize: 15,
               height: 1.6,
-              color: isDark ? Colors.white60 : AppTheme.midGrey,
+              color: widget.isDark ? Colors.white60 : AppTheme.midGrey,
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 350.ms, duration: 400.ms),
+
+          const SizedBox(height: 32),
+
+          // ── Genişletilebilir Bilgi Alanı ───────────────────────────────
+          GestureDetector(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: widget.page.iconColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: widget.page.iconColor.withValues(
+                    alpha: _isExpanded ? 0.3 : 0.1,
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.lightbulb_outline_rounded,
+                        size: 18,
+                        color: widget.page.iconColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isExpanded ? 'Kapat' : 'Daha Fazla Bilgi',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: widget.page.iconColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  AnimatedCrossFade(
+                    firstChild: const SizedBox(width: double.infinity),
+                    secondChild: Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.page.detailsTitle,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: widget.isDark
+                                  ? Colors.white
+                                  : AppTheme.primaryBlue,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.page.detailsBody,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.5,
+                              color: widget.isDark
+                                  ? Colors.white70
+                                  : AppTheme.midGrey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    crossFadeState: _isExpanded
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 300),
+                  ),
+                ],
+              ),
+            ),
+          ).animate().fadeIn(delay: 450.ms, duration: 400.ms),
         ],
       ),
     );

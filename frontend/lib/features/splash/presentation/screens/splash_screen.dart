@@ -154,7 +154,7 @@ class _SplashScreenState extends State<SplashScreen> {
             left: 0,
             right: 0,
             child: Text(
-              'v1.0.0 · AUTSL 226 sınıf',
+              'v1.0.0 · 1500+ TİD işareti',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,

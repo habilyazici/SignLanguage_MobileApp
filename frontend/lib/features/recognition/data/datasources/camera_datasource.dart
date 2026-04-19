@@ -34,10 +34,14 @@ class CameraDataSource {
 
     final format = Platform.isIOS
         ? ImageFormatGroup.bgra8888
-        : ImageFormatGroup.nv21;
+        : ImageFormatGroup.yuv420;
 
-    try { await _camera?.stopImageStream(); } catch (_) {}
-    try { await _camera?.dispose(); } catch (_) {}
+    try {
+      await _camera?.stopImageStream();
+    } catch (_) {}
+    try {
+      await _camera?.dispose();
+    } catch (_) {}
 
     _camera = CameraController(
       selected,
@@ -46,16 +50,22 @@ class CameraDataSource {
       imageFormatGroup: format,
     );
     await _camera!.initialize();
-    debugPrint('📷 Kamera hazır: ${selected.name} (sensör: ${_camera!.description.sensorOrientation}°)');
+    debugPrint(
+      '📷 Kamera hazır: ${selected.name} (sensör: ${_camera!.description.sensorOrientation}°)',
+    );
     _controllerCtrl.add(_camera);
   }
 
   void startStream(void Function(CameraImage) onFrame) {
-    try { _camera?.startImageStream(onFrame); } catch (_) {}
+    try {
+      _camera?.startImageStream(onFrame);
+    } catch (_) {}
   }
 
   void stopStream() {
-    try { _camera?.stopImageStream(); } catch (_) {}
+    try {
+      _camera?.stopImageStream();
+    } catch (_) {}
   }
 
   Future<void> switchCamera() async {
@@ -66,8 +76,12 @@ class CameraDataSource {
   }
 
   Future<void> dispose() async {
-    try { await _camera?.stopImageStream(); } catch (_) {}
-    try { await _camera?.dispose(); } catch (_) {}
+    try {
+      await _camera?.stopImageStream();
+    } catch (_) {}
+    try {
+      await _camera?.dispose();
+    } catch (_) {}
     _controllerCtrl.close();
   }
 }

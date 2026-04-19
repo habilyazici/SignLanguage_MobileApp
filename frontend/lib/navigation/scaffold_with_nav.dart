@@ -22,11 +22,21 @@ class ScaffoldWithNav extends ConsumerWidget {
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.path;
-    if (location.startsWith('/dictionary'))       { return 0; }
-    if (location.startsWith('/live-translation')) { return 1; }
-    if (location.startsWith('/home'))             { return 2; }
-    if (location.startsWith('/text-to-sign'))     { return 3; }
-    if (location.startsWith('/profile'))          { return 4; }
+    if (location.startsWith('/dictionary')) {
+      return 0;
+    }
+    if (location.startsWith('/live-translation')) {
+      return 1;
+    }
+    if (location.startsWith('/home')) {
+      return 2;
+    }
+    if (location.startsWith('/text-to-sign')) {
+      return 3;
+    }
+    if (location.startsWith('/profile')) {
+      return 4;
+    }
     return 2;
   }
 
@@ -89,34 +99,45 @@ class ScaffoldWithNav extends ConsumerWidget {
         ],
       ),
       extendBody: true,
-      bottomNavigationBar: _buildGlassBottomNav(context, ref),
+      bottomNavigationBar: _buildGlassBottomNav(context, ref, isDark),
     );
   }
 
-  Widget _buildGlassBottomNav(BuildContext context, WidgetRef ref) {
+  Widget _buildGlassBottomNav(
+    BuildContext context,
+    WidgetRef ref,
+    bool isDark,
+  ) {
     final currentIndex = _calculateSelectedIndex(context);
+    final bottomPadding = MediaQuery.viewPaddingOf(context).bottom;
 
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        bottom: bottomPadding > 0 ? bottomPadding : 24,
+      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(35),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: Container(
-            height: 70,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            height: 84,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(30),
+              color: (isDark ? AppTheme.darkSurface : Colors.white).withValues(
+                alpha: isDark ? 0.65 : 0.85,
+              ),
+              borderRadius: BorderRadius.circular(35),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: AppTheme.primaryBlue.withValues(alpha: 0.15),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 30,
-                  spreadRadius: 5,
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
@@ -131,21 +152,21 @@ class ScaffoldWithNav extends ConsumerWidget {
                   onTap: () => _onTap(context, ref, 0),
                 ),
                 _NavBarItem(
-                  icon: Icons.back_hand_rounded,
-                  label: 'Kamera',
+                  icon: Icons.visibility_rounded,
+                  label: 'İşaret Oku',
                   isSelected: currentIndex == 1,
                   onTap: () => _onTap(context, ref, 1),
                 ),
                 _NavBarItem(
                   icon: Icons.home_rounded,
-                  label: 'Ana Sayfa',
+                  label: 'Keşfet',
                   isSelected: currentIndex == 2,
                   onTap: () => _onTap(context, ref, 2),
                   isHomeButton: true,
                 ),
                 _NavBarItem(
                   icon: Icons.sign_language_rounded,
-                  label: 'Çevirmen',
+                  label: 'İşaret Anlat',
                   isSelected: currentIndex == 3,
                   onTap: () => _onTap(context, ref, 3),
                 ),
@@ -219,64 +240,92 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeColor = AppTheme.secondaryBlue;
-    final inactiveColor = Theme.of(context).brightness == Brightness.dark
-        ? Colors.white70
-        : AppTheme.primaryBlue.withValues(alpha: 0.6);
+    final inactiveColor = isDark
+        ? Colors.white.withValues(alpha: 0.45)
+        : AppTheme.primaryBlue.withValues(alpha: 0.45);
 
-    // Ana sayfa butonu için özel yuvarlak arka plan ve ikon rengi ayarlaması
-    final iconColor = isHomeButton
-        ? Colors.white
-        : (isSelected ? activeColor : inactiveColor);
-    final homeBgColor = isSelected
-        ? AppTheme.primaryBlue
-        : AppTheme.secondaryBlue;
+    // Ana sayfa özel tasarım
+    if (isHomeButton) {
+      final bgColor = isSelected
+          ? AppTheme.primaryBlue
+          : AppTheme.secondaryBlue;
+      return GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: bgColor.withValues(alpha: 0.35),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 26),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
+    // Normal butonlar — her zaman etiket göster
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        padding: EdgeInsets.symmetric(
-          horizontal: isHomeButton ? 16 : 10,
-          vertical: 8,
-        ),
-        decoration: BoxDecoration(
-          color: isHomeButton
-              ? homeBgColor
-              : (isSelected
-                    ? activeColor.withValues(alpha: 0.15)
-                    : Colors.transparent),
-          borderRadius: isHomeButton
-              ? BorderRadius.circular(30)
-              : BorderRadius.circular(20),
-          boxShadow: isHomeButton
-              ? [
-                  BoxShadow(
-                    color: homeBgColor.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: iconColor, size: isHomeButton ? 28 : 26),
+            Icon(
+              icon,
+              color: isSelected ? activeColor : inactiveColor,
+              size: 24,
+            ),
             const SizedBox(height: 2),
-            if (isSelected && !isHomeButton)
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: activeColor,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? activeColor : inactiveColor,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            // Seçim göstergesi nokta
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: isSelected ? 16 : 0,
+              height: isSelected ? 3 : 0,
+              decoration: BoxDecoration(
+                color: activeColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ],
         ),
       ),
