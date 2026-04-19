@@ -55,6 +55,9 @@ dependencies:
   # ── Kalıcı Depolama ────────────────────────────────────────────────────────
   shared_preferences: ^2.3.2   # Ayarlar kalıcı olarak saklanır (uygulama yeniden başlatıldığında korunur)
 
+  # ── Video ──────────────────────────────────────────────────────────────────
+  video_player: ^2.9.3         # Metin → İşaret: TİD video oynatıcı
+
   # ── Animasyon & UI ─────────────────────────────────────────────────────────
   shimmer: ^3.0.0              # Yükleme iskelet efektleri
   flutter_animate: ^4.5.2      # Proje geneli animasyonlar (fade, slide, pulse)
