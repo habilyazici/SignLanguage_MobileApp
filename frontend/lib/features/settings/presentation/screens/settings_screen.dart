@@ -74,35 +74,17 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ).animate().fadeIn(delay: 60.ms, duration: 350.ms).slideY(begin: 0.06),
 
-          // ── Kamera & Yapay Zeka ────────────────────────────────────────────
-          const SettingsSection('Kamera & Yapay Zeka'),
+          // ── Kamera & Bildirimler ───────────────────────────────────────────
+          const SettingsSection('Kamera & Bildirimler'),
           SettingsCard(
             isDark: isDark,
             children: [
-              ConfidenceRow(
-                current: settings.confidenceLevel,
-                onChanged: n.setConfidenceLevel,
-                isDark: isDark,
-              ),
-              SettingsDivider(isDark: isDark),
-              StabilityRow(
-                isDark: isDark,
-                current: settings.stableFramesThreshold,
-                onChanged: n.setStableFramesThreshold,
-              ),
-              SettingsDivider(isDark: isDark),
-              FpsRow(
-                isDark: isDark,
-                current: settings.fpsPreference,
-                onChanged: n.setFpsPreference,
-              ),
-              SettingsDivider(isDark: isDark),
               SettingsSwitchRow(
                 isDark: isDark,
                 icon: Icons.vibration_rounded,
                 iconColor: Colors.tealAccent,
                 title: 'Titreşim Geri Bildirimi',
-                subtitle: 'Kelime tanındığında hafif titreşim',
+                subtitle: 'Beklenen işareti başarılı/doğru bulunca titrer',
                 value: settings.hapticEnabled,
                 helpText:
                     'Cihazın haptik motorunu kullanarak her yeni kelime tespit edildiğinde size dokunsal bir geri bildirim verir.',
@@ -227,35 +209,53 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ).animate().fadeIn(delay: 240.ms, duration: 350.ms).slideY(begin: 0.06),
 
-          // ── Geliştirici ────────────────────────────────────────────────────
-          const SettingsSection('Geliştirici'),
+          // ── İleri Seviye (Geliştirici) ─────────────────────────────────────
+          const SettingsSection('İleri Seviye (Geliştirici)'),
           SettingsCard(
             isDark: isDark,
             children: [
               SettingsSwitchRow(
                 isDark: isDark,
-                icon: Icons.developer_mode_rounded,
+                icon: Icons.precision_manufacturing_rounded,
                 iconColor: Colors.cyanAccent,
-                title: 'Geliştirici Modu',
-                subtitle: 'Landmark noktaları + istatistik paneli',
+                title: 'Geliştirici Ayarlarını Etkinleştir',
+                subtitle: 'Yapay Zeka ayarları ile teknik detayları yönet',
                 value: settings.devMode,
                 helpText:
-                    'Kamera üzerinde yapay zekanın elinizi nasıl gördüğünü (noktaları) ve işlem hızını (inference time) izlemenizi sağlar.',
+                    'Arka planda gelişmiş Yapay Zeka ayarları panelini açar ve kamera ekranında anlık teknik istatistikleri görmenizi sağlar.',
                 onChanged: (_) => n.toggleDevMode(),
               ),
-              SettingsDivider(isDark: isDark),
-              SettingsSwitchRow(
-                isDark: isDark,
-                icon: Icons.ads_click_rounded,
-                iconColor: Colors.cyanAccent,
-                title: 'Geliştirici Butonunu Göster',
-                subtitle: 'Ana ekranda DEV butonu görünür',
-                value: settings.showDevButton,
-                helpText:
-                    'Ana ekranda hızlı testler yapabileceğiniz "DEV" ikonunu etkinleştirir.',
-                onChanged: (_) => n.toggleShowDevButton(),
-              ),
               if (settings.devMode) ...[
+                SettingsDivider(isDark: isDark),
+                ConfidenceRow(
+                  current: settings.confidenceLevel,
+                  onChanged: n.setConfidenceLevel,
+                  isDark: isDark,
+                ),
+                SettingsDivider(isDark: isDark),
+                StabilityRow(
+                  isDark: isDark,
+                  current: settings.stableFramesThreshold,
+                  onChanged: n.setStableFramesThreshold,
+                ),
+                SettingsDivider(isDark: isDark),
+                FpsRow(
+                  isDark: isDark,
+                  current: settings.fpsPreference,
+                  onChanged: n.setFpsPreference,
+                ),
+                SettingsDivider(isDark: isDark),
+                SettingsSwitchRow(
+                  isDark: isDark,
+                  icon: Icons.ads_click_rounded,
+                  iconColor: Colors.amberAccent,
+                  title: 'Hızlı Dev Butonu',
+                  subtitle: 'Ana ekranda test butonu görünür',
+                  value: settings.showDevButton,
+                  helpText:
+                      'Ana ekranda hızlı testler yapabileceğiniz "DEV" ikonunu etkinleştirir.',
+                  onChanged: (_) => n.toggleShowDevButton(),
+                ),
                 SettingsDivider(isDark: isDark),
                 LandmarkLegend(isDark: isDark),
               ],
