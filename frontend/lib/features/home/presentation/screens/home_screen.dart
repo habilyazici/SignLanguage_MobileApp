@@ -81,7 +81,7 @@ class HomeScreen extends ConsumerWidget {
                               color: AppTheme.secondaryBlue,
                               hint: 'Sağa Kaydır',
                               hintIcon: Icons.swipe_right_rounded,
-                              onTap: () => context.go('/live-translation'),
+                              onTap: () => context.go('/translation'),
                             )
                             .animate(
                               onPlay: (controller) =>
@@ -110,7 +110,7 @@ class HomeScreen extends ConsumerWidget {
                               color: AppTheme.primaryBlue,
                               hint: 'Sola Kaydır',
                               hintIcon: Icons.swipe_left_rounded,
-                              onTap: () => context.go('/text-to-sign'),
+                              onTap: () => context.go('/translation'),
                             )
                             .animate(
                               onPlay: (controller) =>

@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../features/home/presentation/screens/home_screen.dart';
-import '../features/recognition/presentation/screens/recognition_screen.dart';
 import '../features/dictionary/presentation/screens/dictionary_screen.dart';
 import '../features/dictionary/presentation/screens/dictionary_detail_screen.dart';
-import '../features/text_to_sign/presentation/screens/translator_screen.dart';
+import '../features/translation/presentation/screens/translation_screen.dart';
+import '../features/favorites/presentation/screens/favorites_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
@@ -39,23 +39,11 @@ final router = GoRouter(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) => ScaffoldWithNav(child: child),
       routes: [
-        GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-        GoRoute(
-          path: '/live-translation',
-          builder: (context, state) => const RecognitionScreen(),
-        ),
-        GoRoute(
-          path: '/dictionary',
-          builder: (context, state) => const DictionaryScreen(),
-        ),
-        GoRoute(
-          path: '/text-to-sign',
-          builder: (context, state) => const TranslatorScreen(),
-        ),
-        GoRoute(
-          path: '/profile',
-          builder: (context, state) => const ProfileScreen(),
-        ),
+        GoRoute(path: '/home',        builder: (context, _) => const HomeScreen()),
+        GoRoute(path: '/dictionary',   builder: (context, _) => const DictionaryScreen()),
+        GoRoute(path: '/translation',  builder: (context, _) => const TranslationScreen()),
+        GoRoute(path: '/favorites',    builder: (context, _) => const FavoritesScreen()),
+        GoRoute(path: '/profile',      builder: (context, _) => const ProfileScreen()),
       ],
     ),
 
