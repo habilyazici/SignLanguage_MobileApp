@@ -36,13 +36,6 @@ class RecognitionScreen extends ConsumerWidget {
         child: SafeArea(
           child: Column(
             children: [
-              _TopHeader(
-                devMode: devMode,
-                onDevToggle: settingsNotifier.toggleDevMode,
-                isDark: isDark,
-                showDevButton: ref.watch(settingsProvider).showDevButton,
-              ),
-
               const SizedBox(height: 12),
 
               // ── Kamera Kartı ─────────────────────────────────────────────
@@ -78,7 +71,9 @@ class RecognitionScreen extends ConsumerWidget {
                                   cameraController: cameraCtrl,
                                   onDoubleTap: () => notifier.switchCamera(),
                                 ),
-                                if (devMode && state.isReady && cameraCtrl != null)
+                                if (devMode &&
+                                    state.isReady &&
+                                    cameraCtrl != null)
                                   _LandmarkOverlay(
                                     notifier: notifier.devNotifier,
                                     cameraController: cameraCtrl,
@@ -89,6 +84,45 @@ class RecognitionScreen extends ConsumerWidget {
                                     right: 12,
                                     child: _DevStatsPanel(
                                       devNotifier: notifier.devNotifier,
+                                    ),
+                                  ),
+                                if (ref.watch(settingsProvider).showDevButton)
+                                  Positioned(
+                                    top: 12,
+                                    left: 12,
+                                    child: GestureDetector(
+                                      onTap: settingsNotifier.toggleDevMode,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: devMode
+                                              ? Colors.cyanAccent.withValues(
+                                                  alpha: 0.1,
+                                                )
+                                              : Colors.black45,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: devMode
+                                                ? Colors.cyanAccent
+                                                : Colors.white24,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'DEV',
+                                          style: TextStyle(
+                                            color: devMode
+                                                ? Colors.cyanAccent
+                                                : Colors.white60,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                               ],
@@ -144,97 +178,7 @@ class RecognitionScreen extends ConsumerWidget {
   }
 }
 
-class _TopHeader extends StatelessWidget {
-  const _TopHeader({
-    required this.devMode,
-    required this.onDevToggle,
-    required this.isDark,
-    required this.showDevButton,
-  });
-  final bool devMode;
-  final VoidCallback onDevToggle;
-  final bool isDark;
-  final bool showDevButton;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.visibility_rounded,
-              color: AppTheme.primaryBlue,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'İşaretten Metne',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppTheme.primaryBlue,
-                ),
-              ),
-              Text(
-                'Ellerinizi göstererek konuşun',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.white38 : AppTheme.midGrey,
-                ),
-              ),
-            ],
-          ),
-          if (showDevButton) ...[
-            const Spacer(),
-            GestureDetector(
-              onTap: onDevToggle,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: devMode
-                      ? Colors.cyanAccent.withValues(alpha: 0.1)
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: devMode
-                        ? Colors.cyanAccent
-                        : (isDark ? Colors.white10 : Colors.black12),
-                    width: 1,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'DEV',
-                  style: TextStyle(
-                    color: devMode
-                        ? (isDark ? Colors.cyanAccent : Colors.cyan[700])
-                        : (isDark ? Colors.white24 : Colors.black26),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1),
-    );
-  }
-}
+// Top Header kaldırıldı.
 
 class _ResultPanel extends StatelessWidget {
   const _ResultPanel({
@@ -469,7 +413,11 @@ class _DevStatsPanel extends StatelessWidget {
                   Container(height: 1, color: Colors.white12),
                   const SizedBox(height: 4),
                   for (int i = 0; i < d.topPredictions.length; i++)
-                    _predRow(i + 1, d.topPredictions[i].word, d.topPredictions[i].confidence),
+                    _predRow(
+                      i + 1,
+                      d.topPredictions[i].word,
+                      d.topPredictions[i].confidence,
+                    ),
                 ],
               ],
             ),
@@ -511,8 +459,8 @@ class _DevStatsPanel extends StatelessWidget {
     final color = rank == 1
         ? Colors.greenAccent
         : rank == 2
-            ? Colors.yellowAccent
-            : Colors.white38;
+        ? Colors.yellowAccent
+        : Colors.white38;
     final pct = '${(confidence * 100).toStringAsFixed(0)}%';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
@@ -521,7 +469,11 @@ class _DevStatsPanel extends StatelessWidget {
         children: [
           Text(
             '$rank ',
-            style: TextStyle(color: color, fontSize: 10, fontFamily: 'monospace'),
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontFamily: 'monospace',
+            ),
           ),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 72),
@@ -538,7 +490,11 @@ class _DevStatsPanel extends StatelessWidget {
           ),
           Text(
             ' $pct',
-            style: const TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'monospace'),
+            style: const TextStyle(
+              color: Colors.white38,
+              fontSize: 10,
+              fontFamily: 'monospace',
+            ),
           ),
         ],
       ),

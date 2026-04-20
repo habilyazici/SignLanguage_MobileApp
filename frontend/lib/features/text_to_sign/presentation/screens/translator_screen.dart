@@ -82,63 +82,11 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Başlık ───────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.sign_language_rounded,
-                      color: AppTheme.primaryBlue,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Metinden İşarete',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        'Yazı veya ses ile işaret videosu',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white38 : AppTheme.midGrey,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (ttsState.hasTokens) ...[
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () {
-                        notifier.reset();
-                        _controller.clear();
-                      },
-                      tooltip: 'Sıfırla',
-                    ),
-                  ],
-                ],
-              ),
-            ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1),
-
             const SizedBox(height: 16),
 
             // ── Token grid veya boş alan ──────────────────────────────────
             Expanded(
-              flex: 3,
+              flex: 5, // Kamera kartı (Recognition) ile birebir aynı yükseklik!
               child: ttsState.hasTokens
                   ? _TokenGrid(
                       tokens: ttsState.tokens,
@@ -152,104 +100,160 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
                   : _EmptyArea(isDark: isDark),
             ),
 
-            const SizedBox(height: 12),
-
-            // ── Oynatma kontrolleri ───────────────────────────────────────
-            if (ttsState.hasTokens)
-              _PlaybackBar(
-                isPlaying: ttsState.isPlaying,
-                isFirst: ttsState.currentIndex == 0,
-                isLast: ttsState.isLastToken,
-                onPrev: notifier.previous,
-                onPlay: notifier.play,
-                onPause: notifier.pause,
-                onNext: notifier.next,
-              ).animate().fadeIn(duration: 200.ms),
-
-            if (ttsState.hasTokens) const SizedBox(height: 12),
-
-            // ── Metin giriş alanı ────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      decoration: InputDecoration(
-                        hintText: 'Çevrilecek metni girin...',
-                        filled: true,
-                        fillColor: isDark
-                            ? AppTheme.darkSurface
-                            : Colors.black.withValues(alpha: 0.04),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) => _translate(),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: (sttEnabled && _sttReady) ? _toggleListening : null,
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: _listening
-                            ? AppTheme.primaryBlue.withValues(alpha: 0.2)
-                            : (sttEnabled && _sttReady)
-                            ? AppTheme.primaryBlue.withValues(alpha: 0.12)
-                            : Colors.grey.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: _listening
-                            ? Border.all(color: AppTheme.primaryBlue, width: 2)
-                            : null,
-                      ),
-                      child: Icon(
-                        _listening
-                            ? Icons.mic_rounded
-                            : (sttEnabled
-                                  ? Icons.mic_none_rounded
-                                  : Icons.mic_off_rounded),
-                        color: (sttEnabled && _sttReady)
-                            ? AppTheme.primaryBlue
-                            : Colors.grey.withValues(alpha: 0.5),
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(delay: 150.ms, duration: 300.ms),
-
             const SizedBox(height: 16),
 
-            // ── Çevir butonu ─────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton.icon(
-                  onPressed: _translate,
-                  icon: const Icon(Icons.translate_rounded),
-                  label: const Text('Çevir'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+            // ── Alt Kontroller (Oynatma, Metin, Buton) ────────────────────
+            Expanded(
+              flex:
+                  3, // Recognition'daki ResultPanel ile birebir aynı alan boyutu
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment
+                              .end, // Yukarıdan boşluk bırakır, aşağı yaslar
+                          children: [
+                            if (ttsState.hasTokens)
+                              _PlaybackBar(
+                                isPlaying: ttsState.isPlaying,
+                                isFirst: ttsState.currentIndex == 0,
+                                isLast: ttsState.isLastToken,
+                                onPrev: notifier.previous,
+                                onPlay: notifier.play,
+                                onPause: notifier.pause,
+                                onNext: notifier.next,
+                              ).animate().fadeIn(duration: 200.ms),
+
+                            if (ttsState.hasTokens) const SizedBox(height: 12),
+
+                            // ── Metin giriş alanı ──────────────────────────────
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _controller,
+                                      decoration: InputDecoration(
+                                        hintText: 'Çevrilecek metni girin...',
+                                        filled: true,
+                                        fillColor: isDark
+                                            ? AppTheme.darkSurface
+                                            : Colors.black.withValues(
+                                                alpha: 0.04,
+                                              ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        suffixIcon: ttsState.hasTokens
+                                            ? IconButton(
+                                                icon: const Icon(
+                                                  Icons.close_rounded,
+                                                  size: 20,
+                                                ),
+                                                onPressed: () {
+                                                  notifier.reset();
+                                                  _controller.clear();
+                                                },
+                                                tooltip: 'Tümünü Sıfırla',
+                                              )
+                                            : null,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 14,
+                                            ),
+                                      ),
+                                      textInputAction: TextInputAction.search,
+                                      onSubmitted: (_) => _translate(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  GestureDetector(
+                                    onTap: (sttEnabled && _sttReady)
+                                        ? _toggleListening
+                                        : null,
+                                    child: Container(
+                                      width: 52,
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        color: _listening
+                                            ? AppTheme.primaryBlue.withValues(
+                                                alpha: 0.2,
+                                              )
+                                            : (sttEnabled && _sttReady)
+                                            ? AppTheme.primaryBlue.withValues(
+                                                alpha: 0.12,
+                                              )
+                                            : Colors.grey.withValues(
+                                                alpha: 0.1,
+                                              ),
+                                        shape: BoxShape.circle,
+                                        border: _listening
+                                            ? Border.all(
+                                                color: AppTheme.primaryBlue,
+                                                width: 2,
+                                              )
+                                            : null,
+                                      ),
+                                      child: Icon(
+                                        _listening
+                                            ? Icons.mic_rounded
+                                            : (sttEnabled
+                                                  ? Icons.mic_none_rounded
+                                                  : Icons.mic_off_rounded),
+                                        color: (sttEnabled && _sttReady)
+                                            ? AppTheme.primaryBlue
+                                            : Colors.grey.withValues(
+                                                alpha: 0.5,
+                                              ),
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ).animate().fadeIn(delay: 150.ms, duration: 300.ms),
+
+                            const SizedBox(height: 16),
+
+                            // ── Çevir butonu ──────────────────────────────────
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: 52,
+                                child: FilledButton.icon(
+                                  onPressed: _translate,
+                                  icon: const Icon(Icons.translate_rounded),
+                                  label: const Text('Çevir'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryBlue,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
-            ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
+            ),
           ],
         ),
       ),
