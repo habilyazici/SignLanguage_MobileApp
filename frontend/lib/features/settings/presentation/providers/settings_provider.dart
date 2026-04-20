@@ -71,9 +71,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
   void setFpsPreference(FpsPreference pref) =>
       _persist(state.copyWith(fpsPreference: pref));
 
-  void toggleHaptic() =>
-      _persist(state.copyWith(hapticEnabled: !state.hapticEnabled));
-
   // ── Veri & Video ──────────────────────────────────────────────────────────
   void toggleCellularVideo() => _persist(
     state.copyWith(cellularVideoDisabled: !state.cellularVideoDisabled),
@@ -102,4 +99,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setStableFramesThreshold(int val) =>
       _persist(state.copyWith(stableFramesThreshold: val));
+
+  void setMotionThreshold(double val) =>
+      _persist(state.copyWith(motionThreshold: val));
 }

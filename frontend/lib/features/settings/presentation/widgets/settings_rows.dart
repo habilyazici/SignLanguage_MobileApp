@@ -112,9 +112,9 @@ class ConfidenceRow extends StatelessWidget {
   final bool isDark;
 
   String get _label => switch (current) {
-    ConfidenceLevel.low => 'Düşük (%70)',
-    ConfidenceLevel.medium => 'Orta (%80)',
-    ConfidenceLevel.high => 'Yüksek (%90)',
+    ConfidenceLevel.low => 'Düşük (%65)',
+    ConfidenceLevel.medium => 'Orta (%75)',
+    ConfidenceLevel.high => 'Yüksek (%85)',
   };
 
   @override
@@ -144,9 +144,9 @@ class ConfidenceRow extends StatelessWidget {
           SettingsSegmentButtons<ConfidenceLevel>(
             isDark: isDark,
             items: const [
-              (ConfidenceLevel.low, 'Düş'),
-              (ConfidenceLevel.medium, 'Ort'),
-              (ConfidenceLevel.high, 'Yük'),
+              (ConfidenceLevel.low, '%65'),
+              (ConfidenceLevel.medium, '%75'),
+              (ConfidenceLevel.high, '%85'),
             ],
             current: current,
             onChanged: onChanged,
@@ -290,6 +290,46 @@ class StabilityRow extends StatelessWidget {
         context: context,
         isDark: isDark,
         title: 'Kararlılık Eşiği',
+        current: current,
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+// ── Hareket Hassasiyeti Satırı ────────────────────────────────────────────────
+class MotionThresholdRow extends StatelessWidget {
+  const MotionThresholdRow({
+    super.key,
+    required this.current,
+    required this.onChanged,
+    required this.isDark,
+  });
+  final double current;
+  final ValueChanged<double> onChanged;
+  final bool isDark;
+
+  String get _label {
+    if (current <= 0.015) return 'Hassas (${current.toStringAsFixed(3)})';
+    if (current <= 0.030) return 'Normal (${current.toStringAsFixed(3)})';
+    return 'Kaba (${current.toStringAsFixed(3)})';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsActionRow(
+      isDark: isDark,
+      icon: Icons.sensors_rounded,
+      iconColor: Colors.tealAccent.shade700,
+      title: 'Hareket Hassasiyeti',
+      subtitle: 'Şu an: $_label',
+      label: current.toStringAsFixed(3),
+      labelColor: AppTheme.primaryBlue,
+      helpText:
+          'El hareketinin "gerçek hareket" sayılması için gereken minimum değişim miktarı.\n\nHassas: titrek eller veya küçük işaretler için\nKaba: yanlış tetiklenmeyi azaltır\n\nVarsayılan: 0.025',
+      onTap: () => SettingsDialogs.showMotionThresholdDialog(
+        context: context,
+        isDark: isDark,
         current: current,
         onChanged: onChanged,
       ),

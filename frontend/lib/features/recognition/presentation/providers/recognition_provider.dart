@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/providers/camera_lifecycle_provider.dart';
@@ -100,6 +99,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     ref.listen<AppSettings>(settingsProvider, (_, next) {
       _repo.updateLeftHandMode(next.leftHandMode);
       _repo.updateFpsLimit(next.targetFps);
+      _repo.updateMotionThreshold(next.motionThreshold);
     });
 
     // Kamera aktif sinyali (navigasyon katmanından)
@@ -127,6 +127,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
           final s = ref.read(settingsProvider);
           _repo.updateLeftHandMode(s.leftHandMode);
           _repo.updateFpsLimit(s.targetFps);
+          _repo.updateMotionThreshold(s.motionThreshold);
         })
         .catchError((e) {
           state = state.copyWith(isError: true);
@@ -135,7 +136,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     return const RecognitionState();
   }
 
-  // Inference sonucu işleme — smoothing + TTS + haptic
+  // Inference sonucu işleme — smoothing + TTS
 
   void _onInferenceResult(InferenceResult result) {
     // Sentinel: tespit yok / buffer temizlendi → ekranı sıfırla
@@ -188,10 +189,6 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
           if (settings.ttsEnabled) {
             ref.read(ttsProvider.notifier).speak(word);
           }
-          if (settings.hapticEnabled && maxScore >= 0.90) {
-            HapticFeedback.mediumImpact();
-          }
-
           _clearTimer?.cancel();
           _clearTimer = Timer(const Duration(seconds: 4), () {
             // Smoothing state'ini de sıfırla; yoksa aynı kelime bir daha

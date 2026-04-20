@@ -5,15 +5,14 @@
 - **CocoaPods** (Mac'te "Terminal" programını aç ve ekrana şunu yaz: `sudo gem install cocoapods` Sonra Enter tuşuna basıp kurmasını bekle).
 
 ### 2- Kodları Hazırlama Vakti (Terminal Kullanımı)
-Uygulama klasörünü bir şekilde (flash bellek veya internet) Mac bilgisayarının içine attın. Diyelim ki Masaüstünde duruyor.
-1. Mac klavyenden Space (Boşluk) ve Cmd tuşuna aynı anda bas, arama yerine "Terminal" yazıp o siyah programı aç.
-2. Terminale **cd** yaz, bir boşluk bırak ve uygulamanın içindeki **"frontend"** klasörünü farenle tutup terminalin o siyah ekranının içine sürükle, bırak. Sonra Enter'a bas. (Böylece kolay yoldan klasörün içine girdik!)
+Uygulama klasörünü bir şekilde (flash bellek veya internet) Mac bilgisayarının içine attın. Diyelim ki Masaüstünde duruyor. githubdan aldıysan zipten çıkar. o klasörü vs veya antigravitiy ile aç
+2. Terminale cd flutter yaz
 3. Şimdi hiçbir yeri kapatmadan kopyala-yapıştır yaparak şu komutları sırasıyla girip hep Enter'a bas:
-   - **flutter clean** (Yaz ve Enter'a bas, bitmesini bekle. Sistemi temizler)
-   - **flutter pub get** (Yaz ve Enter'a bas, kütüphaneleri indirecek bekle)
-   - **cd ios** (Yaz ve Enter'a bas. Artık iOS klasörüne girdik).
-   - **pod install** (Yaz ve Enter'a bas. Eğer bu adımda "arch" ile ilgili bir hata alırsan "arch -x86_64 pod install" yazmayı dene).
-   - **cd ..** (Yaz ve Enter'a basıp geri ana yere çık).
+   - flutter clean (Yaz ve Enter'a bas, bitmesini bekle. Sistemi temizler)
+   - flutter pub get (Yaz ve Enter'a bas, kütüphaneleri indirecek bekle)
+   - cd ios (Yaz ve Enter'a bas. Artık iOS klasörüne girdik).
+   - pod install (Yaz ve Enter'a bas. Eğer bu adımda "arch" ile ilgili bir hata alırsan "arch -x86_64 pod install" yazmayı dene).
+   - cd .. (Yaz ve Enter'a basıp geri ana yere çık).
 Şimdi terminali küçültebilirsin, işimiz bitti!
 
 ### 3- Xcode ile Uygulamayı Açma

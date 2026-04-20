@@ -134,6 +134,81 @@ class SettingsDialogs {
     );
   }
 
+  static void showMotionThresholdDialog({
+    required BuildContext context,
+    required bool isDark,
+    required double current,
+    required ValueChanged<double> onChanged,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        double tempValue = current;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            String label;
+            if (tempValue <= 0.015) {
+              label = 'Çok Hassas — küçük hareketleri algılar';
+            } else if (tempValue <= 0.030) {
+              label = 'Normal — önerilen değer';
+            } else {
+              label = 'Kaba — belirgin hareketler gerekir';
+            }
+            return AlertDialog(
+              backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+              title: const Text('Hareket Hassasiyeti'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.midGrey,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Slider(
+                    value: tempValue,
+                    min: 0.005,
+                    max: 0.050,
+                    divisions: 9,
+                    label: tempValue.toStringAsFixed(3),
+                    onChanged: (v) => setState(() => tempValue = v),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('Hassas', style: TextStyle(fontSize: 11, color: AppTheme.midGrey)),
+                      Text('Kaba', style: TextStyle(fontSize: 11, color: AppTheme.midGrey)),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('İptal'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    onChanged(tempValue);
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'Kaydet',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   static void showHelpDialog(
     BuildContext context,
     bool isDark,

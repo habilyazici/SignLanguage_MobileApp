@@ -26,8 +26,6 @@ class StatusSummary extends StatelessWidget {
         (Icons.bolt_rounded, 'Maksimum FPS', Colors.purpleAccent),
       if (settings.zeroDataMode)
         (Icons.visibility_off_rounded, 'Sıfır-Veri', Colors.grey),
-      if (!settings.hapticEnabled)
-        (Icons.vibration_rounded, 'Titreşim Kapalı', Colors.red),
     ];
 
     if (chips.isEmpty) return const SizedBox.shrink();

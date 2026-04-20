@@ -24,5 +24,8 @@ abstract interface class RecognitionRepository {
   /// FPS limitini günceller (ör. 15 veya 30).
   void updateFpsLimit(int targetFps);
 
+  /// Hareket algılama eşiğini günceller (0.005–0.050).
+  void updateMotionThreshold(double threshold);
+
   Future<void> dispose();
 }

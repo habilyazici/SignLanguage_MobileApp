@@ -74,25 +74,6 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ).animate().fadeIn(delay: 60.ms, duration: 350.ms).slideY(begin: 0.06),
 
-          // ── Kamera & Bildirimler ───────────────────────────────────────────
-          const SettingsSection('Kamera & Bildirimler'),
-          SettingsCard(
-            isDark: isDark,
-            children: [
-              SettingsSwitchRow(
-                isDark: isDark,
-                icon: Icons.vibration_rounded,
-                iconColor: Colors.tealAccent,
-                title: 'Titreşim Geri Bildirimi',
-                subtitle: 'Beklenen işareti başarılı/doğru bulunca titrer',
-                value: settings.hapticEnabled,
-                helpText:
-                    'Cihazın haptik motorunu kullanarak her yeni kelime tespit edildiğinde size dokunsal bir geri bildirim verir.',
-                onChanged: (_) => n.toggleHaptic(),
-              ),
-            ],
-          ).animate().fadeIn(delay: 120.ms, duration: 350.ms).slideY(begin: 0.06),
-
           // ── Ses ───────────────────────────────────────────────────────────
           const SettingsSection('Ses'),
           SettingsCard(
@@ -243,6 +224,12 @@ class SettingsScreen extends ConsumerWidget {
                   isDark: isDark,
                   current: settings.fpsPreference,
                   onChanged: n.setFpsPreference,
+                ),
+                SettingsDivider(isDark: isDark),
+                MotionThresholdRow(
+                  isDark: isDark,
+                  current: settings.motionThreshold,
+                  onChanged: n.setMotionThreshold,
                 ),
                 SettingsDivider(isDark: isDark),
                 SettingsSwitchRow(

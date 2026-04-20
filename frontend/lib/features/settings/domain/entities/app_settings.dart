@@ -41,7 +41,6 @@ class AppSettings {
   // ── Kamera & Yapay Zeka ───────────────────────────────────────────────────
   final ConfidenceLevel confidenceLevel;
   final FpsPreference fpsPreference;
-  final bool hapticEnabled;
 
   // ── Veri & Video ──────────────────────────────────────────────────────────
   final bool cellularVideoDisabled;
@@ -61,6 +60,7 @@ class AppSettings {
 
   // ── AI Kararlılık (Dynamic) ────────────────────────────────────────────────
   final int stableFramesThreshold;
+  final double motionThreshold;
 
   const AppSettings({
     this.themeMode = ThemeMode.system,
@@ -68,7 +68,6 @@ class AppSettings {
     this.leftHandMode = false,
     this.confidenceLevel = ConfidenceLevel.medium,
     this.fpsPreference = FpsPreference.performance,
-    this.hapticEnabled = true,
     this.cellularVideoDisabled = false,
     this.videoQuality = VideoQuality.high,
     this.zeroDataMode = false,
@@ -78,6 +77,7 @@ class AppSettings {
     this.devMode = false,
     this.showDevButton = false,
     this.stableFramesThreshold = 3,
+    this.motionThreshold = 0.025,
   });
 
   /// Confidence level'ı TFLite threshold değerine dönüştürür.
@@ -102,7 +102,6 @@ class AppSettings {
     bool? leftHandMode,
     ConfidenceLevel? confidenceLevel,
     FpsPreference? fpsPreference,
-    bool? hapticEnabled,
     bool? cellularVideoDisabled,
     VideoQuality? videoQuality,
     bool? zeroDataMode,
@@ -112,13 +111,13 @@ class AppSettings {
     bool? devMode,
     bool? showDevButton,
     int? stableFramesThreshold,
+    double? motionThreshold,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     textSize: textSize ?? this.textSize,
     leftHandMode: leftHandMode ?? this.leftHandMode,
     confidenceLevel: confidenceLevel ?? this.confidenceLevel,
     fpsPreference: fpsPreference ?? this.fpsPreference,
-    hapticEnabled: hapticEnabled ?? this.hapticEnabled,
     cellularVideoDisabled: cellularVideoDisabled ?? this.cellularVideoDisabled,
     videoQuality: videoQuality ?? this.videoQuality,
     zeroDataMode: zeroDataMode ?? this.zeroDataMode,
@@ -128,5 +127,6 @@ class AppSettings {
     devMode: devMode ?? this.devMode,
     showDevButton: showDevButton ?? this.showDevButton,
     stableFramesThreshold: stableFramesThreshold ?? this.stableFramesThreshold,
+    motionThreshold: motionThreshold ?? this.motionThreshold,
   );
 }

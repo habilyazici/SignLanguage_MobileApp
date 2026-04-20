@@ -53,6 +53,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   bool _leftHandMode = false;
   bool _isStreaming = false;
   int _targetFps = 30;
+  double _motionThreshold = RecognitionConstants.motionThreshold;
   int _lastFrameTimeMs = 0;
   Timer? _noDetectionTimer;
   StreamSubscription<CameraController?>? _cameraSub;
@@ -122,6 +123,9 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   @override
   void updateFpsLimit(int targetFps) => _targetFps = targetFps;
 
+  @override
+  void updateMotionThreshold(double threshold) => _motionThreshold = threshold;
+
   // ── Frame işleme ──────────────────────────────────────────────────────────
 
   void _onFrame(CameraImage image) async {
@@ -177,7 +181,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
         final motion = _computeMotion(result.features);
         _prevFrame = List<double>.from(result.features);
 
-        if (motion >= RecognitionConstants.motionThreshold) {
+        if (motion >= _motionThreshold) {
           _lastMotionMs = nowMs;
         }
 
