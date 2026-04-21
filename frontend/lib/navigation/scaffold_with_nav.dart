@@ -58,34 +58,6 @@ class ScaffoldWithNav extends ConsumerWidget {
               ),
             ),
           ),
-          Positioned(
-            top: -50,
-            left: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.secondaryBlue.withValues(
-                  alpha: 0.05,
-                ), // %5 opaklık
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.primaryBlue.withValues(
-                  alpha: 0.03,
-                ), // %3 opaklık
-              ),
-            ),
-          ),
           SafeArea(
             bottom: false,
             child: _SwipeNavWrapper(
@@ -136,11 +108,50 @@ class ScaffoldWithNav extends ConsumerWidget {
                       ),
                     ),
                     Expanded(
-                      child: _NavBarItem(
-                        icon: Icons.translate_rounded,
-                        label: 'Çeviri',
-                        isSelected: _calculateSelectedIndex(context) == 2,
-                        onTap: () => _onTap(context, ref, 2),
+                      child: Transform.translate(
+                        offset: const Offset(0, -10),
+                        child: GestureDetector(
+                          onTap: () => _onTap(context, ref, 2),
+                          behavior: HitTestBehavior.opaque,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryBlue,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.primaryBlue.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.photo_camera_rounded,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Kamera',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppTheme.primaryBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                     Expanded(
