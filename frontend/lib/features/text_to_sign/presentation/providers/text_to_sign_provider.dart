@@ -11,10 +11,7 @@ import '../../domain/repositories/text_to_sign_repository.dart';
 
 final _textToSignRepositoryProvider = Provider<TextToSignRepository>((ref) {
   return TextToSignRepositoryImpl(
-    datasource: ManifestDatasource(
-      // TODO: Backend aktifleştiğinde baseApiUrl production URL ile güncellenir
-      baseApiUrl: 'https://api.hearmeout.app',
-    ),
+    datasource: const ManifestDatasource(),
   );
 });
 
