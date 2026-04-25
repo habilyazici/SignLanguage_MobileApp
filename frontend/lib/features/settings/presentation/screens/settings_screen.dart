@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/presentation/widgets/app_logo.dart';
 import '../../../../shared/presentation/widgets/profile_sheet.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
@@ -85,21 +86,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(
                 children: [
-                  const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.hearing_rounded, color: AppTheme.primaryBlue, size: 22),
-                      SizedBox(width: 6),
-                      Text(
-                        'Hear Me Out',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryBlue,
-                        ),
-                      ),
-                    ],
-                  ),
+                  AppLogo(height: 22),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => showProfileSheet(context, auth),
@@ -464,14 +451,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     icon: Icons.mail_rounded,
                     iconColor: AppTheme.primaryStatusYellow,
                     title: 'Bize Ulaşın',
-                    onTap: () async {
-                      final url = Uri.parse(
+                    onTap: () => launchUrl(
+                      Uri.parse(
                         'mailto:habilyazici00@gmail.com?subject=Hear%20Me%20Out%20-%20Geri%20Bildirim',
-                      );
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url);
-                      }
-                    },
+                      ),
+                    ),
                   ),
                   SettingsDivider(isDark: false),
                   _ActionTile(

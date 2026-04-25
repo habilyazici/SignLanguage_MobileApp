@@ -79,7 +79,7 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mod seçici — minimal pill tasarımı
+// Mod seçici — iki ayrı buton
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ModeSelector extends StatelessWidget {
@@ -89,41 +89,33 @@ class _ModeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
       child: AnimatedBuilder(
         animation: controller,
-        builder: (context, _) {
+        builder: (context, child) {
           final index = controller.index;
-          return Container(
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                _ModeTab(
+          return Row(
+            children: [
+              Expanded(
+                child: _ModeButton(
                   icon: Icons.videocam_rounded,
                   label: 'İşaret Oku',
+                  sublabel: 'Kamera → Metin',
                   isSelected: index == 0,
                   onTap: () => controller.animateTo(0),
                 ),
-                _ModeTab(
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ModeButton(
                   icon: Icons.sign_language_rounded,
                   label: 'İşaret Anlat',
+                  sublabel: 'Metin → İşaret',
                   isSelected: index == 1,
                   onTap: () => controller.animateTo(1),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
@@ -131,50 +123,85 @@ class _ModeSelector extends StatelessWidget {
   }
 }
 
-class _ModeTab extends StatelessWidget {
-  const _ModeTab({
+class _ModeButton extends StatelessWidget {
+  const _ModeButton({
     required this.icon,
     required this.label,
+    required this.sublabel,
     required this.isSelected,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final String sublabel;
   final bool isSelected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryBlue : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryBlue : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 15,
-                color: isSelected ? Colors.white : AppTheme.textMuted,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? Colors.white : AppTheme.textMuted,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : AppTheme.midGrey,
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected ? Colors.white : AppTheme.textPrimary,
+                  ),
                 ),
-              ),
-            ],
-          ),
+                Text(
+                  sublabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w400,
+                    color: isSelected
+                        ? Colors.white.withValues(alpha: 0.75)
+                        : AppTheme.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_keys.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
@@ -100,23 +99,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     )
                     .fadeIn(duration: 400.ms),
 
-                const SizedBox(height: 28),
-
-                // Uygulama adı
-                Text(
-                      'Hear Me Out',
-                      style: GoogleFonts.poppins(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    )
-                    .animate()
-                    .fadeIn(delay: 350.ms, duration: 500.ms)
-                    .slideY(begin: 0.15, end: 0),
-
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
 
                 // Slogan
                 Text(

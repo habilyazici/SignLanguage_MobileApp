@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/presentation/widgets/app_logo.dart';
 import '../../domain/entities/sign_entry.dart';
 import '../providers/dictionary_provider.dart';
 
@@ -62,21 +63,7 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(
                 children: [
-                  const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.hearing_rounded, color: AppTheme.primaryBlue, size: 22),
-                      SizedBox(width: 6),
-                      Text(
-                        'Hear Me Out',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryBlue,
-                        ),
-                      ),
-                    ],
-                  ),
+                  AppLogo(height: 22),
                   const Spacer(),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),

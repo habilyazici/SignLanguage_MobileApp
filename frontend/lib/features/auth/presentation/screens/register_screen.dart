@@ -84,16 +84,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             height: 90,
                           ),
                         ),
-                        const SizedBox(width: 14),
-                        Text(
-                          'Hear Me Out',
-                          style: GoogleFonts.poppins(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : AppTheme.primaryBlue,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
                       ],
                     )
                     .animate()

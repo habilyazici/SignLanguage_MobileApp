@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/presentation/widgets/app_logo.dart';
 import '../../../../shared/presentation/widgets/profile_sheet.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/home_provider.dart';
@@ -31,21 +32,7 @@ class HomeScreen extends ConsumerWidget {
               // ── Üst Bar ───────────────────────────────────────────────
               Row(
                 children: [
-                  const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.hearing_rounded, color: AppTheme.primaryBlue, size: 22),
-                      SizedBox(width: 6),
-                      Text(
-                        'Hear Me Out',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryBlue,
-                        ),
-                      ),
-                    ],
-                  ),
+                  AppLogo(height: 22),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => showProfileSheet(context, auth),

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../shared/presentation/widgets/app_logo.dart';
 
 /// Geçmiş ekranı — çeviri geçmişi (işaret tanıma sonuçları).
 class HistoryScreen extends ConsumerWidget {
@@ -21,7 +22,7 @@ class HistoryScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(
                 children: [
-                  _AppLogoBar(),
+                  AppLogo(height: 22),
                   const Spacer(),
                   _IconBtn(
                     icon: Icons.tune_rounded,
@@ -135,27 +136,6 @@ class HistoryScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _AppLogoBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.hearing_rounded, color: AppTheme.primaryBlue, size: 22),
-        const SizedBox(width: 6),
-        Text(
-          'Hear Me Out',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.primaryBlue,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _IconBtn extends StatelessWidget {
   final IconData icon;
