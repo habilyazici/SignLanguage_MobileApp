@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/constants/api_constants.dart';
 import '../../domain/entities/sign_entry.dart';
 
-/// Tüm kelimeleri backend'den çeker.
-/// 1989 kelime ~100KB JSON — uygulama açılışında bir kez yüklenir.
+/// Tüm kelimeleri backend'den sayfalı olarak çeker.
 class DictionaryApiDatasource {
   const DictionaryApiDatasource();
 
@@ -17,7 +16,9 @@ class DictionaryApiDatasource {
       final uri = Uri.parse('$kApiBaseUrl/api/words?page=$page&limit=$limit');
       final res = await http.get(uri).timeout(const Duration(seconds: 15));
 
-      if (res.statusCode != 200) break;
+      if (res.statusCode != 200) {
+        throw Exception('Kelimeler yüklenemedi (HTTP ${res.statusCode}).');
+      }
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final data = (body['data'] as List).cast<Map<String, dynamic>>();
