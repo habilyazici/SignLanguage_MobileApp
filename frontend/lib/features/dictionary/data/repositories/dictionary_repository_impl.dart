@@ -1,14 +1,14 @@
 import '../../domain/entities/sign_entry.dart';
 import '../../domain/repositories/dictionary_repository.dart';
-import '../datasources/dictionary_local_datasource.dart';
+import '../datasources/dictionary_api_datasource.dart';
 
 class DictionaryRepositoryImpl implements DictionaryRepository {
   const DictionaryRepositoryImpl([
-    this._datasource = const DictionaryLocalDatasource(),
+    this._datasource = const DictionaryApiDatasource(),
   ]);
 
-  final DictionaryLocalDatasource _datasource;
+  final DictionaryApiDatasource _datasource;
 
   @override
-  List<SignEntry> getAllSigns() => _datasource.readAll();
+  Future<List<SignEntry>> fetchAll() => _datasource.fetchAll();
 }

@@ -185,9 +185,13 @@ class _DictionaryScreenState extends ConsumerState<DictionaryScreen> {
 
             // ── Liste ──────────────────────────────────────────────────────
             Expanded(
-              child: dict.filteredSigns.isEmpty
-                  ? const _EmptyState()
-                  : _SignList(signs: dict.filteredSigns),
+              child: dict.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : dict.error != null
+                      ? _ErrorState(onRetry: () => ref.read(dictionaryProvider.notifier).retry())
+                      : dict.filteredSigns.isEmpty
+                          ? const _EmptyState()
+                          : _SignList(signs: dict.filteredSigns),
             ),
           ],
         ),
@@ -312,6 +316,43 @@ class _SignCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(
+              color: AppTheme.bgSecondary,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.wifi_off_rounded, size: 30, color: AppTheme.textMuted),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Veriler yüklenemedi',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.midGrey),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Tekrar Dene'),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms);
+  }
+}
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
