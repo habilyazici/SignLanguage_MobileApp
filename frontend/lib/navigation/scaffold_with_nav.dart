@@ -9,13 +9,13 @@ class ScaffoldWithNav extends ConsumerWidget {
 
   const ScaffoldWithNav({super.key, required this.child});
 
-  // 0=Anasayfa  1=Sözlük  2=Çeviri  3=Geçmiş  4=Ayarlar
+  // 0=Anasayfa  1=Sözlük  2=Çeviri  3=Geçmiş  4=Profil
   static const _tabRoutes = [
     '/home',
     '/dictionary',
     '/translation',
     '/gecmis',
-    '/settings',
+    '/profile',
   ];
 
   int _calculateSelectedIndex(BuildContext context) {
@@ -24,7 +24,7 @@ class ScaffoldWithNav extends ConsumerWidget {
     if (location.startsWith('/dictionary'))  return 1;
     if (location.startsWith('/translation')) return 2;
     if (location.startsWith('/gecmis'))      return 3;
-    if (location.startsWith('/settings'))    return 4;
+    if (location.startsWith('/profile'))     return 4;
     return 0;
   }
 
@@ -106,8 +106,8 @@ class ScaffoldWithNav extends ConsumerWidget {
                   ),
                   Expanded(
                     child: _NavItem(
-                      icon: Icons.settings_rounded,
-                      label: 'Ayarlar',
+                      icon: Icons.person_rounded,
+                      label: 'Profil',
                       isSelected: currentIndex == 4,
                       onTap: () => _onTap(context, ref, 4),
                     ),

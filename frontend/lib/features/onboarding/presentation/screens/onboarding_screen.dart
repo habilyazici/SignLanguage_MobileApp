@@ -1,14 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_keys.dart';
 import '../../../../core/theme/app_theme.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Onboarding slayt verisi
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _OnboardingPage {
   final IconData icon;
@@ -72,10 +68,6 @@ const _pages = [
   ),
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Ekran
-// ─────────────────────────────────────────────────────────────────────────────
-
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -126,128 +118,150 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isLast = _currentPage == _pages.length - 1;
+    final pageColor = _pages[_currentPage].iconColor;
 
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.softGrey,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Üst bar ──────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Sayfa göstergesi (noktalar)
-                  Row(
-                    children: List.generate(_pages.length, (i) {
-                      final active = i == _currentPage;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.only(right: 6),
-                        width: active ? 22 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: active
-                              ? AppTheme.secondaryBlue
-                              : (isDark ? Colors.white24 : Colors.black12),
-                          borderRadius: BorderRadius.circular(4),
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
+        color: isDark
+            ? Color.lerp(AppTheme.darkBg, pageColor, 0.07)!
+            : Color.lerp(AppTheme.softGrey, pageColor, 0.07)!,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // ── Üst bar ──────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Sayfa göstergesi (noktalar)
+                    Row(
+                      children: List.generate(_pages.length, (i) {
+                        final active = i == _currentPage;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.only(right: 6),
+                          width: active ? 22 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: active
+                                ? pageColor
+                                : (isDark ? Colors.white24 : Colors.black12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        );
+                      }),
+                    ),
+                    // Atla
+                    OutlinedButton(
+                      onPressed: _skip,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: pageColor,
+                        side: BorderSide(color: pageColor),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                      );
-                    }),
-                  ),
-                  Row(
-                    children: [
-                      // Geri butonu — ilk sayfada soluk
-                      AnimatedOpacity(
-                        opacity: _currentPage > 0 ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 200),
-                        child: TextButton(
-                          onPressed: _currentPage > 0 ? _back : null,
-                          child: Text(
-                            'Geri',
-                            style: TextStyle(
-                              color: isDark ? Colors.white54 : AppTheme.midGrey,
-                              fontSize: 14,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'Atla',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Sayfa içeriği ─────────────────────────────────────────────
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: _pages.length,
+                  onPageChanged: (i) => setState(() => _currentPage = i),
+                  itemBuilder: (context, index) =>
+                      _PageContent(page: _pages[index], isDark: isDark),
+                ),
+              ),
+
+              // ── Alt butonlar ──────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                child: Row(
+                  children: [
+                    // Geri — ilk sayfada görünmez
+                    AnimatedOpacity(
+                      opacity: _currentPage > 0 ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: IgnorePointer(
+                        ignoring: _currentPage == 0,
+                        child: SizedBox(
+                          width: 88,
+                          height: 56,
+                          child: OutlinedButton(
+                            onPressed: _back,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: pageColor,
+                              side: BorderSide(color: pageColor),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: const Text(
+                              'Geri',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      TextButton(
-                        onPressed: _skip,
-                        child: Text(
-                          'Atla',
-                          style: TextStyle(
-                            color: isDark ? Colors.white54 : AppTheme.midGrey,
-                            fontSize: 14,
+                    ),
+                    if (_currentPage > 0) const SizedBox(width: 12),
+                    // İleri / Başla
+                    Expanded(
+                      child: SizedBox(
+                        height: 56,
+                        child: FilledButton(
+                          onPressed: _next,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: pageColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+                          child: Text(
+                            isLast ? 'Başla' : 'İleri',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Sayfa içeriği ─────────────────────────────────────────────
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _pages.length,
-                onPageChanged: (i) => setState(() => _currentPage = i),
-                itemBuilder: (context, index) =>
-                    _PageContent(page: _pages[index], isDark: isDark),
-              ),
-            ),
-
-            // ── Alt buton ─────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
-                  onPressed: _next,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        isLast ? 'Başlayalım' : 'Devam',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        isLast
-                            ? Icons.check_rounded
-                            : Icons.arrow_forward_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tek slayt içeriği
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PageContent extends StatefulWidget {
@@ -305,7 +319,7 @@ class _PageContentState extends State<_PageContent> {
                 style: GoogleFonts.poppins(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  color: widget.isDark ? Colors.white : AppTheme.primaryBlue,
+                  color: widget.isDark ? Colors.white : widget.page.iconColor,
                 ),
                 textAlign: TextAlign.center,
               )
@@ -399,7 +413,7 @@ class _PageContentState extends State<_PageContent> {
                               fontWeight: FontWeight.bold,
                               color: widget.isDark
                                   ? Colors.white
-                                  : AppTheme.primaryBlue,
+                                  : widget.page.iconColor,
                             ),
                           ),
                           const SizedBox(height: 8),
