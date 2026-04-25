@@ -2,19 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../shared/presentation/widgets/app_logo.dart';
-import '../../../../shared/presentation/widgets/profile_sheet.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_dialogs.dart';
 import '../widgets/settings_rows.dart';
 import '../widgets/settings_widgets.dart';
 
-// Anahtar kelimeler: her bölüm için arama terimlerini tutar
 const _kKeywords = <String, List<String>>{
   'Genel & Görünüm': [
     'tema', 'görünüm', 'açık', 'koyu', 'sistem', 'solak', 'metin', 'boyut', 'tipografi', 'palette',
@@ -30,9 +25,6 @@ const _kKeywords = <String, List<String>>{
   ],
   'İleri Seviye (Geliştirici)': [
     'geliştirici', 'ai', 'hassasiyet', 'fps', 'hareket', 'kararlılık', 'dev', 'teknik', 'yapay',
-  ],
-  'Hesap': [
-    'paylaş', 'ulaş', 'nasıl', 'kullanılır', 'çıkış', 'hesap', 'mail', 'iletişim', 'geri bildirim',
   ],
 };
 
@@ -83,47 +75,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: [
             // ── Üst Bar ───────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.fromLTRB(4, 8, 20, 0),
               child: Row(
                 children: [
-                  AppLogo(height: 22),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => showProfileSheet(context, auth),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.borderColor),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.person_outline_rounded,
-                        size: 18,
-                        color: AppTheme.midGrey,
-                      ),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    color: AppTheme.textPrimary,
+                  ),
+                  Text(
+                    'Ayarlar',
+                    style: Theme.of(context).textTheme.displayMedium,
                   ),
                 ],
               ),
             ).animate().fadeIn(duration: 350.ms),
 
-            // ── Başlık ────────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Text(
-                'Ayarlar',
-                style: Theme.of(context).textTheme.displayMedium,
-              ),
-            ).animate().fadeIn(delay: 40.ms, duration: 350.ms),
+            const SizedBox(height: 12),
 
             // ── Arama ─────────────────────────────────────────────────────
             Padding(
@@ -176,15 +144,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               ),
-            ).animate().fadeIn(delay: 80.ms, duration: 350.ms),
+            ).animate().fadeIn(delay: 60.ms, duration: 350.ms),
 
             const SizedBox(height: 16),
-
-            // ── Profil Kartı ──────────────────────────────────────────────
-            _ProfileCard(auth: auth)
-                .animate()
-                .fadeIn(delay: 120.ms, duration: 350.ms)
-                .slideY(begin: 0.06, end: 0),
 
             // ── Boş Arama Durumu ──────────────────────────────────────────
             if (_noResults)
@@ -248,7 +210,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onChanged: (_) => n.toggleLeftHandMode(),
                   ),
                 ],
-              ).animate().fadeIn(delay: 160.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
+              ).animate().fadeIn(delay: 100.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
             ],
 
             // ── Ses ───────────────────────────────────────────────────────
@@ -281,7 +243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onChanged: (_) => n.toggleStt(),
                   ),
                 ],
-              ).animate().fadeIn(delay: 200.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
+              ).animate().fadeIn(delay: 140.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
             ],
 
             // ── Veri & Video ──────────────────────────────────────────────
@@ -321,7 +283,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onTap: () => SettingsDialogs.showCacheDialog(context, false),
                   ),
                 ],
-              ).animate().fadeIn(delay: 240.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
+              ).animate().fadeIn(delay: 180.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
             ],
 
             // ── Gizlilik & Veri ───────────────────────────────────────────
@@ -369,7 +331,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onTap: () => SettingsDialogs.showDeleteAccountDialog(context, false),
                   ),
                 ],
-              ).animate().fadeIn(delay: 280.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
+              ).animate().fadeIn(delay: 220.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
             ],
 
             // ── Geliştirici ────────────────────────────────────────────────
@@ -429,247 +391,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     LandmarkLegend(isDark: false),
                   ],
                 ],
-              ).animate().fadeIn(delay: 320.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
-            ],
-
-            // ── Hesap ─────────────────────────────────────────────────────
-            if (_visible('Hesap')) ...[
-              const SettingsSection('Hesap'),
-              SettingsCard(
-                isDark: false,
-                children: [
-                  _ActionTile(
-                    icon: Icons.share_rounded,
-                    iconColor: AppTheme.secondaryBlue,
-                    title: 'Uygulamayı Paylaş',
-                    onTap: () => Share.share(
-                      'Hear Me Out - İşaret Dili Uygulamasını keşfet! Hemen indir!',
-                    ),
-                  ),
-                  SettingsDivider(isDark: false),
-                  _ActionTile(
-                    icon: Icons.mail_rounded,
-                    iconColor: AppTheme.primaryStatusYellow,
-                    title: 'Bize Ulaşın',
-                    onTap: () => launchUrl(
-                      Uri.parse(
-                        'mailto:habilyazici00@gmail.com?subject=Hear%20Me%20Out%20-%20Geri%20Bildirim',
-                      ),
-                    ),
-                  ),
-                  SettingsDivider(isDark: false),
-                  _ActionTile(
-                    icon: Icons.help_outline_rounded,
-                    iconColor: AppTheme.primaryStatusGreen,
-                    title: 'Nasıl Kullanılır?',
-                    onTap: () => context.push('/onboarding'),
-                  ),
-                  if (!isGuest) ...[
-                    SettingsDivider(isDark: false),
-                    _ActionTile(
-                      icon: Icons.logout_rounded,
-                      iconColor: AppTheme.primaryStatusRed,
-                      title: 'Çıkış Yap',
-                      titleColor: AppTheme.primaryStatusRed,
-                      showArrow: false,
-                      onTap: () => _confirmSignOut(context, ref),
-                    ),
-                  ],
-                ],
-              ).animate().fadeIn(delay: 360.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
+              ).animate().fadeIn(delay: 260.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
             ],
 
             const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _confirmSignOut(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Çıkış Yap'),
-        content: const Text('Hesabınızdan çıkmak istediğinize emin misiniz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.primaryStatusRed,
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              ref.read(authProvider.notifier).signOut();
-            },
-            child: const Text('Çıkış Yap'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Profil Kartı
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({required this.auth});
-  final dynamic auth;
-
-  @override
-  Widget build(BuildContext context) {
-    final isGuest = auth.isGuest as bool;
-    final userName = isGuest
-        ? 'Misafir Kullanıcı'
-        : (auth.displayName as String? ?? auth.email as String? ?? 'Kullanıcı');
-    final userEmail = isGuest ? 'Giriş yapmak için dokun' : (auth.email as String? ?? '');
-    final initials = userName.isNotEmpty ? userName[0].toUpperCase() : 'M';
-
-    return GestureDetector(
-      onTap: () => showProfileSheet(context, auth),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: isGuest
-                    ? null
-                    : const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF0046AF), Color(0xFF005CE1)],
-                      ),
-                color: isGuest ? AppTheme.primaryBlueTint : null,
-              ),
-              child: Center(
-                child: Text(
-                  initials,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: isGuest ? AppTheme.primaryBlue : Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    userEmail,
-                    style: const TextStyle(fontSize: 13, color: AppTheme.midGrey),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryBlueTint,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.open_in_new_rounded,
-                size: 15,
-                color: AppTheme.primaryBlue,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Aksiyon satırı
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.onTap,
-    this.titleColor,
-    this.showArrow = true,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final Color? titleColor;
-  final bool showArrow;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: titleColor ?? AppTheme.textPrimary,
-                ),
-              ),
-            ),
-            if (showArrow)
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
           ],
         ),
       ),
