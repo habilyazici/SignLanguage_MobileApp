@@ -69,8 +69,15 @@ class TextToSignNotifier extends Notifier<TextToSignState> {
   @override
   TextToSignState build() {
     _repo = ref.read(_textToSignRepositoryProvider);
-    _repo.initialize();
-    return const TextToSignState();
+    Future.microtask(_init);
+    return const TextToSignState(isLoading: true);
+  }
+
+  Future<void> _init() async {
+    try {
+      await _repo.initialize();
+    } catch (_) {}
+    state = state.copyWith(isLoading: false);
   }
 
   /// Metni parse edip token listesi oluşturur

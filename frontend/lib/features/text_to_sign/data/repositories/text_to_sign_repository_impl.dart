@@ -12,16 +12,17 @@ class TextToSignRepositoryImpl implements TextToSignRepository {
   /// word → videoUrl haritası (manifest'ten yüklenir)
   Map<String, String> _manifest = {};
 
-  /// Hızlı lookup için normalize edilmiş kelime seti
   Set<String> _knownWords = {};
+  bool _ready = false;
 
   @override
-  bool get isReady => true; // manifest yüklü olsun ya da olmasın, parse çalışır
+  bool get isReady => _ready;
 
   @override
   Future<void> initialize() async {
     _manifest = await _datasource.fetchManifest();
     _knownWords = _manifest.keys.toSet();
+    _ready = true;
   }
 
   @override

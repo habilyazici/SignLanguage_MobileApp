@@ -76,6 +76,7 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
     final sttEnabled = ref.watch(settingsProvider).sttEnabled;
     final ttsState = ref.watch(textToSignProvider);
     final notifier = ref.read(textToSignProvider.notifier);
+    final manifestReady = !ttsState.isLoading || ttsState.hasTokens;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -234,9 +235,20 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
                                 width: double.infinity,
                                 height: 52,
                                 child: FilledButton.icon(
-                                  onPressed: _translate,
-                                  icon: const Icon(Icons.translate_rounded),
-                                  label: const Text('Çevir'),
+                                  onPressed: manifestReady ? _translate : null,
+                                  icon: manifestReady
+                                      ? const Icon(Icons.translate_rounded)
+                                      : const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white54,
+                                          ),
+                                        ),
+                                  label: Text(
+                                    manifestReady ? 'Çevir' : 'Hazırlanıyor…',
+                                  ),
                                   style: FilledButton.styleFrom(
                                     backgroundColor: AppTheme.primaryBlue,
                                     shape: RoundedRectangleBorder(
