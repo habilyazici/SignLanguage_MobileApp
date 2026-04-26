@@ -17,8 +17,11 @@ class HomeScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final isGuest = auth.isGuest;
     final dailyWord = ref.watch(dailyWordProvider);
-    final displayName = auth.displayName ?? auth.email?.split('@').first ?? 'Kullanıcı';
-    final dictCount = ref.watch(dictionaryProvider.select((s) => s.allSigns.length));
+    final displayName =
+        auth.displayName ?? auth.email?.split('@').first ?? 'Kullanıcı';
+    final dictCount = ref.watch(
+      dictionaryProvider.select((s) => s.allSigns.length),
+    );
 
     String getGreeting() {
       final hour = DateTime.now().hour;
@@ -82,14 +85,17 @@ class HomeScreen extends ConsumerWidget {
 
               // ── Karşılama ─────────────────────────────────────────────
               Text(
-                isGuest ? '$greeting!' : '$greeting, $name!',
-                style: GoogleFonts.poppins(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.textPrimary,
-                  height: 1.1,
-                ),
-              ).animate().fadeIn(delay: 80.ms, duration: 350.ms).slideY(begin: -0.1, end: 0),
+                    isGuest ? '$greeting!' : '$greeting, $name!',
+                    style: GoogleFonts.poppins(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary,
+                      height: 1.1,
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(delay: 80.ms, duration: 350.ms)
+                  .slideY(begin: -0.1, end: 0),
               const SizedBox(height: 4),
               Text(
                 'Bugün ne öğrenmek istersin?',
@@ -119,37 +125,42 @@ class HomeScreen extends ConsumerWidget {
 
               // Büyük birincil kart — Çeviri (kamera + metin modlarını kapsar)
               _PrimaryQuickCard(
-                title: 'Çeviri',
-                subtitle: 'Kamera veya metin ile işaret dili çevirisi',
-                icon: Icons.camera_alt_rounded,
-                tag: 'CANLI · AI',
-                onTap: () => context.go('/translation'),
-              ).animate().fadeIn(delay: 240.ms, duration: 400.ms).slideY(begin: 0.08, end: 0),
+                    title: 'Çeviri',
+                    subtitle: 'Kamera veya metin ile işaret dili çevirisi',
+                    icon: Icons.camera_alt_rounded,
+                    tag: 'CANLI · AI',
+                    onTap: () => context.go('/translation'),
+                  )
+                  .animate()
+                  .fadeIn(delay: 240.ms, duration: 400.ms)
+                  .slideY(begin: 0.08, end: 0),
 
               const SizedBox(height: 12),
 
               // Sözlük — tam genişlik (daha ince ve açıklayıcı)
               _SecondaryQuickCard(
-                title: 'İşaret Sözlüğü',
-                subtitle: dictCount > 0 
-                  ? '$dictCount farklı işareti ve yapılışını keşfet' 
-                  : 'Tüm işaretlerin listesine göz at ve öğren',
-                icon: Icons.menu_book_rounded,
-                color: const Color(0xFF7C4DFF),
-                onTap: () => context.go('/dictionary'),
-              ).animate().fadeIn(delay: 290.ms, duration: 350.ms).slideY(begin: 0.08, end: 0),
+                    title: 'İşaret Sözlüğü',
+                    subtitle: dictCount > 0
+                        ? '$dictCount farklı işareti ve yapılışını keşfet'
+                        : 'Tüm işaretlerin listesine göz at ve öğren',
+                    icon: Icons.menu_book_rounded,
+                    color: const Color(0xFF7C4DFF),
+                    onTap: () => context.go('/dictionary'),
+                  )
+                  .animate()
+                  .fadeIn(delay: 290.ms, duration: 350.ms)
+                  .slideY(begin: 0.08, end: 0),
 
               const SizedBox(height: 20),
 
               // ── Üyelik Bannerı (en altta — içerik önce, çağrı sonra) ──
               if (isGuest)
-                _AuthBanner()
-                    .animate()
-                    .fadeIn(delay: 340.ms, duration: 350.ms)
+                _AuthBanner().animate().fadeIn(delay: 340.ms, duration: 350.ms)
               else
-                _ProgressBanner()
-                    .animate()
-                    .fadeIn(delay: 340.ms, duration: 350.ms),
+                _ProgressBanner().animate().fadeIn(
+                  delay: 340.ms,
+                  duration: 350.ms,
+                ),
 
               const SizedBox(height: 120),
             ],
@@ -227,7 +238,11 @@ class _DailyWordCard extends StatelessWidget {
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.auto_awesome, color: Colors.white70, size: 14),
+                              Icon(
+                                Icons.auto_awesome,
+                                color: Colors.white70,
+                                size: 14,
+                              ),
                               SizedBox(width: 6),
                               Text(
                                 'GÜNÜN İŞARETİ',
@@ -253,7 +268,10 @@ class _DailyWordCard extends StatelessWidget {
                           const SizedBox(height: 8),
                           const Text(
                             'Nasıl yapıldığını öğrenmek için dokun',
-                            style: TextStyle(fontSize: 12, color: Colors.white60),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white60,
+                            ),
                           ),
                         ],
                       ),
@@ -265,7 +283,11 @@ class _DailyWordCard extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.waving_hand_rounded, color: Colors.white, size: 26),
+                      child: const Icon(
+                        Icons.waving_hand_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
                   ],
                 ),
@@ -290,7 +312,9 @@ class _AuthBanner extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.primaryBlueTint,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+          ),
         ),
         child: Row(
           children: [
@@ -300,7 +324,11 @@ class _AuthBanner extends StatelessWidget {
                 color: AppTheme.primaryBlue.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.account_circle_rounded, color: AppTheme.primaryBlue, size: 22),
+              child: const Icon(
+                Icons.account_circle_rounded,
+                color: AppTheme.primaryBlue,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -322,7 +350,10 @@ class _AuthBanner extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: AppTheme.primaryBlue),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.primaryBlue,
+            ),
           ],
         ),
       ),
@@ -463,7 +494,10 @@ class _PrimaryQuickCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(6),
@@ -491,11 +525,17 @@ class _PrimaryQuickCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           subtitle,
-                          style: const TextStyle(fontSize: 13, color: Colors.white70),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.white70,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
@@ -607,12 +647,19 @@ class _SecondaryQuickCard extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     subtitle,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.midGrey),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.midGrey,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: color.withValues(alpha: 0.5), size: 20),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: color.withValues(alpha: 0.5),
+              size: 20,
+            ),
           ],
         ),
       ),
