@@ -3,11 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/utils/turkish_normalizer.dart';
 import '../../data/repositories/dictionary_repository_impl.dart';
 import '../../domain/entities/sign_entry.dart';
-import '../../domain/repositories/dictionary_repository.dart';
 
-final _dictionaryRepositoryProvider = Provider<DictionaryRepository>(
-  (_) => const DictionaryRepositoryImpl(),
-);
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -61,7 +58,7 @@ class DictionaryNotifier extends Notifier<DictionaryState> {
 
   Future<void> _load() async {
     try {
-      final repo = ref.read(_dictionaryRepositoryProvider);
+      final repo = ref.read(dictionaryRepositoryProvider);
       final all = await repo.fetchAll()
         ..sort((a, b) => TurkishNormalizer.trLower(a.label)
             .compareTo(TurkishNormalizer.trLower(b.label)));

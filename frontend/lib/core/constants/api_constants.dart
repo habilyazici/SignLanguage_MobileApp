@@ -4,5 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 String get kApiBaseUrl {
   final ip = dotenv.get('BASE_IP', fallback: 'localhost');
   final port = dotenv.get('PORT', fallback: '3000');
-  return 'http://$ip:$port';
+  final protocol = port == '443' ? 'https' : 'http';
+  return '$protocol://$ip${port == '443' ? '' : ':$port'}';
 }

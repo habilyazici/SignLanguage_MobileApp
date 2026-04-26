@@ -1,9 +1,10 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/api_client.dart';
+import '../../data/repositories/bookmarks_repository_impl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// State
 // ─────────────────────────────────────────────────────────────────────────────
 
 class BookmarksState {
@@ -20,6 +21,8 @@ class BookmarksState {
   bool contains(int wordId) => wordIds.contains(wordId);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider
 // ─────────────────────────────────────────────────────────────────────────────
 
 final bookmarksProvider =
@@ -38,16 +41,9 @@ class BookmarksNotifier extends Notifier<BookmarksState> {
   Future<void> _fetch() async {
     state = state.copyWith(isLoading: true);
     try {
-      final res = await ref.apiGet('/api/bookmarks');
-      if (res.statusCode == 200) {
-        final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
-        final ids = list.map((b) => b['wordId'] as int).toSet();
-        state = state.copyWith(wordIds: ids, isLoading: false);
-      } else {
-        state = state.copyWith(isLoading: false);
-      }
-    } on UnauthorizedException {
-      state = state.copyWith(isLoading: false, wordIds: {});
+      final repo = ref.read(bookmarksRepositoryProvider);
+      final ids = await repo.fetchBookmarks();
+      state = state.copyWith(wordIds: ids, isLoading: false);
     } catch (_) {
       state = state.copyWith(isLoading: false);
     }
@@ -56,6 +52,7 @@ class BookmarksNotifier extends Notifier<BookmarksState> {
   Future<void> toggle(int wordId) async {
     final wasBookmarked = state.wordIds.contains(wordId);
 
+    // Optimistic Update (Hızlı geri bildirim için önce arayüzü güncelle)
     final newIds = Set<int>.from(state.wordIds);
     if (wasBookmarked) {
       newIds.remove(wordId);
@@ -65,13 +62,12 @@ class BookmarksNotifier extends Notifier<BookmarksState> {
     state = state.copyWith(wordIds: newIds);
 
     try {
+      final repo = ref.read(bookmarksRepositoryProvider);
       if (wasBookmarked) {
-        await ref.apiDelete('/api/bookmarks/$wordId');
+        await repo.deleteBookmark(wordId);
       } else {
-        await ref.apiPost('/api/bookmarks/$wordId');
+        await repo.addBookmark(wordId);
       }
-    } on UnauthorizedException {
-      state = state.copyWith(wordIds: {});
     } catch (_) {
       // Hata durumunda optimistic update'i geri al
       final revert = Set<int>.from(state.wordIds);

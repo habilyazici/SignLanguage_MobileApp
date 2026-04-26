@@ -10,9 +10,8 @@ import '../../domain/repositories/text_to_sign_repository.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 final _textToSignRepositoryProvider = Provider<TextToSignRepository>((ref) {
-  return TextToSignRepositoryImpl(
-    datasource: const ManifestDatasource(),
-  );
+  final datasource = ref.watch(manifestDatasourceProvider);
+  return TextToSignRepositoryImpl(datasource: datasource);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

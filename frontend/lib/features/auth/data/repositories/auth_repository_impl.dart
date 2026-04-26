@@ -104,6 +104,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
   Future<({bool success, String? error, String? newName})> updateProfile({
     String? name,
     String? currentPassword,
@@ -143,6 +144,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
   Future<AuthState> restoreSession() async {
     final token = await _storage.read(key: _kTokenKey);
     final name = await _storage.read(key: _kNameKey);
@@ -183,6 +185,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
   Future<void> clearSession() async {
     await _storage.delete(key: _kTokenKey);
     await _storage.delete(key: _kNameKey);

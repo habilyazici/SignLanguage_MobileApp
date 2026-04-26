@@ -8,10 +8,6 @@ import '../../../../../core/providers/label_provider.dart';
 import '../../../../../core/providers/tts_provider.dart';
 import '../../../history/presentation/providers/history_provider.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
-import '../../data/datasources/camera_datasource.dart';
-import '../../data/datasources/inference_datasource.dart';
-import '../../data/datasources/ml_pipeline_datasource.dart';
-import '../../data/repositories/recognition_repository_impl.dart';
 import '../../domain/entities/inference_result.dart';
 import '../../domain/entities/recognition_state.dart';
 import '../../domain/repositories/recognition_repository.dart';
@@ -19,14 +15,7 @@ import '../../domain/repositories/recognition_repository.dart';
 export '../../domain/entities/recognition_state.dart'
     show RecognitionState, LandmarkDevData;
 
-// Repository provider
-final _recognitionRepositoryProvider = Provider<RecognitionRepository>(
-  (_) => RecognitionRepositoryImpl(
-    cameraDataSource: CameraDataSource(),
-    mlPipelineDataSource: MlPipelineDatasource(),
-    inferenceDataSource: InferenceDatasource(),
-  ),
-);
+import 'recognition_repository_provider.dart';
 
 // Notifier provider
 final recognitionProvider =
@@ -42,6 +31,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   int _streak = 0;
   String _lastShownWord = '';
   Timer? _clearTimer;
+  static const _clearDuration = Duration(seconds: 4);
 
   // ── Dev modu top-3 (per-inference güncellenir) ────────────────────────────
   List<({String word, double confidence})> _topPredictions = [];
@@ -65,7 +55,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   @override
   RecognitionState build() {
     ref.keepAlive();
-    _repo = ref.read(_recognitionRepositoryProvider);
+    _repo = ref.read(recognitionRepositoryProvider);
 
     // Kamera controller → cameraNotifier (platform nesnesi domain'e girmez)
     final cameraSub = _repo.cameraControllerStream.listen((ctrl) {
@@ -198,7 +188,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
             ref.read(historyProvider.notifier).add(word);
           }
           _clearTimer?.cancel();
-          _clearTimer = Timer(const Duration(seconds: 4), () {
+          _clearTimer = Timer(_clearDuration, () {
             _lastShownWord = '';
             _streak = 0;
             _lastIdx = -1;

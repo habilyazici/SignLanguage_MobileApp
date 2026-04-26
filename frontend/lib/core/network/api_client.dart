@@ -12,41 +12,53 @@ extension AuthHttpClient on Ref {
 
   void _on401() => read(authProvider.notifier).signOut();
 
+  /// Tüm API istekleri için varsayılan başlıklar
+  Map<String, String> _getHeaders({bool isJson = false}) {
+    final headers = {
+      'bypass-tunnel-reminder': 'true',
+      if (_token != null) 'Authorization': 'Bearer $_token',
+      if (isJson) 'Content-Type': 'application/json',
+    };
+    return headers;
+  }
+
   Future<http.Response> apiGet(String path) async {
-    final token = _token;
-    if (token == null) throw UnauthorizedException();
     final res = await http.get(
       Uri.parse('$kApiBaseUrl$path'),
-      headers: {'Authorization': 'Bearer $token'},
-    ).timeout(const Duration(seconds: 10));
-    if (res.statusCode == 401) { _on401(); throw UnauthorizedException(); }
+      headers: _getHeaders(),
+    ).timeout(const Duration(seconds: 15));
+
+    if (res.statusCode == 401) {
+      _on401();
+      throw UnauthorizedException();
+    }
     return res;
   }
 
   Future<http.Response> apiPost(String path, {Object? body}) async {
-    final token = _token;
-    if (token == null) throw UnauthorizedException();
     final res = await http.post(
       Uri.parse('$kApiBaseUrl$path'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+      headers: _getHeaders(isJson: true),
       body: body != null ? jsonEncode(body) : null,
-    ).timeout(const Duration(seconds: 10));
-    if (res.statusCode == 401) { _on401(); throw UnauthorizedException(); }
+    ).timeout(const Duration(seconds: 15));
+
+    if (res.statusCode == 401) {
+      _on401();
+      throw UnauthorizedException();
+    }
     return res;
   }
 
   Future<http.Response> apiDelete(String path) async {
-    final token = _token;
-    if (token == null) throw UnauthorizedException();
     final res = await http.delete(
       Uri.parse('$kApiBaseUrl$path'),
-      headers: {'Authorization': 'Bearer $token'},
-    ).timeout(const Duration(seconds: 10));
-    if (res.statusCode == 401) { _on401(); throw UnauthorizedException(); }
+      headers: _getHeaders(),
+    ).timeout(const Duration(seconds: 15));
+
+    if (res.statusCode == 401) {
+      _on401();
+      throw UnauthorizedException();
+    }
     return res;
   }
-
 }

@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/app_logo.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../domain/entities/history_item.dart';
 import '../providers/history_provider.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {

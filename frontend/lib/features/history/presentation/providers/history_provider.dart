@@ -1,30 +1,8 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/api_client.dart';
+import '../../data/repositories/history_repository_impl.dart';
+import '../../domain/entities/history_item.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Model
-// ─────────────────────────────────────────────────────────────────────────────
-
-class HistoryItem {
-  final String id;
-  final String text;
-  final DateTime createdAt;
-
-  const HistoryItem({
-    required this.id,
-    required this.text,
-    required this.createdAt,
-  });
-
-  factory HistoryItem.fromJson(Map<String, dynamic> j) => HistoryItem(
-        id: j['id'] as String,
-        text: j['text'] as String,
-        createdAt: DateTime.parse(j['createdAt'] as String).toLocal(),
-      );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // State
@@ -74,20 +52,11 @@ class HistoryNotifier extends Notifier<HistoryState> {
   Future<void> _fetch() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final res = await ref.apiGet('/api/history');
-      if (res.statusCode == 200) {
-        final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
-        state = state.copyWith(
-          items: list.map(HistoryItem.fromJson).toList(),
-          isLoading: false,
-        );
-      } else {
-        state = state.copyWith(isLoading: false, error: 'Geçmiş yüklenemedi.');
-      }
-    } on UnauthorizedException {
-      state = state.copyWith(isLoading: false, items: []);
+      final repo = ref.read(historyRepositoryProvider);
+      final items = await repo.fetchHistory();
+      state = state.copyWith(items: items, isLoading: false);
     } catch (_) {
-      state = state.copyWith(isLoading: false, error: 'Bağlantı hatası.');
+      state = state.copyWith(isLoading: false, error: 'Geçmiş yüklenemedi.');
     }
   }
 
@@ -95,13 +64,9 @@ class HistoryNotifier extends Notifier<HistoryState> {
   Future<void> add(String text) async {
     if (text.trim().isEmpty) return;
     try {
-      final res = await ref.apiPost('/api/history', body: {'text': text.trim()});
-      if (res.statusCode == 201) {
-        final item = HistoryItem.fromJson(
-          jsonDecode(res.body) as Map<String, dynamic>,
-        );
-        state = state.copyWith(items: [item, ...state.items]);
-      }
+      final repo = ref.read(historyRepositoryProvider);
+      final item = await repo.addHistory(text.trim());
+      state = state.copyWith(items: [item, ...state.items]);
     } catch (_) {
       // Sessiz hata — tanıma akışını engellemez
     }
@@ -112,10 +77,8 @@ class HistoryNotifier extends Notifier<HistoryState> {
     final prev = state.items;
     state = state.copyWith(items: prev.where((i) => i.id != id).toList());
     try {
-      final res = await ref.apiDelete('/api/history/$id');
-      if (res.statusCode != 204) state = state.copyWith(items: prev);
-    } on UnauthorizedException {
-      state = state.copyWith(items: []);
+      final repo = ref.read(historyRepositoryProvider);
+      await repo.deleteHistory(id);
     } catch (_) {
       state = state.copyWith(items: prev);
     }
@@ -126,10 +89,8 @@ class HistoryNotifier extends Notifier<HistoryState> {
     final prev = state.items;
     state = state.copyWith(items: []);
     try {
-      final res = await ref.apiDelete('/api/history');
-      if (res.statusCode != 204) state = state.copyWith(items: prev);
-    } on UnauthorizedException {
-      state = state.copyWith(items: []);
+      final repo = ref.read(historyRepositoryProvider);
+      await repo.clearAllHistory();
     } catch (_) {
       state = state.copyWith(items: prev);
     }
