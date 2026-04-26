@@ -8,10 +8,18 @@ export const wordsRouter = Router();
 
 let manifestCache: Record<string, string> | null = null;
 
-function videoUrl(word: { videoFilename: string | null; cdnVideoUrl: string }): string {
-  if (word.videoFilename) return `${config.baseUrl}/videos/${word.videoFilename}`;
-  return word.cdnVideoUrl;
-}
+const videoUrl = (word: any) => {
+  let url: string;
+  if (word.videoFilename) {
+    url = `${config.baseUrl}/videos/${word.videoFilename}`;
+  } else {
+    url = word.cdnVideoUrl || '';
+  }
+  
+  // Terminalde linki görelim
+  console.log(`DEBUG API [${word.word || 'N/A'}]: Final URL -> ${url}`);
+  return url;
+};
 
 function asString(val: unknown): string | undefined {
   if (typeof val === 'string') return val;

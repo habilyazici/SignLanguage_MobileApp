@@ -60,6 +60,7 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`Server: http://localhost:${config.port}`);
+  console.log(`Base URL: ${config.baseUrl}`);
   console.log(`Tunnel:  ngrok http --domain=reaffirm-visor-gazing.ngrok-free.dev ${config.port}`);
 });
 

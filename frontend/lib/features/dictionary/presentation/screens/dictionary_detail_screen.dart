@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -287,6 +288,9 @@ class _VideoHeaderState extends ConsumerState<_VideoHeader> {
         return;
       }
     }
+
+    // DEBUG: Video oynatılmadan hemen önce linke bakalım
+    debugPrint('DEBUG: DictionaryDetail videoUrl -> ${widget.videoUrl}');
 
     _ctrl = VideoPlayerController.networkUrl(
       Uri.parse(widget.videoUrl),

@@ -10,7 +10,13 @@ import 'features/settings/presentation/providers/settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+    debugPrint('DEBUG: .env file loaded successfully');
+    debugPrint('DEBUG: Loaded keys: ${dotenv.env.keys}');
+  } catch (e) {
+    debugPrint('ERROR: Could not load .env file: $e');
+  }
   await initializeDateFormatting('tr_TR', null);
 
   // TFLite etiketlerini ve SharedPreferences'ı paralel yükle — startup süresini azaltır.
