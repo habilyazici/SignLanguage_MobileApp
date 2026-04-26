@@ -2,11 +2,13 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { randomInt } from 'crypto';
 import { z } from 'zod';
 import { prisma } from '../db';
 import { config } from '../config';
 import { requireAuth } from '../middleware/requireAuth';
 import type { AuthRequest } from '../middleware/requireAuth';
+import { sendPasswordResetEmail } from '../services/email';
 
 export const authRouter = Router();
 
@@ -92,9 +94,78 @@ authRouter.post('/forgot-password', async (req: Request, res: Response): Promise
     res.status(400).json({ error: 'Gecersiz e-posta.' });
     return;
   }
-  // Güvenlik: kullanıcı varlığını açıklamamak için her zaman başarılı döner.
-  // Gerçek uygulamada burada e-posta servisiyle sıfırlama bağlantısı gönderilir.
-  res.json({ message: 'Sifırlama baglantısı gönderildi.' });
+
+  const { email } = parsed.data;
+
+  // Güvenlik: kullanıcı varlığından bağımsız olarak her zaman başarılı döner.
+  res.json({ message: 'Sıfırlama kodu gönderildi.' });
+
+  // Yanıt gönderdikten sonra arka planda işle — yanıt gecikmesini önler.
+  (async () => {
+    try {
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) return;
+
+      // Eski token'ları temizle
+      await prisma.passwordResetToken.deleteMany({ where: { email } });
+
+      const code = String(randomInt(100000, 1000000)).padStart(6, '0');
+      const codeHash = await bcrypt.hash(code, 10);
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+      await prisma.passwordResetToken.create({
+        data: { email, codeHash, expiresAt },
+      });
+
+      await sendPasswordResetEmail(email, code);
+    } catch (err) {
+      console.error('Sifre sifirlama hatasi:', err);
+    }
+  })();
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+  newPassword: z.string().min(6),
+});
+
+authRouter.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Gecersiz veri.' });
+    return;
+  }
+
+  const { email, code, newPassword } = parsed.data;
+
+  try {
+    const token = await prisma.passwordResetToken.findFirst({
+      where: { email, used: false, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!token) {
+      res.status(400).json({ error: 'Gecersiz veya suresi dolmus kod.' });
+      return;
+    }
+
+    const valid = await bcrypt.compare(code, token.codeHash);
+    if (!valid) {
+      res.status(400).json({ error: 'Kod hatali.' });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.$transaction([
+      prisma.passwordResetToken.update({ where: { id: token.id }, data: { used: true } }),
+      prisma.user.update({ where: { email }, data: { passwordHash } }),
+    ]);
+
+    res.json({ message: 'Sifre guncellendi.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Sunucu hatasi.' });
+  }
 });
 
 const updateProfileSchema = z.object({

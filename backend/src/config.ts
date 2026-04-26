@@ -11,4 +11,6 @@ export const config = {
   jwtSecret: required('JWT_SECRET'),
   baseUrl: process.env['BASE_URL'] ?? 'http://localhost:3000',
   databaseUrl: required('DATABASE_URL'),
+  smtpUser: process.env['SMTP_USER'] ?? '',
+  smtpPass: process.env['SMTP_PASS'] ?? '',
 } as const;

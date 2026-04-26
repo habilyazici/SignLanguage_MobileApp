@@ -47,6 +47,11 @@ app.use('/api/bookmarks', bookmarksRouter);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+// 404 handler — bilinmeyen route'larda HTML yerine JSON döner
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({ error: 'Kaynak bulunamadi.' });
+});
+
 // Global error handler
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);

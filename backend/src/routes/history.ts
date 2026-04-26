@@ -55,12 +55,13 @@ historyRouter.delete('/:id', async (req: AuthRequest, res: Response): Promise<vo
   const id = String(req.params['id'] ?? '');
 
   try {
-    const item = await prisma.history.findUnique({ where: { id } });
-    if (!item || item.userId !== req.userId) {
+    const { count } = await prisma.history.deleteMany({
+      where: { id, userId: req.userId! },
+    });
+    if (count === 0) {
       res.status(404).json({ error: 'Bulunamadi.' });
       return;
     }
-    await prisma.history.delete({ where: { id } });
     res.status(204).end();
   } catch (err) {
     res.status(500).json({ error: 'Sunucu hatasi.' });
