@@ -11,7 +11,8 @@ import '../../../text_to_sign/presentation/screens/translator_screen.dart';
 /// İşaret Oku (index 0): Tam ekran kamera, işaret tanıma
 /// İşaret Anlat (index 1): Metin → işaret çevirisi
 class TranslationScreen extends ConsumerStatefulWidget {
-  const TranslationScreen({super.key});
+  const TranslationScreen({super.key, this.initialTab = 0});
+  final int initialTab;
 
   @override
   ConsumerState<TranslationScreen> createState() => _TranslationScreenState();
@@ -24,7 +25,11 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 1),
+    );
     _tabController.addListener(_onTabChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

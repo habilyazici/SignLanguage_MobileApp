@@ -44,7 +44,16 @@ final router = GoRouter(
       routes: [
         GoRoute(path: '/home',        builder: (context, _) => const HomeScreen()),
         GoRoute(path: '/dictionary',  builder: (context, _) => const DictionaryScreen()),
-        GoRoute(path: '/translation', builder: (context, _) => const TranslationScreen()),
+        GoRoute(
+          path: '/translation',
+          builder: (context, state) {
+            final tab = int.tryParse(
+                  state.uri.queryParameters['tab'] ?? '',
+                ) ??
+                0;
+            return TranslationScreen(initialTab: tab);
+          },
+        ),
         GoRoute(path: '/gecmis',      builder: (context, _) => const HistoryScreen()),
         GoRoute(path: '/profile',     builder: (context, _) => const ProfileScreen()),
       ],
