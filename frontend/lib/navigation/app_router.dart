@@ -8,7 +8,9 @@ import '../features/dictionary/presentation/screens/dictionary_screen.dart';
 import '../features/dictionary/presentation/screens/dictionary_detail_screen.dart';
 import '../features/translation/presentation/screens/translation_screen.dart';
 import '../features/history/presentation/screens/history_screen.dart';
+import '../features/bookmarks/presentation/screens/bookmarks_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
+import '../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
@@ -56,6 +58,20 @@ final router = GoRouter(
         final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
         return DictionaryDetailScreen(wordId: id);
       },
+    ),
+
+    // ── Kaydedilenler (bottom nav yok, profil'den açılır) ───────────
+    GoRoute(
+      path: '/bookmarks',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const BookmarksScreen(),
+    ),
+
+    // ── Profil düzenle (bottom nav yok) ──────────────────────────────
+    GoRoute(
+      path: '/profile/edit',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ProfileEditScreen(),
     ),
 
     // ── Ayarlar (bottom nav yok, profil'den açılır) ──────────────────
