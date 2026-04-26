@@ -172,7 +172,6 @@ class _DailyWordCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push('/dictionary/$wordId'),
       child: Container(
-        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
@@ -218,55 +217,58 @@ class _DailyWordCard extends StatelessWidget {
                 ),
               ),
               // ── İçerik ──────────────────────────────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.auto_awesome, color: Colors.white70, size: 14),
-                            SizedBox(width: 6),
-                            Text(
-                              'GÜNÜN İŞARETİ',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white70,
-                                letterSpacing: 1.2,
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.auto_awesome, color: Colors.white70, size: 14),
+                              SizedBox(width: 6),
+                              Text(
+                                'GÜNÜN İŞARETİ',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white70,
+                                  letterSpacing: 1.2,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          '"$word"',
-                          style: GoogleFonts.poppins(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            height: 1.1,
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Nasıl yapıldığını öğrenmek için dokun',
-                          style: TextStyle(fontSize: 12, color: Colors.white60),
-                        ),
-                      ],
+                          const SizedBox(height: 10),
+                          Text(
+                            '"$word"',
+                            style: GoogleFonts.poppins(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Nasıl yapıldığını öğrenmek için dokun',
+                            style: TextStyle(fontSize: 12, color: Colors.white60),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.waving_hand_rounded, color: Colors.white, size: 26),
                     ),
-                    child: const Icon(Icons.waving_hand_rounded, color: Colors.white, size: 26),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
