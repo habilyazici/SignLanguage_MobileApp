@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/providers/camera_lifecycle_provider.dart';
 import '../../../../../core/providers/label_provider.dart';
 import '../../../../../core/providers/tts_provider.dart';
+import '../../../history/presentation/providers/history_provider.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/datasources/camera_datasource.dart';
 import '../../data/datasources/inference_datasource.dart';
@@ -192,6 +193,9 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
 
           if (settings.ttsEnabled) {
             ref.read(ttsProvider.notifier).speak(word);
+          }
+          if (!settings.zeroDataMode) {
+            ref.read(historyProvider.notifier).add(word);
           }
           _clearTimer?.cancel();
           _clearTimer = Timer(const Duration(seconds: 4), () {
