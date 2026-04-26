@@ -32,7 +32,9 @@ dependencies:
   share_plus: ^10.1.4          # Cümleyi sistem paylaşım menüsüne ilet
 
   # ── Kalıcı Depolama ────────────────────────────────────────────────────────
-  shared_preferences: ^2.3.2   # Ayarlar + onboarding_completed flag
+  shared_preferences: ^2.3.2      # Ayarlar + onboarding_completed flag
+  flutter_secure_storage: ^9.2.4  # JWT token güvenli depolama (şifreli)
+  intl: ^0.20.2                   # Tarih/saat formatlama
 
   # ── Video ──────────────────────────────────────────────────────────────────
   video_player: ^2.9.3         # Metin → İşaret: TİD video oynatıcı
