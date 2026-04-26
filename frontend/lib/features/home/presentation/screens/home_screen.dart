@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/app_logo.dart';
-import '../../../../shared/presentation/widgets/profile_sheet.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../dictionary/presentation/providers/dictionary_provider.dart';
 import '../providers/home_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -18,6 +18,7 @@ class HomeScreen extends ConsumerWidget {
     final isGuest = auth.isGuest;
     final dailyWord = ref.watch(dailyWordProvider);
     final displayName = auth.displayName ?? auth.email?.split('@').first ?? 'Kullanıcı';
+    final dictCount = ref.watch(dictionaryProvider.select((s) => s.allSigns.length));
 
     return Scaffold(
       backgroundColor: AppTheme.softGrey,
@@ -32,10 +33,10 @@ class HomeScreen extends ConsumerWidget {
               // ── Üst Bar ───────────────────────────────────────────────
               Row(
                 children: [
-                  AppLogo(height: 22),
+                  AppLogo(height: 40),
                   const Spacer(),
                   GestureDetector(
-                    onTap: () => showProfileSheet(context, auth),
+                    onTap: () => context.go('/profile'),
                     child: Container(
                       width: 36,
                       height: 36,
@@ -139,7 +140,7 @@ class HomeScreen extends ConsumerWidget {
                   Expanded(
                     child: _SecondaryQuickCard(
                       title: 'Sözlük',
-                      subtitle: '226 işaret',
+                      subtitle: dictCount > 0 ? '$dictCount işaret' : 'İşaret Sözlüğü',
                       icon: Icons.menu_book_rounded,
                       color: const Color(0xFF7C4DFF),
                       onTap: () => context.go('/dictionary'),

@@ -8,7 +8,7 @@ import '../../domain/repositories/home_repository.dart';
 
 final _homeRepositoryProvider = Provider<HomeRepository>(
   (ref) => HomeRepositoryImpl(
-    HomeLocalDatasource(ref.read(labelRepositoryProvider)),
+    HomeLocalDatasource(ref.watch(labelRepositoryProvider)),
   ),
 );
 
