@@ -54,6 +54,14 @@ class AuthNotifier extends Notifier<AuthState> {
     state = const AuthState();
   }
 
+  Future<String?> deleteAccount() async {
+    final result = await ref.read(_authRepositoryProvider).deleteAccount();
+    if (result.success) {
+      state = const AuthState();
+    }
+    return result.error;
+  }
+
   Future<String?> updateProfile({
     String? name,
     String? currentPassword,

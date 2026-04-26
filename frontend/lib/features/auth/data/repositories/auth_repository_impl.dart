@@ -156,6 +156,33 @@ class AuthRepositoryImpl implements AuthRepository {
     );
   }
 
+  Future<({bool success, String? error})> deleteAccount() async {
+    final token = await _storage.read(key: _kTokenKey);
+    if (token == null) return (success: false, error: 'Oturum bulunamadı.');
+
+    try {
+      final res = await http
+          .delete(
+            Uri.parse('$kApiBaseUrl/api/auth/profile'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 204) {
+        await clearSession();
+        return (success: true, error: null);
+      }
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      return (success: false, error: body['error'] as String? ?? 'Hesap silinemedi.');
+    } catch (_) {
+      return (success: false, error: 'Sunucuya bağlanılamadı.');
+    }
+  }
+
   Future<void> clearSession() async {
     await _storage.delete(key: _kTokenKey);
     await _storage.delete(key: _kNameKey);

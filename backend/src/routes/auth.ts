@@ -141,3 +141,17 @@ authRouter.put('/profile', requireAuth, async (req: AuthRequest, res: Response):
     res.status(500).json({ error: 'Sunucu hatasi.' });
   }
 });
+
+authRouter.delete('/profile', requireAuth, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId! } });
+    if (!user) { res.status(404).json({ error: 'Kullanici bulunamadi.' }); return; }
+
+    // History ve Bookmark kayıtları cascade ile otomatik silinir (schema.prisma).
+    await prisma.user.delete({ where: { id: req.userId! } });
+
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: 'Sunucu hatasi.' });
+  }
+});

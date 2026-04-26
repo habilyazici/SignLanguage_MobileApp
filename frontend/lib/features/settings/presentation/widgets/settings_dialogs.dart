@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class SettingsDialogs {
   static void showCacheDialog(BuildContext context, bool isDark) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
         title: const Text('Önbelleği Temizle'),
         content: const Text(
@@ -13,13 +16,26 @@ class SettingsDialogs {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: const Text('İptal'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              // Video oynatıcı önbelleği sistem tarafından yönetiliyor;
+              // uygulama verilerini temizlemek için cihaz ayarlarını kullanın.
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Bu özellik yakında eklenecek. Şimdilik uygulama önbelleği sistem tarafından yönetilmektedir.',
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            },
             child: const Text(
-              'Temizle',
+              'Tamam',
               style: TextStyle(color: Colors.blueAccent),
             ),
           ),
@@ -28,26 +44,92 @@ class SettingsDialogs {
     );
   }
 
-  static void showDeleteAccountDialog(BuildContext context, bool isDark) {
+  static void showDeleteAccountDialog(
+    BuildContext context,
+    bool isDark, {
+    WidgetRef? ref,
+  }) {
+    if (ref == null) {
+      showDialog(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+          title: const Text('Hesabı Sil'),
+          content: const Text(
+            'Bu işlemi gerçekleştirmek için habilyazici00@gmail.com adresine yazabilirsiniz.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Kapat'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
-        title: const Text('Hesabı Sil'),
-        content: const Text(
-          'Tüm verileriniz (geçmiş, profil, sağlık kartı) kalıcı olarak silinecek. Bu işlem geri alınamaz.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        bool loading = false;
+        String? errorMsg;
+        return StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+            backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+            title: const Text('Hesabı Sil'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tüm verileriniz (geçmiş, yer imleri) kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+                ),
+                if (errorMsg != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    errorMsg!,
+                    style: const TextStyle(color: AppTheme.primaryStatusRed, fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: loading ? null : () => Navigator.pop(dialogCtx),
+                child: const Text('İptal'),
+              ),
+              TextButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                        setState(() { loading = true; errorMsg = null; });
+                        final error = await ref.read(authProvider.notifier).deleteAccount();
+                        if (error != null) {
+                          setState(() { loading = false; errorMsg = error; });
+                          return;
+                        }
+                        if (context.mounted) {
+                          Navigator.pop(dialogCtx);
+                          context.go('/login');
+                        }
+                      },
+                child: loading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Hesabı Sil',
+                        style: TextStyle(color: AppTheme.primaryStatusRed, fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Sil', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -72,7 +154,7 @@ class SettingsDialogs {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'Daha yüksek değerler gürültüyü azaltır ama tepki süresini uzatır. Standard: 5',
+                  'Daha yüksek değerler gürültüyü azaltır ama tepki süresini uzatır. Varsayılan: 3',
                   style: TextStyle(fontSize: 12, color: AppTheme.midGrey),
                 ),
                 const SizedBox(height: 20),
