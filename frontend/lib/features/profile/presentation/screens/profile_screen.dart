@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/presentation/widgets/app_logo.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../bookmarks/presentation/providers/bookmarks_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -21,6 +22,9 @@ class ProfileScreen extends ConsumerWidget {
         : (auth.displayName ?? auth.email?.split('@').first ?? 'Kullanıcı');
     final email = isGuest ? null : auth.email;
     final initials = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'M';
+    final bookmarkCount = ref.watch(
+      bookmarksProvider.select((s) => s.wordIds.length),
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.softGrey,
@@ -33,7 +37,7 @@ class ProfileScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(
                 children: [
-                  AppLogo(height: 22),
+                  AppLogo(height: 40),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => context.push('/settings'),
@@ -239,9 +243,10 @@ class ProfileScreen extends ConsumerWidget {
                       color: AppTheme.borderColor,
                     ),
                     _StatItem(
-                      value: '0',
+                      value: '$bookmarkCount',
                       label: 'Kaydedilen',
                       icon: Icons.bookmark_rounded,
+                      onTap: () => context.push('/bookmarks'),
                     ),
                     Container(
                       width: 1,
@@ -345,6 +350,13 @@ class ProfileScreen extends ConsumerWidget {
               _Card(
                 children: [
                   _Tile(
+                    icon: Icons.edit_outlined,
+                    iconColor: AppTheme.secondaryBlue,
+                    title: 'Profili Düzenle',
+                    onTap: () => context.push('/profile/edit'),
+                  ),
+                  _Divider(),
+                  _Tile(
                     icon: Icons.logout_rounded,
                     iconColor: AppTheme.primaryStatusRed,
                     title: 'Çıkış Yap',
@@ -395,15 +407,19 @@ class _StatItem extends StatelessWidget {
     required this.value,
     required this.label,
     required this.icon,
+    this.onTap,
   });
   final String value;
   final String label;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Column(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 18, color: AppTheme.primaryBlue),
@@ -423,6 +439,7 @@ class _StatItem extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
+        ),
       ),
     );
   }
