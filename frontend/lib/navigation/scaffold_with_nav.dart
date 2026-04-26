@@ -116,13 +116,15 @@ class ScaffoldWithNav extends ConsumerWidget {
               ),
 
               // ── Merkez yükseltilmiş kamera butonu ────────────────────
+              // Diğer ikonlardan kasıtlı olarak daha büyük tutulmuştur:
+              // uygulamanın ana aksiyonu olduğu için görsel hiyerarşide öne çıkar.
               Positioned(
-                top: -(bottomPadding > 0 ? 20.0 : 24.0),
+                top: -(bottomPadding > 0 ? 24.0 : 28.0),
                 child: GestureDetector(
                   onTap: () => _onTap(context, ref, 2),
                   child: Container(
-                    width: 58,
-                    height: 58,
+                    width: 66,
+                    height: 66,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
@@ -130,12 +132,13 @@ class ScaffoldWithNav extends ConsumerWidget {
                         end: Alignment.bottomRight,
                         colors: [Color(0xFF0046AF), Color(0xFF005CE1)],
                       ),
-                      border: Border.all(color: Colors.white, width: 3),
+                      border: Border.all(color: Colors.white, width: 3.5),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryBlue.withValues(alpha: 0.35),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.40),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
@@ -144,7 +147,7 @@ class ScaffoldWithNav extends ConsumerWidget {
                           ? Icons.camera_alt_rounded
                           : Icons.camera_alt_outlined,
                       color: Colors.white,
-                      size: 26,
+                      size: 30,
                     ),
                   ),
                 ),
