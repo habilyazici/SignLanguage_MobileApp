@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
-import '../../../../core/constants/api_constants.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -35,16 +34,9 @@ class BookmarksNotifier extends Notifier<BookmarksState> {
   }
 
   Future<void> _fetch() async {
-    final token = ref.read(authProvider).token;
-    if (token == null) return;
-
     state = state.copyWith(isLoading: true);
     try {
-      final res = await http.get(
-        Uri.parse('$kApiBaseUrl/api/bookmarks'),
-        headers: {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 10));
-
+      final res = await ref.apiGet('/api/bookmarks');
       if (res.statusCode == 200) {
         final list = (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
         final ids = list.map((b) => b['wordId'] as int).toSet();
@@ -52,18 +44,16 @@ class BookmarksNotifier extends Notifier<BookmarksState> {
       } else {
         state = state.copyWith(isLoading: false);
       }
+    } on UnauthorizedException {
+      state = state.copyWith(isLoading: false, wordIds: {});
     } catch (_) {
       state = state.copyWith(isLoading: false);
     }
   }
 
   Future<void> toggle(int wordId) async {
-    final token = ref.read(authProvider).token;
-    if (token == null) return;
-
     final wasBookmarked = state.wordIds.contains(wordId);
 
-    // Optimistic update
     final newIds = Set<int>.from(state.wordIds);
     if (wasBookmarked) {
       newIds.remove(wordId);
@@ -74,16 +64,12 @@ class BookmarksNotifier extends Notifier<BookmarksState> {
 
     try {
       if (wasBookmarked) {
-        await http.delete(
-          Uri.parse('$kApiBaseUrl/api/bookmarks/$wordId'),
-          headers: {'Authorization': 'Bearer $token'},
-        ).timeout(const Duration(seconds: 10));
+        await ref.apiDelete('/api/bookmarks/$wordId');
       } else {
-        await http.post(
-          Uri.parse('$kApiBaseUrl/api/bookmarks/$wordId'),
-          headers: {'Authorization': 'Bearer $token'},
-        ).timeout(const Duration(seconds: 10));
+        await ref.apiPost('/api/bookmarks/$wordId');
       }
+    } on UnauthorizedException {
+      state = state.copyWith(wordIds: {});
     } catch (_) {
       // Hata durumunda optimistic update'i geri al
       final revert = Set<int>.from(state.wordIds);
