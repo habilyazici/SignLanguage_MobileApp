@@ -26,7 +26,7 @@ extension AuthHttpClient on Ref {
     final res = await http.get(
       Uri.parse('$kApiBaseUrl$path'),
       headers: _getHeaders(),
-    ).timeout(const Duration(seconds: 15));
+    ).timeout(kApiTimeout);
 
     if (res.statusCode == 401) {
       _on401();
@@ -40,7 +40,7 @@ extension AuthHttpClient on Ref {
       Uri.parse('$kApiBaseUrl$path'),
       headers: _getHeaders(isJson: true),
       body: body != null ? jsonEncode(body) : null,
-    ).timeout(const Duration(seconds: 15));
+    ).timeout(kApiTimeout);
 
     if (res.statusCode == 401) {
       _on401();
@@ -53,7 +53,7 @@ extension AuthHttpClient on Ref {
     final res = await http.delete(
       Uri.parse('$kApiBaseUrl$path'),
       headers: _getHeaders(),
-    ).timeout(const Duration(seconds: 15));
+    ).timeout(kApiTimeout);
 
     if (res.statusCode == 401) {
       _on401();
