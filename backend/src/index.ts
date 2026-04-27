@@ -14,7 +14,18 @@ import { bookmarksRouter } from './routes/bookmarks';
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors());
+
+// ALLOWED_ORIGINS env var tanımlıysa yalnızca o origin'lere izin ver.
+// Tanımlı değilse (development / ngrok) tüm origin'lere açık bırak.
+app.use(cors(
+  config.allowedOrigins.length > 0
+    ? {
+        origin: config.allowedOrigins,
+        credentials: true,
+      }
+    : undefined, // tüm origin'ler
+));
+
 app.use(express.json());
 
 // Genel limiter: 200 istek / 1 dakika / IP
@@ -47,7 +58,7 @@ app.use('/api/bookmarks', bookmarksRouter);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-// 404 handler — bilinmeyen route'larda HTML yerine JSON döner
+// 404 handler — bilinmeyen route'larda HTML yerine JSON döner.
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'Kaynak bulunamadi.' });
 });
@@ -61,6 +72,11 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`Server: http://localhost:${config.port}`);
   console.log(`Base URL: ${config.baseUrl}`);
+  if (config.allowedOrigins.length > 0) {
+    console.log(`CORS origins: ${config.allowedOrigins.join(', ')}`);
+  } else {
+    console.log('CORS: tüm origin\'lere açık (development modu)');
+  }
   console.log(`Tunnel:  ngrok http --domain=reaffirm-visor-gazing.ngrok-free.dev ${config.port}`);
 });
 

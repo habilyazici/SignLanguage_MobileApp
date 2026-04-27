@@ -13,4 +13,10 @@ export const config = {
   databaseUrl: required('DATABASE_URL'),
   smtpUser: process.env['SMTP_USER'] ?? '',
   smtpPass: process.env['SMTP_PASS'] ?? '',
+  /**
+   * Production'da izin verilen CORS origin'leri — virgülle ayrılmış liste.
+   * Örnek: ALLOWED_ORIGINS=https://myapp.com,https://api.myapp.com
+   * Boş bırakılırsa tüm origin'lere izin verilir (development/ngrok için).
+   */
+  allowedOrigins: process.env['ALLOWED_ORIGINS']?.split(',').map(o => o.trim()).filter(Boolean) ?? [],
 } as const;

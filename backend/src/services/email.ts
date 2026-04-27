@@ -1,15 +1,21 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config';
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: config.smtpUser,
-    pass: config.smtpPass,
-  },
-});
+function createTransporter() {
+  if (!config.smtpUser || !config.smtpPass) {
+    throw new Error(
+      'E-posta gönderimi için SMTP_USER ve SMTP_PASS ortam değişkenleri gerekli.\n' +
+      'Gmail için: https://myaccount.google.com/apppasswords adresinden uygulama şifresi oluşturun.',
+    );
+  }
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: config.smtpUser, pass: config.smtpPass },
+  });
+}
 
 export async function sendPasswordResetEmail(to: string, code: string): Promise<void> {
+  const transporter = createTransporter();
   await transporter.sendMail({
     from: `"Hear Me Out" <${config.smtpUser}>`,
     to,
