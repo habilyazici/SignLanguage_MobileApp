@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/sentinel.dart';
 import '../../data/repositories/history_repository_impl.dart';
 import '../../domain/entities/history_item.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -22,15 +23,13 @@ class HistoryState {
   HistoryState copyWith({
     List<HistoryItem>? items,
     bool? isLoading,
-    Object? error = _sentinel,
+    Object? error = sentinel,
   }) => HistoryState(
         items: items ?? this.items,
         isLoading: isLoading ?? this.isLoading,
-        error: error == _sentinel ? this.error : error as String?,
+        error: error == sentinel ? this.error : error as String?,
       );
 }
-
-const _sentinel = Object();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider
@@ -68,7 +67,7 @@ class HistoryNotifier extends Notifier<HistoryState> {
       final item = await repo.addHistory(text.trim());
       state = state.copyWith(items: [item, ...state.items]);
     } catch (_) {
-      // Sessiz hata — tanıma akışını engellemez
+      // Sessiz hata — tanıma akışını engellemez.
     }
   }
 

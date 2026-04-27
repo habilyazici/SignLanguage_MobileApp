@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/sentinel.dart';
 import '../../data/datasources/manifest_datasource.dart';
 import '../../data/repositories/text_to_sign_repository_impl.dart';
 import '../../domain/entities/sign_token.dart';
@@ -46,18 +47,16 @@ class TextToSignState {
     bool? isPlaying,
     bool? isLoading,
     String? inputText,
-    Object? error = _sentinel,
+    Object? error = sentinel,
   }) => TextToSignState(
     tokens: tokens ?? this.tokens,
     currentIndex: currentIndex ?? this.currentIndex,
     isPlaying: isPlaying ?? this.isPlaying,
     isLoading: isLoading ?? this.isLoading,
     inputText: inputText ?? this.inputText,
-    error: error == _sentinel ? this.error : error as String?,
+    error: error == sentinel ? this.error : error as String?,
   );
 }
-
-const _sentinel = Object();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Notifier
@@ -92,7 +91,7 @@ class TextToSignNotifier extends Notifier<TextToSignState> {
     Future.microtask(_init);
   }
 
-  /// Metni parse edip token listesi oluşturur
+  /// Metni parse edip token listesi oluşturur.
   void translate(String text) {
     if (text.trim().isEmpty) return;
     final tokens = _repo.parse(text);
@@ -104,13 +103,10 @@ class TextToSignNotifier extends Notifier<TextToSignState> {
     );
   }
 
-  /// Oynatmayı başlatır / devam ettirir
   void play() => state = state.copyWith(isPlaying: true);
-
-  /// Oynatmayı duraklatır
   void pause() => state = state.copyWith(isPlaying: false);
 
-  /// Sonraki kelimeye geç — video bitince çağrılır
+  /// Sonraki kelimeye geç — video bitince çağrılır.
   void next() {
     if (state.isLastToken) {
       state = state.copyWith(isPlaying: false);
@@ -119,21 +115,15 @@ class TextToSignNotifier extends Notifier<TextToSignState> {
     state = state.copyWith(currentIndex: state.currentIndex + 1);
   }
 
-  /// Önceki kelimeye geç
   void previous() {
     if (state.currentIndex == 0) return;
-    state = state.copyWith(
-      currentIndex: state.currentIndex - 1,
-      isPlaying: false,
-    );
+    state = state.copyWith(currentIndex: state.currentIndex - 1, isPlaying: false);
   }
 
-  /// Belirli bir token'a git
   void goTo(int index) {
     if (index < 0 || index >= state.tokens.length) return;
     state = state.copyWith(currentIndex: index, isPlaying: false);
   }
 
-  /// Çeviriyi sıfırla
   void reset() => state = const TextToSignState();
 }

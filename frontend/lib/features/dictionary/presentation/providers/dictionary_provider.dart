@@ -1,10 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../core/utils/turkish_normalizer.dart';
+import '../../../../core/utils/sentinel.dart';
+import '../../../../core/utils/turkish_normalizer.dart';
 import '../../data/repositories/dictionary_repository_impl.dart';
 import '../../domain/entities/sign_entry.dart';
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -29,20 +28,18 @@ class DictionaryState {
     List<SignEntry>? allSigns,
     List<SignEntry>? filteredSigns,
     String? query,
-    Object? selectedLetter = _sentinel,
+    Object? selectedLetter = sentinel,
     bool? isLoading,
-    Object? error = _sentinel,
+    Object? error = sentinel,
   }) => DictionaryState(
     allSigns: allSigns ?? this.allSigns,
     filteredSigns: filteredSigns ?? this.filteredSigns,
     query: query ?? this.query,
-    selectedLetter: selectedLetter == _sentinel ? this.selectedLetter : selectedLetter as String?,
+    selectedLetter: selectedLetter == sentinel ? this.selectedLetter : selectedLetter as String?,
     isLoading: isLoading ?? this.isLoading,
-    error: error == _sentinel ? this.error : error as String?,
+    error: error == sentinel ? this.error : error as String?,
   );
 }
-
-const _sentinel = Object();
 
 // ─────────────────────────────────────────────────────────────────────────────
 

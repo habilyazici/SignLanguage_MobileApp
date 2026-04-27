@@ -1,8 +1,6 @@
-enum AuthStatus { guest, loading, authenticated }
+import '../../../../core/utils/sentinel.dart';
 
-// copyWith içinde null'a sıfırlamak için sentinel kullanılır.
-// Bkz: HistoryState, aynı pattern.
-const _sentinel = Object();
+enum AuthStatus { guest, loading, authenticated }
 
 class AuthState {
   final AuthStatus status;
@@ -30,19 +28,18 @@ class AuthState {
     return displayName![0].toUpperCase();
   }
 
-  /// [errorMessage] parametresi açıkça `null` geçilirse hata temizlenir.
-  /// Geçilmezse mevcut hata korunur.
+  /// [errorMessage] açıkça `null` geçilirse hata temizlenir; geçilmezse korunur.
   AuthState copyWith({
     AuthStatus? status,
     String? displayName,
     String? email,
     String? token,
-    Object? errorMessage = _sentinel,
+    Object? errorMessage = sentinel,
   }) => AuthState(
     status: status ?? this.status,
     displayName: displayName ?? this.displayName,
     email: email ?? this.email,
     token: token ?? this.token,
-    errorMessage: errorMessage == _sentinel ? this.errorMessage : errorMessage as String?,
+    errorMessage: errorMessage == sentinel ? this.errorMessage : errorMessage as String?,
   );
 }

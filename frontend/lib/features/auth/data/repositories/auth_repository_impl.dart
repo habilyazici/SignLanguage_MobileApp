@@ -54,7 +54,7 @@ class AuthRepositoryImpl implements AuthRepository {
             headers: _authHeaders,
             body: jsonEncode({'email': email, 'password': password}),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(kAuthTimeout);
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
 
@@ -99,7 +99,7 @@ class AuthRepositoryImpl implements AuthRepository {
             headers: _authHeaders,
             body: jsonEncode({'name': name, 'email': email, 'password': password}),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(kAuthTimeout);
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
 
@@ -155,7 +155,7 @@ class AuthRepositoryImpl implements AuthRepository {
             },
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(kAuthTimeout);
 
       final parsed = jsonDecode(res.body) as Map<String, dynamic>;
       if (res.statusCode == 200) {
@@ -198,7 +198,7 @@ class AuthRepositoryImpl implements AuthRepository {
             headers: _authHeaders,
             body: jsonEncode({'email': email}),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(kAuthTimeout);
     } catch (_) {
       // Güvenlik gereği hata olsa bile sessiz devam et
     }
@@ -217,7 +217,7 @@ class AuthRepositoryImpl implements AuthRepository {
             headers: _authHeaders,
             body: jsonEncode({'email': email, 'code': code, 'newPassword': newPassword}),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(kAuthTimeout);
 
       if (res.statusCode == 200) return (success: true, error: null);
       final body = jsonDecode(res.body) as Map<String, dynamic>;
@@ -240,7 +240,7 @@ class AuthRepositoryImpl implements AuthRepository {
               'Authorization': 'Bearer $token',
             },
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(kAuthTimeout);
 
       if (res.statusCode == 204) {
         await clearSession();

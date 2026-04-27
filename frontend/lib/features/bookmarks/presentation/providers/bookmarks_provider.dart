@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/sentinel.dart';
 import '../../data/repositories/bookmarks_repository_impl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
@@ -17,17 +18,15 @@ class BookmarksState {
   BookmarksState copyWith({
     Set<int>? wordIds,
     bool? isLoading,
-    Object? error = _sentinel,
+    Object? error = sentinel,
   }) => BookmarksState(
         wordIds: wordIds ?? this.wordIds,
         isLoading: isLoading ?? this.isLoading,
-        error: error == _sentinel ? this.error : error as String?,
+        error: error == sentinel ? this.error : error as String?,
       );
 
   bool contains(int wordId) => wordIds.contains(wordId);
 }
-
-const _sentinel = Object();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider
@@ -62,7 +61,7 @@ class BookmarksNotifier extends Notifier<BookmarksState> {
   Future<void> toggle(int wordId) async {
     final wasBookmarked = state.wordIds.contains(wordId);
 
-    // Optimistic Update (Hızlı geri bildirim için önce arayüzü güncelle)
+    // Optimistic update — hızlı geri bildirim için önce arayüzü güncelle.
     final newIds = Set<int>.from(state.wordIds);
     if (wasBookmarked) {
       newIds.remove(wordId);
@@ -79,7 +78,7 @@ class BookmarksNotifier extends Notifier<BookmarksState> {
         await repo.addBookmark(wordId);
       }
     } catch (_) {
-      // Hata durumunda optimistic update'i geri al
+      // Hata durumunda optimistic update'i geri al.
       final revert = Set<int>.from(state.wordIds);
       if (wasBookmarked) {
         revert.add(wordId);
