@@ -5,8 +5,10 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
-import 'navigation/app_router.dart';
 import 'core/utils/label_mapper.dart';
+import 'core/data/repositories/label_repository_impl.dart';
+import 'core/providers/label_provider.dart';
+import 'navigation/app_router.dart';
 import 'features/settings/presentation/providers/settings_provider.dart';
 
 void main() async {
@@ -19,16 +21,19 @@ void main() async {
   await initializeDateFormatting('tr_TR', null);
 
   // TFLite etiketlerini ve SharedPreferences'ı paralel yükle — startup süresini azaltır.
-  final labelsFuture = LabelMapper.loadLabels();
+  final labelMapper = LabelMapper();
+  final labelsFuture = labelMapper.loadLabels();
   final prefsFuture = SharedPreferences.getInstance();
   await labelsFuture;
   final prefs = await prefsFuture;
 
-  // sharedPreferencesProvider'ı override ederek SettingsNotifier'ın
-  // build() içinde senkron erişmesini sağla — settings flicker ortadan kalkar.
   runApp(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        // LabelMapper instance'ını inject et — static global state yerine.
+        labelRepositoryProvider.overrideWithValue(LabelRepositoryImpl(labelMapper)),
+      ],
       child: const HearMeOutApp(),
     ),
   );
@@ -51,7 +56,6 @@ class HearMeOutApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
-        // Metin boyutu ayarını tüm uygulamaya uygula
         final double scaleFactor = switch (textSize) {
           AppTextSize.standard => 1.0,
           AppTextSize.large => 1.15,
@@ -59,9 +63,9 @@ class HearMeOutApp extends ConsumerWidget {
         };
 
         return MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(scaleFactor)),
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(scaleFactor),
+          ),
           child: child!,
         );
       },

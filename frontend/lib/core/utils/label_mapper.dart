@@ -1,49 +1,34 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
+/// CSV dosyasından yüklenen TFLite sınıf indekslerini Türkçe kelimelere eşler.
+/// Instance-based — main.dart'ta yüklenir, [labelRepositoryProvider] üzerinden inject edilir.
 class LabelMapper {
-  static final Map<int, String> _trLabels = {};
-  static bool _isLoaded = false;
+  final Map<int, String> _labels = {};
 
-  /// CSV dosyasını okuyup hafızaya alır. Uygulama açılışında bir kere çağırılmalıdır.
-  static Future<void> loadLabels() async {
-    if (_isLoaded) return;
-
+  Future<void> loadLabels() async {
     try {
-      final csvString = await rootBundle.loadString('assets/models/labels.csv');
-      final lines = csvString.split('\n');
-
-      // İlk satır başlık (Header) olduğu için 1'den başlıyoruz.
+      final csv = await rootBundle.loadString('assets/models/labels.csv');
+      final lines = csv.split('\n');
+      // İlk satır başlık.
       for (int i = 1; i < lines.length; i++) {
         final line = lines[i].trim();
         if (line.isEmpty) continue;
-
         final parts = line.split(',');
         if (parts.length >= 2) {
-          final classId = int.tryParse(parts[0]);
-          if (classId != null) {
-            _trLabels[classId] = parts[1].trim();
-          }
+          final id = int.tryParse(parts[0]);
+          if (id != null) _labels[id] = parts[1].trim();
         }
       }
-      _isLoaded = true;
     } catch (e) {
-      if (kDebugMode) debugPrint('Label CSV yüklenirken hata oluştu: $e');
+      if (kDebugMode) debugPrint('Label CSV yüklenirken hata: $e');
     }
   }
 
-  /// Yüklü kelime sayısını döndürür.
-  static int get count => _trLabels.length;
+  int get count => _labels.length;
 
-  /// Yüklü tüm etiketleri (id, kelime) çifti olarak döndürür.
-  static List<(int, String)> getAllEntries() =>
-      _trLabels.entries.map((e) => (e.key, e.value)).toList();
+  List<(int, String)> getAllEntries() =>
+      _labels.entries.map((e) => (e.key, e.value)).toList();
 
-  /// TFLite'dan çıkan index numarasını vererek Türkçe kelime karşılığını alır.
-  static String getTrWord(int index) {
-    if (kDebugMode && !_isLoaded) {
-      debugPrint('Uyarı: LabelMapper.loadLabels() henüz çağrılmadı!');
-    }
-    return _trLabels[index] ?? 'Bilinmiyor';
-  }
+  String getTrWord(int index) => _labels[index] ?? 'Bilinmiyor';
 }
