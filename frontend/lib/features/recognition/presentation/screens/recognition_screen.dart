@@ -152,21 +152,28 @@ class RecognitionScreen extends ConsumerWidget {
                             .speak(state.sentence.join(' '))
                       : null,
                   onCopy: state.sentence.isNotEmpty
-                      ? () {
-                          Clipboard.setData(
-                            ClipboardData(text: state.sentence.join(' ')),
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Cümle panoya kopyalandı'),
-                              duration: Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
+                      ? () async {
+                          try {
+                            await Clipboard.setData(
+                              ClipboardData(text: state.sentence.join(' ')),
+                            );
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Cümle panoya kopyalandı'),
+                                duration: Duration(seconds: 2),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          } catch (_) {}
                         }
                       : null,
                   onShare: state.sentence.isNotEmpty
-                      ? () => Share.share(state.sentence.join(' '))
+                      ? () async {
+                          try {
+                            await Share.share(state.sentence.join(' '));
+                          } catch (_) {}
+                        }
                       : null,
                   onClear: state.sentence.isNotEmpty
                       ? () => notifier.clearSentence()
