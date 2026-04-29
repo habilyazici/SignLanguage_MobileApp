@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' show min;
 import 'package:camera/camera.dart';
@@ -8,16 +9,57 @@ import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart'
 import 'package:hand_detection/hand_detection.dart';
 import 'package:opencv_dart/opencv_dart.dart' as cv;
 
+import '../../../../../core/constants/recognition_constants.dart';
 import '../../domain/entities/ml_frame_result.dart';
 
-/// Pose tespiti, el tespiti ve koordinat dönüşümlerini kapsayan datasource.
-/// Her [process] çağrısı bir kare için [MlFrameResult] döndürür.
+/// Bir sonraki işleme için bekleyen kare verisi.
+class _PendingData {
+  const _PendingData({
+    required this.planes,
+    required this.width,
+    required this.height,
+    required this.sensorOrientation,
+    required this.isFlipped,
+    required this.leftHandMode,
+  });
+
+  /// Android'de [Y, U, V] plane'lerini, iOS'ta tek [BGRA] plane'ini tutar.
+  final List<({Uint8List bytes, int bytesPerRow, int? bytesPerPixel})> planes;
+  final int width;
+  final int height;
+  final int sensorOrientation;
+  final bool isFlipped;
+  final bool leftHandMode;
+}
+
+/// Sıkı Bağlı ML Pipeline: Pose ve El tespiti her zaman aynı kareden gelir.
+///
+/// Mimari:
+///   submit() → Meşgulse sadece kopyala; Boşsa _execute() başlat.
+///   _execute() → Pose (Sync) + Mat (Sync) → Hand Isolate (Async)
+///   Finish → resultStream'e bas → Varsa bekleyen kareyi başlat.
 class MlPipelineDatasource {
   mlkit.PoseDetector? _poseDetector;
-  HandDetector? _handDetector;
+  HandDetectorIsolate? _handDetectorIsolate;
   Uint8List? _nv21Buffer;
 
   static const List<int> _poseIndices = [0, 2, 5, 7, 8, 11, 12, 13, 14, 15, 16];
+  final List<double> _lastPoseFeatures = List<double>.filled(22, 0.0);
+
+  // Pose her N karede bir çalışır. Yavaş cihazlarda (latency > eşik) otomatik artar.
+  // Hand detection her frame çalışmaya devam eder — asıl darboğaz o.
+  int _poseFrameCount = 0;
+  int _currentPoseEvery = RecognitionConstants.poseEvery;
+
+  // Son 8 frame latency ortalaması — adaptif pose için.
+  final List<int> _recentLatencies = [];
+  static const int _latencyWindow = 8;
+
+  bool _handBusy = false;
+  _PendingData? _pendingData;
+
+  final _resultCtrl = StreamController<MlFrameResult>.broadcast();
+  Stream<MlFrameResult> get resultStream => _resultCtrl.stream;
 
   // ── Başlatma ────────────────────────────────────────────────────────────────
 
@@ -28,350 +70,220 @@ class MlPipelineDatasource {
         model: mlkit.PoseDetectionModel.base,
       ),
     );
-    _handDetector = HandDetector();
-    await _handDetector!.initialize();
+    _handDetectorIsolate = await HandDetectorIsolate.spawn();
+    if (kDebugMode) debugPrint('✅ HandDetectorIsolate başlatıldı');
   }
 
-  bool get isReady => _poseDetector != null && _handDetector != null;
+  bool get isReady => _poseDetector != null && _handDetectorIsolate != null;
 
-  // ── Ana işlem ────────────────────────────────────────────────────────────────
+  // ── Giriş Noktası ──────────────────────────────────────────────────────────
 
-  Future<MlFrameResult> process(
+  /// Kamera karesini kabul eder. Isolate meşgulse işlem yapmadan saklar.
+  Future<void> submit(
     CameraImage image, {
     required int sensorOrientation,
     required bool isFlipped,
     required bool leftHandMode,
   }) async {
-    final frame = List<double>.filled(106, 0.0); // featureSize = 106
+    // Sorumluluk: Kamera resim verisini HIZLI kopyala (Main thread'i yormadan).
+    // Loop (NV21 assembly) burada yapılmaz, _execute() içine ertelenir.
+    final List<({Uint8List bytes, int bytesPerRow, int? bytesPerPixel})> planes = [];
+    
+    try {
+      for (final plane in image.planes) {
+        planes.add((
+          bytes: Uint8List.fromList(plane.bytes),
+          bytesPerRow: plane.bytesPerRow,
+          bytesPerPixel: plane.bytesPerPixel,
+        ));
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ Plane kopyalama hatası: $e');
+      return;
+    }
 
-    final int cropSide = min(image.width, image.height);
-    final int cropXOff = (image.width - cropSide) ~/ 2;
+    if (planes.isEmpty) return;
 
-    final Uint8List? nv21 = Platform.isAndroid ? _buildNV21(image) : null;
-    final inputImage = _buildInputImage(image, nv21, sensorOrientation);
-    final mat = _toMat(image, nv21);
+    final data = _PendingData(
+      planes: planes,
+      width: image.width,
+      height: image.height,
+      sensorOrientation: sensorOrientation,
+      isFlipped: isFlipped,
+      leftHandMode: leftHandMode,
+    );
 
-    final poseFuture = (inputImage != null)
-        ? _poseDetector!.processImage(inputImage)
-        : Future.value(<mlkit.Pose>[]);
-    final handFuture = (mat != null)
-        ? _handDetector!.detectOnMat(mat).catchError((_) => <Hand>[])
-        : Future<List<Hand>>.value([]);
+    if (_handBusy) {
+      _pendingData = data;
+      return;
+    }
 
-    final results =
-        await (Future.wait([poseFuture, handFuture]) as Future<List<dynamic>>);
-    mat?.dispose();
+    _handBusy = true;
+    final sw = Stopwatch()..start();
+    _execute(data, sw);
+  }
 
-    // ML Kit koordinatları rotation metadata'ya göre zaten portrait uzayında;
-    // crop offset'leri portrait boyutlarından hesaplanmalı.
-    final bool isRotated90or270 =
-        sensorOrientation == 90 || sensorOrientation == 270;
-    final int poseW = isRotated90or270 ? image.height : image.width;
-    final int poseH = isRotated90or270 ? image.width : image.height;
-    final int poseCropSide = min(poseW, poseH);
-    final int poseCropXOff = (poseW - poseCropSide) ~/ 2;
-    final int poseCropYOff = (poseH - poseCropSide) ~/ 2;
+  // ── Çekirdek İşlem ────────────────────────────────────────────────────────
 
-    final poses = results[0] as List<mlkit.Pose>;
-    final posePoints = poses.isNotEmpty
-        ? _fillPose(
-            poses.first,
-            frame,
-            cropSide: poseCropSide,
-            cropXOff: poseCropXOff,
-            cropYOff: poseCropYOff,
-            isFlipped: isFlipped,
-          )
-        : <Offset>[];
+  /// Pose ve El tespitini aynı kare üzerinde PARALEL olarak gerçekleştirir.
+  Future<void> _execute(_PendingData data, Stopwatch sw) async {
+    final frame = List<double>.filled(106, 0.0);
 
-    final hands = results[1] as List<Hand>;
-    final handsData = hands.isNotEmpty
-        ? _fillHands(
-            hands,
-            frame,
-            imageWidth: image.width.toDouble(),
-            imageHeight: image.height.toDouble(),
-            cropSide: cropSide,
-            cropXOff: cropXOff,
-            sensorOrientation: sensorOrientation,
-            isFlipped: isFlipped,
-            leftHandMode: leftHandMode,
-          )
-        : (left: <Offset>[], right: <Offset>[]);
+    // NV21'i bir kez üret — hem InputImage hem Mat için kullanılır.
+    final Uint8List? nv21 = Platform.isAndroid
+        ? _buildNV21FromPlanes(data.planes, data.width, data.height)
+        : null;
 
-    return MlFrameResult(
-      features: frame,
-      posePoints: posePoints,
-      rightHandPoints: handsData.right,
-      leftHandPoints: handsData.left,
-      anyDetected: hands.isNotEmpty, // sadece el görününce buffer doldur — el=0/pose≠0 out-of-distribution pattern'ı engeller
-      poseCount: poses.length,
-      handCount: hands.length,
+    final inputImage = _buildInputImageFromBytes(data, nv21);
+    final mat = _toMatFromBytes(data, nv21);
+
+    if (inputImage == null || mat == null) {
+      mat?.dispose();
+      _finishCycle();
+      return;
+    }
+
+    try {
+      // ── Adaptif pose frekansı: latency yüksekse pose daha seyrek çalışır ──
+      _recentLatencies.add(sw.elapsedMilliseconds);
+      if (_recentLatencies.length > _latencyWindow) {
+        _recentLatencies.removeAt(0);
+      }
+      if (_recentLatencies.length == _latencyWindow) {
+        final avg = _recentLatencies.reduce((a, b) => a + b) ~/ _latencyWindow;
+        if (avg > RecognitionConstants.kLatencySlowMs &&
+            _currentPoseEvery < RecognitionConstants.poseEveryMax) {
+          _currentPoseEvery++;
+        } else if (avg <= RecognitionConstants.kLatencySlowMs &&
+            _currentPoseEvery > RecognitionConstants.poseEvery) {
+          _currentPoseEvery--;
+        }
+      }
+
+      // ── Pose ve El tespitini PARALEL başlat ──
+      _poseFrameCount++;
+      final bool runPose = _poseFrameCount % _currentPoseEvery == 0;
+
+      final results = await Future.wait([
+        runPose
+            ? _poseDetector!.processImage(inputImage)
+            : Future.value(<mlkit.Pose>[]),
+        _handDetectorIsolate!.detectHandsFromMat(mat),
+      ]);
+
+      final List<mlkit.Pose> poses = results[0] as List<mlkit.Pose>;
+      final List<Hand> hands = results[1] as List<Hand>;
+
+      // ── 1. Pose Verilerini İşle ──
+      int poseCount = poses.length;
+      List<Offset> posePoints = [];
+
+      // Sensör döndürmesi (90/270°) ekran boyutlarını tersine çevirir.
+      final bool rotated = data.sensorOrientation == 90 || data.sensorOrientation == 270;
+      final double displayW = rotated ? data.height.toDouble() : data.width.toDouble();
+      final double displayH = rotated ? data.width.toDouble() : data.height.toDouble();
+
+      if (poses.isNotEmpty) {
+        posePoints = _fillPose(
+          poses.first,
+          frame,
+          cropSide: _calcCropSide(data.width, data.height, data.sensorOrientation),
+          cropXOff: _calcCropXOff(data.width, data.height, data.sensorOrientation),
+          cropYOff: _calcCropYOff(data.width, data.height, data.sensorOrientation),
+          isFlipped: data.isFlipped,
+          displayWidth: displayW,
+          displayHeight: displayH,
+        );
+        for (int i = 0; i < 22; i++) {
+          _lastPoseFeatures[i] = frame[84 + i];
+        }
+      } else {
+        // Pose atlandı veya tespit edilemedi — son bilinen değerleri taşı
+        for (int i = 0; i < 22; i++) {
+          frame[84 + i] = _lastPoseFeatures[i];
+        }
+      }
+
+      // ── 2. El Verilerini İşle ──
+      final handsData = _fillHands(
+        hands,
+        frame,
+        imageWidth: data.width.toDouble(),
+        imageHeight: data.height.toDouble(),
+        cropSide: min(data.width, data.height),
+        cropXOff: (data.width - min(data.width, data.height)) ~/ 2,
+        sensorOrientation: data.sensorOrientation,
+        isFlipped: data.isFlipped,
+        leftHandMode: data.leftHandMode,
+      );
+
+      // ── 3. Sonuçları Yay ──
+      _resultCtrl.add(MlFrameResult(
+        features: frame,
+        posePoints: posePoints,
+        rightHandPoints: handsData.right,
+        leftHandPoints: handsData.left,
+        anyDetected: hands.isNotEmpty,
+        poseCount: poseCount,
+        handCount: hands.length,
+        latencyMs: sw.elapsedMilliseconds,
+      ));
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ Paralel ML Hatası: $e');
+    } finally {
+      mat.dispose();
+      sw.stop();
+      _finishCycle();
+    }
+  }
+
+  void _finishCycle() {
+    final next = _pendingData;
+    _pendingData = null;
+
+    if (next != null) {
+      final sw = Stopwatch()..start();
+      _execute(next, sw);
+    } else {
+      _handBusy = false;
+    }
+  }
+
+  // ── Dönüşüm Yardımcıları ──────────────────────────────────────────────────
+
+  mlkit.InputImage? _buildInputImageFromBytes(_PendingData d, Uint8List? nv21) {
+    final rotation = mlkit.InputImageRotationValue.fromRawValue(d.sensorOrientation) ??
+        mlkit.InputImageRotation.rotation90deg;
+
+    final Uint8List bytes = Platform.isAndroid
+        ? (nv21 ?? Uint8List(0))
+        : d.planes[0].bytes;
+
+    if (bytes.isEmpty) return null;
+
+    return mlkit.InputImage.fromBytes(
+      bytes: bytes,
+      metadata: mlkit.InputImageMetadata(
+        size: Size(d.width.toDouble(), d.height.toDouble()),
+        rotation: rotation,
+        format: Platform.isAndroid ? mlkit.InputImageFormat.nv21 : mlkit.InputImageFormat.bgra8888,
+        bytesPerRow: Platform.isAndroid ? d.width : d.width * 4,
+      ),
     );
   }
 
-  // ── Pose doldurma ─────────────────────────────────────────────────────────
-
-  List<Offset> _fillPose(
-    mlkit.Pose pose,
-    List<double> frame, {
-    required int cropSide,
-    required int cropXOff,
-    required int cropYOff,
-    required bool isFlipped,
-  }) {
-    final displayPoints = <Offset>[];
-    for (int i = 0; i < _poseIndices.length; i++) {
-      final lm = pose.landmarks[mlkit.PoseLandmarkType.values[_poseIndices[i]]];
-      if (lm == null) continue;
-
-      double mx = ((lm.x - cropXOff) / cropSide).clamp(0.0, 1.0);
-      double my = ((lm.y - cropYOff) / cropSide).clamp(0.0, 1.0);
-      if (isFlipped) mx = 1.0 - mx;
-
-      frame[84 + i * 2] = mx;
-      frame[84 + i * 2 + 1] = my;
-      displayPoints.add(Offset(lm.x / 240.0, lm.y / 320.0));
-    }
-    return displayPoints;
-  }
-
-  // ── El doldurma ───────────────────────────────────────────────────────────
-
-  ({List<Offset> right, List<Offset> left}) _fillHands(
-    List<dynamic> hands,
-    List<double> frame, {
-    required double imageWidth,
-    required double imageHeight,
-    required int cropSide,
-    required int cropXOff,
-    required int sensorOrientation,
-    required bool isFlipped,
-    required bool leftHandMode,
-  }) {
-    final displayRight = <Offset>[];
-    final displayLeft = <Offset>[];
-
-    // hand_detection normalize koordinat döndürürse (sx ≤ 1.05) piksel uzayına
-    // çevirmek için gerçek görüntü boyutunu kullan — hardcode değil.
-    final double sw = imageWidth;
-    final double sh = imageHeight;
-
-    for (final hand in hands) {
-      final bool isAnatomicalRight = (hand.handedness == Handedness.right);
-      final bool useRightSlot = leftHandMode
-          ? !isAnatomicalRight
-          : isAnatomicalRight;
-
-      final offset = useRightSlot ? 0 : 42;
-      final displayTarget = useRightSlot ? displayRight : displayLeft;
-
-      final landmarksRaw = hand.landmarks;
-      if (landmarksRaw is! List) continue;
-
-      for (int i = 0; i < landmarksRaw.length && i < 21; i++) {
-        final lm = landmarksRaw[i] as dynamic;
-        final rawX = lm?.x;
-        final rawY = lm?.y;
-        if (rawX == null || rawY == null) continue;
-        double sx = (rawX as num).toDouble();
-        double sy = (rawY as num).toDouble();
-
-        if (sx <= 1.05 && sy <= 1.05) {
-          sx *= sw;
-          sy *= sh;
-        }
-
-        double mx = _sensorXToModelX(
-          sx,
-          sy,
-          cropSide,
-          cropXOff,
-          sensorOrientation,
-        );
-        double my = _sensorYToModelY(
-          sx,
-          sy,
-          cropSide,
-          cropXOff,
-          sensorOrientation,
-        );
-        if (isFlipped) mx = 1.0 - mx;
-
-        // Portrait önizleme koordinatları (240×320)
-        final double dx = (240.0 - sy) / 240.0;
-        final double dy = sx / 320.0;
-
-        frame[offset + i * 2] = mx;
-        frame[offset + i * 2 + 1] = my;
-        displayTarget.add(Offset(dx.clamp(0.0, 1.0), dy.clamp(0.0, 1.0)));
-      }
-    }
-    return (right: displayRight, left: displayLeft);
-  }
-
-  // ── Sensör → model koordinat dönüşümleri ─────────────────────────────────
-  //
-  // Kamera sensörü landscape üretir (ör. 640×480).
-  // Model AUTSL portré 512×512 ile eğitildi; koordinatlar portré uzayında.
-
-  double _sensorXToModelX(
-    double sx,
-    double sy,
-    int cropSide,
-    int cropXOff,
-    int sensorOrientation,
-  ) {
-    switch (sensorOrientation) {
-      case 90:
-        return (1.0 - sy / cropSide).clamp(0.0, 1.0);
-      case 270:
-        return (sy / cropSide).clamp(0.0, 1.0);
-      case 180:
-        return (1.0 - (sx - cropXOff) / cropSide).clamp(0.0, 1.0);
-      case 0:
-        return ((sx - cropXOff) / cropSide).clamp(0.0, 1.0);
-      default:
-        return (1.0 - sy / cropSide).clamp(0.0, 1.0); // 90° varsayım
-    }
-  }
-
-  double _sensorYToModelY(
-    double sx,
-    double sy,
-    int cropSide,
-    int cropXOff,
-    int sensorOrientation,
-  ) {
-    switch (sensorOrientation) {
-      case 90:
-        return ((sx - cropXOff) / cropSide).clamp(0.0, 1.0);
-      case 270:
-        return (1.0 - (sx - cropXOff) / cropSide).clamp(0.0, 1.0);
-      case 180:
-        return (1.0 - (sy / cropSide)).clamp(0.0, 1.0);
-      case 0:
-        return (sy / cropSide).clamp(0.0, 1.0);
-      default:
-        return ((sx - cropXOff) / cropSide).clamp(0.0, 1.0); // 90° varsayım
-    }
-  }
-
-  // ── NV21 yapımı ───────────────────────────────────────────────────────────
-  // Döküm: NV21 = Y düzlemi (parlaklık) + V-U ikili renk düzlemi.
-  // Eğer kamera 3 düzlem sağlamazsa null döndür — çağıranlar bu frame'i atlar.
-
-  Uint8List? _buildNV21(CameraImage image) {
-    if (image.planes.length < 3) {
-      // Eğer tek plane geliyorsa bu büyük ihtimalle BGRA formatıdır (NV21 değil).
-      // Bu durumda null döneriz, çağıranlar _buildInputImage/toMat içinde
-      // doğrudan plane[0] üzerinden BGRA olarak işleme yapar.
-      return null;
-    }
-
-    final int w = image.width;
-    final int h = image.height;
-    final int size = w * h * 3 ~/ 2;
-
-    if (_nv21Buffer == null || _nv21Buffer!.length != size) {
-      _nv21Buffer = Uint8List(size);
-    }
-
-    final yPlane = image.planes[0];
-    final uPlane = image.planes[1];
-    final vPlane = image.planes[2];
-    final int uPixelStride = uPlane.bytesPerPixel ?? 2;
-    final int vPixelStride = vPlane.bytesPerPixel ?? 2;
-
-    final out = _nv21Buffer!;
-    for (int r = 0; r < h; r++) {
-      out.setRange(r * w, (r + 1) * w, yPlane.bytes, r * yPlane.bytesPerRow);
-    }
-    int uvOffset = w * h;
-    final int uvRows = h ~/ 2;
-    final int uvCols = w ~/ 2;
-    for (int r = 0; r < uvRows; r++) {
-      for (int c = 0; c < uvCols; c++) {
-        final srcU = r * uPlane.bytesPerRow + c * uPixelStride;
-        final srcV = r * vPlane.bytesPerRow + c * vPixelStride;
-        out[uvOffset++] = vPlane.bytes[srcV];
-        out[uvOffset++] = uPlane.bytes[srcU];
-      }
-    }
-    return out;
-  }
-
-  // ── InputImage yapımı ─────────────────────────────────────────────────────
-
-  mlkit.InputImage? _buildInputImage(
-    CameraImage image,
-    Uint8List? nv21,
-    int sensorOrientation,
-  ) {
+  cv.Mat? _toMatFromBytes(_PendingData d, Uint8List? nv21) {
     try {
-      final rotation =
-          mlkit.InputImageRotationValue.fromRawValue(sensorOrientation) ??
-          mlkit.InputImageRotation.rotation90deg;
-
-      // iOS her zaman bgra8888; Android ise nv21 (3-plane) veya bgra (1-plane) olabilir.
-      final bool useBGRA = Platform.isIOS || image.planes.length == 1;
-
-      if (useBGRA) {
-        return mlkit.InputImage.fromBytes(
-          bytes: image.planes[0].bytes,
-          metadata: mlkit.InputImageMetadata(
-            size: Size(image.width.toDouble(), image.height.toDouble()),
-            rotation: rotation,
-            format: mlkit.InputImageFormat.bgra8888,
-            bytesPerRow: image.planes[0].bytesPerRow,
-          ),
-        );
-      } else {
-        final bytes = nv21 ?? _buildNV21(image);
-        if (bytes == null) return null; // Sıra dışı bir durum
-        return mlkit.InputImage.fromBytes(
-          bytes: bytes,
-          metadata: mlkit.InputImageMetadata(
-            size: Size(image.width.toDouble(), image.height.toDouble()),
-            rotation: rotation,
-            format: mlkit.InputImageFormat.nv21,
-            bytesPerRow: image.width,
-          ),
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) debugPrint('❌ _buildInputImage hatası: $e');
-      return null;
-    }
-  }
-
-  // ── Mat yapımı ────────────────────────────────────────────────────────────
-
-  cv.Mat? _toMat(CameraImage image, Uint8List? nv21) {
-    try {
-      final bool isBGRA = Platform.isIOS || image.planes.length == 1;
-
-      if (isBGRA) {
-        final bgra = cv.Mat.fromList(
-          image.height,
-          image.width,
-          cv.MatType.CV_8UC4,
-          image.planes[0].bytes,
-        );
-        final bgr = cv.cvtColor(bgra, cv.COLOR_BGRA2BGR);
-        bgra.dispose();
-        return bgr;
-      } else {
-        final bytes = nv21 ?? _buildNV21(image);
-        if (bytes == null) return null;
-        final yuv = cv.Mat.fromList(
-          image.height + image.height ~/ 2,
-          image.width,
-          cv.MatType.CV_8UC1,
-          bytes,
-        );
+      if (Platform.isAndroid) {
+        if (nv21 == null) return null;
+        final yuv = cv.Mat.fromList(d.height + d.height ~/ 2, d.width, cv.MatType.CV_8UC1, nv21);
         final bgr = cv.cvtColor(yuv, cv.COLOR_YUV2BGR_NV21);
         yuv.dispose();
+        return bgr;
+      } else {
+        final bgra = cv.Mat.fromList(d.height, d.width, cv.MatType.CV_8UC4, d.planes[0].bytes);
+        final bgr = cv.cvtColor(bgra, cv.COLOR_BGRA2BGR);
+        bgra.dispose();
         return bgr;
       }
     } catch (_) {
@@ -379,14 +291,138 @@ class MlPipelineDatasource {
     }
   }
 
-  // ── Temizlik ──────────────────────────────────────────────────────────────
+  // ── Crop Hesaplamaları ────────────────────────────────────────────────────
+
+  int _calcCropSide(int w, int h, int rot) {
+    final bool r = rot == 90 || rot == 270;
+    return min(r ? h : w, r ? w : h);
+  }
+
+  int _calcCropXOff(int w, int h, int rot) {
+    final bool r = rot == 90 || rot == 270;
+    final int rw = r ? h : w;
+    return (rw - _calcCropSide(w, h, rot)) ~/ 2;
+  }
+
+  int _calcCropYOff(int w, int h, int rot) {
+    final bool r = rot == 90 || rot == 270;
+    final int rh = r ? w : h;
+    return (rh - _calcCropSide(w, h, rot)) ~/ 2;
+  }
+
+  // ── Veri Doldurma ─────────────────────────────────────────────────────────
+
+  List<Offset> _fillPose(mlkit.Pose pose, List<double> frame,
+      {required int cropSide, required int cropXOff, required int cropYOff,
+      required bool isFlipped, required double displayWidth, required double displayHeight}) {
+    final pts = <Offset>[];
+    for (int i = 0; i < _poseIndices.length; i++) {
+      final lm = pose.landmarks[mlkit.PoseLandmarkType.values[_poseIndices[i]]];
+      if (lm == null) continue;
+      double mx = ((lm.x - cropXOff) / cropSide).clamp(0.0, 1.0);
+      double my = ((lm.y - cropYOff) / cropSide).clamp(0.0, 1.0);
+      if (isFlipped) mx = 1.0 - mx;
+      frame[84 + i * 2] = mx;
+      frame[84 + i * 2 + 1] = my;
+      pts.add(Offset(lm.x / displayWidth, lm.y / displayHeight));
+    }
+    return pts;
+  }
+
+  ({List<Offset> right, List<Offset> left}) _fillHands(List<dynamic> hands, List<double> frame,
+      {required double imageWidth,
+      required double imageHeight,
+      required int cropSide,
+      required int cropXOff,
+      required int sensorOrientation,
+      required bool isFlipped,
+      required bool leftHandMode}) {
+    final rPts = <Offset>[];
+    final lPts = <Offset>[];
+    for (final hand in hands) {
+      final bool isRight = hand.handedness == Handedness.right;
+      final bool useRight = leftHandMode ? !isRight : isRight;
+      final offset = useRight ? 0 : 42;
+      final target = useRight ? rPts : lPts;
+      final lms = hand.landmarks;
+      if (lms is! List) continue;
+      for (int i = 0; i < lms.length && i < 21; i++) {
+        final lm = lms[i] as dynamic;
+        double sx = (lm.x as num).toDouble();
+        double sy = (lm.y as num).toDouble();
+        if (sx <= 1.05) {
+          sx *= imageWidth;
+          sy *= imageHeight;
+        }
+        double mx = _sXToMX(sx, sy, cropSide, cropXOff, sensorOrientation);
+        double my = _sYToMY(sx, sy, cropSide, cropXOff, sensorOrientation);
+        if (isFlipped) mx = 1.0 - mx;
+        frame[offset + i * 2] = mx;
+        frame[offset + i * 2 + 1] = my;
+        target.add(Offset((240.0 - sy) / 240.0, sx / 320.0));
+      }
+    }
+    return (right: rPts, left: lPts);
+  }
+
+  double _sXToMX(double sx, double sy, int cs, int cx, int rot) {
+    switch (rot) {
+      case 90: return (1.0 - sy / cs).clamp(0.0, 1.0);
+      case 270: return (sy / cs).clamp(0.0, 1.0);
+      case 180: return (1.0 - (sx - cx) / cs).clamp(0.0, 1.0);
+      default: return ((sx - cx) / cs).clamp(0.0, 1.0);
+    }
+  }
+
+  double _sYToMY(double sx, double sy, int cs, int cx, int rot) {
+    switch (rot) {
+      case 90: return ((sx - cx) / cs).clamp(0.0, 1.0);
+      case 270: return (1.0 - (sx - cx) / cs).clamp(0.0, 1.0);
+      case 180: return (1.0 - sy / cs).clamp(0.0, 1.0);
+      default: return (sy / cs).clamp(0.0, 1.0);
+    }
+  }
+
+  Uint8List? _buildNV21FromPlanes(
+    List<({Uint8List bytes, int bytesPerRow, int? bytesPerPixel})> planes,
+    int w,
+    int h,
+  ) {
+    if (planes.length < 3) return null;
+    final int size = w * h * 3 ~/ 2;
+    if (_nv21Buffer == null || _nv21Buffer!.length != size) {
+      _nv21Buffer = Uint8List(size);
+    }
+    
+    final yPlane = planes[0];
+    final uPlane = planes[1];
+    final vPlane = planes[2];
+    final int uPS = uPlane.bytesPerPixel ?? 2;
+    final int vPS = vPlane.bytesPerPixel ?? 2;
+    final out = _nv21Buffer!;
+
+    // 1. Y Plane (O(N) row-by-row setRange)
+    for (int r = 0; r < h; r++) {
+      out.setRange(r * w, (r + 1) * w, yPlane.bytes, r * yPlane.bytesPerRow);
+    }
+
+    // 2. UV Interleaving (The heavy part - now deferred to processing phase)
+    int uvOff = w * h;
+    for (int r = 0; r < h ~/ 2; r++) {
+      final int vRowBase = r * vPlane.bytesPerRow;
+      final int uRowBase = r * uPlane.bytesPerRow;
+      for (int c = 0; c < w ~/ 2; c++) {
+        out[uvOff++] = vPlane.bytes[vRowBase + c * vPS];
+        out[uvOff++] = uPlane.bytes[uRowBase + c * uPS];
+      }
+    }
+    return out;
+  }
 
   void dispose() {
-    try {
-      _poseDetector?.close();
-    } catch (_) {}
-    try {
-      _handDetector?.dispose();
-    } catch (_) {}
+    _resultCtrl.close();
+    _pendingData = null;
+    try { _poseDetector?.close(); } catch (_) {}
+    try { _handDetectorIsolate?.dispose(); } catch (_) {}
   }
 }

@@ -6,7 +6,7 @@
     <!-- flutter_tts: arka planda ses çalma -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="frontend"
+        android:label="Hear Me Out"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

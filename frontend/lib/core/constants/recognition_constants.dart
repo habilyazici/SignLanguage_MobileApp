@@ -26,11 +26,24 @@ abstract final class RecognitionConstants {
 
   // ── Inference hız kontrolü ────────────────────────────────────────────────
   /// Her kaçıncı işlenen karede inference yapılır
-  static const int inferEvery = 5;
+  static const int inferEvery = 8;
 
   // ── Temporal smoothing ────────────────────────────────────────────────────
   /// Aynı sınıfın kaç ardışık inference'ta görülmesi gerektiği
   static const int stableFrames = 5;
+
+  // ── Pose örnekleme ───────────────────────────────────────────────────────
+  /// Pose detection her kaçıncı işlenen karede çalışır.
+  /// Araya giren karelerde son bilinen pose değerleri taşınır.
+  /// hand detection her frame çalışmaya devam eder (asıl darboğaz).
+  /// Yavaş cihazlarda (latency > kLatencySlowMs) bu değer otomatik artar.
+  static const int poseEvery = 3;
+
+  /// Bu eşiğin (ms) üzerinde latency ölçülürse poseEvery bir adım artar.
+  static const int kLatencySlowMs = 100;
+
+  /// poseEvery'nin ulaşabileceği maksimum değer.
+  static const int poseEveryMax = 6;
 
   // ── Hareket algılama ─────────────────────────────────────────────────────
   /// Normalize uzayında ortalama mutlak fark eşiği (0..1 arası).

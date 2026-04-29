@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 
@@ -9,6 +10,7 @@ import '../../domain/repositories/recognition_repository.dart';
 import '../datasources/camera_datasource.dart';
 import '../datasources/inference_datasource.dart';
 import '../datasources/ml_pipeline_datasource.dart';
+import '../../domain/entities/ml_frame_result.dart';
 
 /// Recognition pipeline'ını orkestre eden veri katmanı implementasyonu.
 ///
@@ -46,7 +48,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   // ── Çalışma zamanı durumu
   final List<(int, List<double>)> _timedBuffer = [];
   int _frameCounter = 0;
-  bool _isProcessing = false;
+  int _resultCounter = 0;
   bool _isInferring = false;
   List<double>? _prevFrame;
   int _lastMotionMs = 0;
@@ -57,6 +59,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   int _lastFrameTimeMs = 0;
   Timer? _noDetectionTimer;
   StreamSubscription<CameraController?>? _cameraSub;
+  StreamSubscription<MlFrameResult>? _mlSub;
 
   // ── Başlatma ───────────────────────────────────────────────────────────────
 
@@ -65,6 +68,9 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     // ML ve Inference servislerini sadece bir kez başlat
     if (!_ml.isReady) await _ml.initialize();
     await _inference.initialize();
+
+    // ML sonuçlarını dinle
+    _mlSub ??= _ml.resultStream.listen(_onMlResult);
 
     // Kamera controller stream'ini dinle
     _cameraSub ??= _camera.controllerStream.listen((ctrl) {
@@ -138,25 +144,55 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     }
 
     _frameCounter++;
-    // _isInferring kontrolü kritik: TFLite ayrı bir OS thread'de (IsolateInterpreter)
-    // çalışırken hand_detection da native çağrı yapar. iOS'ta eş zamanlı GPU/Metal
-    // erişimi native crash'e yol açar — ikisinin çakışmaması için burada bekletiyoruz.
-    if (_isProcessing || _isInferring || !_ml.isReady) return;
+    if ((Platform.isIOS && _isInferring) || !_ml.isReady) return;
 
     _lastFrameTimeMs = now;
-    _isProcessing = true;
-
-    // Kare logu: Her 150 karede bir durum bas.
-    final bool doLog = (_frameCounter % 150 == 0);
-    bool shouldInfer = false;
 
     try {
-      final result = await _ml.process(
+      await _ml.submit(
         image,
         sensorOrientation: _camera.sensorOrientation,
         isFlipped: _camera.isFlipped,
         leftHandMode: _leftHandMode,
       );
+    } catch (e, st) {
+      if (kDebugMode) debugPrint('❌ Frame submit hatası: $e\n$st');
+    }
+  }
+
+  /// ML Isolate'ten gelen sonuçları işler (non-blocking flow).
+  void _onMlResult(MlFrameResult result) {
+    _resultCounter++;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    // 1. Zamana göre temizlik: El olsa da olmasa da eskimiş kareleri at.
+    // Bu sayede el çekildiğinde buffer 2sn içinde kendiliğinden boşalır.
+    _timedBuffer.removeWhere(
+      (e) => nowMs - e.$1 > RecognitionConstants.windowMs,
+    );
+
+    // Kare logu: Her 150 sonuçta bir durum bas.
+    final bool doLog = (_resultCounter % 150 == 0);
+    bool shouldInfer = false;
+
+    // Developer modu landmark stream'i
+    _landmarkCtrl.add(
+      LandmarkDevData(
+        posePoints: result.posePoints,
+        rightHand: result.rightHandPoints,
+        leftHand: result.leftHandPoints,
+        bufferFill: _timedBuffer.length,
+        poseCount: result.poseCount,
+        handCount: result.handCount,
+        latencyMs: result.latencyMs,
+      ),
+    );
+
+    if (result.anyDetected) {
+      if (_noDetectionTimer != null) {
+        _noDetectionTimer!.cancel();
+        _noDetectionTimer = null;
+      }
 
       if (doLog && kDebugMode) {
         debugPrint(
@@ -164,58 +200,33 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
         );
       }
 
-      // Developer modu landmark stream'i
-      _landmarkCtrl.add(
-        LandmarkDevData(
-          posePoints: result.posePoints,
-          rightHand: result.rightHandPoints,
-          leftHand: result.leftHandPoints,
-          bufferFill: _timedBuffer.length,
-          poseCount: result.poseCount,
-          handCount: result.handCount,
-        ),
-      );
+      final motion = _computeMotion(result.features);
+      _prevFrame = List<double>.from(result.features);
 
-      if (result.anyDetected) {
-        _noDetectionTimer?.cancel();
-        _noDetectionTimer = null;
-
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        final motion = _computeMotion(result.features);
-        _prevFrame = List<double>.from(result.features);
-
-        if (motion >= _motionThreshold) {
-          _lastMotionMs = nowMs;
-        }
-
-        _timedBuffer.add((nowMs, result.features));
-        _timedBuffer.removeWhere(
-          (e) => nowMs - e.$1 > RecognitionConstants.windowMs,
-        );
-
-        final timeSinceMotion = nowMs - _lastMotionMs;
-        final windowAge = _timedBuffer.length >= 2
-            ? nowMs - _timedBuffer.first.$1
-            : 0;
-
-        if (timeSinceMotion <= RecognitionConstants.motionWindowMs &&
-            (windowAge >= RecognitionConstants.minWindowMs ||
-                _timedBuffer.length >= 3) &&
-            _frameCounter % RecognitionConstants.inferEvery == 0) {
-          shouldInfer = true;
-        }
-      } else {
-        // Tespit yok → 1 saniyelik grace period, sonra buffer temizle
-        _noDetectionTimer ??= Timer(const Duration(seconds: 1), () {
-          _timedBuffer.clear();
-          _noDetectionTimer = null;
-          _inferenceCtrl.add(InferenceResult.empty);
-        });
+      if (motion >= _motionThreshold) {
+        _lastMotionMs = nowMs;
       }
-    } catch (e, st) {
-      if (kDebugMode) debugPrint('❌ Frame hatası: $e\n$st');
-    } finally {
-      _isProcessing = false;
+
+      _timedBuffer.add((nowMs, result.features));
+
+      final timeSinceMotion = nowMs - _lastMotionMs;
+      final windowAge = _timedBuffer.length >= 2
+          ? nowMs - _timedBuffer.first.$1
+          : 0;
+
+      if (timeSinceMotion <= RecognitionConstants.motionWindowMs &&
+          (windowAge >= RecognitionConstants.minWindowMs ||
+              _timedBuffer.length >= 3) &&
+          _resultCounter % RecognitionConstants.inferEvery == 0) {
+        shouldInfer = true;
+      }
+    } else {
+      // 1 saniyelik grace period — 1-2 frame kaybında buffer bozulmasın
+      _noDetectionTimer ??= Timer(const Duration(seconds: 1), () {
+        _timedBuffer.clear();
+        _noDetectionTimer = null;
+        _inferenceCtrl.add(InferenceResult.empty);
+      });
     }
 
     if (shouldInfer) _runInference();
@@ -246,7 +257,8 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
       final result = await _inference.run(frames);
       if (result != null) {
         // Logları seyrelt: Yaklaşık her 2-3 saniyede bir veya çok yüksek skorlarda bas
-        if (kDebugMode && (_frameCounter % 50 == 0 || result.confidence > 0.95)) {
+        if (kDebugMode &&
+            (_frameCounter % 50 == 0 || result.confidence > 0.95)) {
           debugPrint(
             '🧠 Zeka → [${result.classIndex}] %${(result.confidence * 100).toStringAsFixed(0)}',
           );
@@ -267,6 +279,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     _prevFrame = null;
     _lastMotionMs = 0;
     _frameCounter = 0;
+    _resultCounter = 0;
   }
 
   // ── Temizlik ──────────────────────────────────────────────────────────────
@@ -275,6 +288,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   Future<void> dispose() async {
     _noDetectionTimer?.cancel();
     await _cameraSub?.cancel();
+    await _mlSub?.cancel();
     _camera.stopStream();
     await _camera.dispose();
     _ml.dispose();
