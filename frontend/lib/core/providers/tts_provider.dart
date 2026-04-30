@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/tts_service.dart';
 import '../services/tts_service_impl.dart';
@@ -24,6 +25,6 @@ class TtsNotifier extends Notifier<bool> {
     return false;
   }
 
-  void speak(String word) => _service.speak(word);
-  void stop() => _service.stop();
+  void speak(String word) => unawaited(_service.speak(word));
+  void stop() => unawaited(_service.stop());
 }

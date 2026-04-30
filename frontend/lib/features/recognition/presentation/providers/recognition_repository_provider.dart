@@ -13,8 +13,8 @@ final inferenceDataSourceProvider = Provider((ref) => InferenceDatasource());
 // ── Repository Provider ───────────────────────────────────────────────────
 final recognitionRepositoryProvider = Provider<RecognitionRepository>((ref) {
   return RecognitionRepositoryImpl(
-    cameraDataSource: ref.watch(cameraDataSourceProvider),
-    mlPipelineDataSource: ref.watch(mlPipelineDataSourceProvider),
-    inferenceDataSource: ref.watch(inferenceDataSourceProvider),
+    cameraDataSource: ref.read(cameraDataSourceProvider),
+    mlPipelineDataSource: ref.read(mlPipelineDataSourceProvider),
+    inferenceDataSource: ref.read(inferenceDataSourceProvider),
   );
 });

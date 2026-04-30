@@ -57,6 +57,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   int _targetFps = 30;
   double _motionThreshold = RecognitionConstants.motionThreshold;
   int _lastFrameTimeMs = 0;
+  int _lastInferenceMs = 0;
   Timer? _noDetectionTimer;
   StreamSubscription<CameraController?>? _cameraSub;
   StreamSubscription<MlFrameResult>? _mlSub;
@@ -217,7 +218,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
       if (timeSinceMotion <= RecognitionConstants.motionWindowMs &&
           (windowAge >= RecognitionConstants.minWindowMs ||
               _timedBuffer.length >= 3) &&
-          _resultCounter % RecognitionConstants.inferEvery == 0) {
+          nowMs - _lastInferenceMs >= RecognitionConstants.inferIntervalMs) {
         shouldInfer = true;
       }
     } else {
@@ -248,10 +249,12 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
 
   Future<void> _runInference() async {
     if (_isInferring || _timedBuffer.isEmpty) return;
-    // Kararlılık guard: ~8 gerçek kare yeterli (resampling ile 60'a tamamlanır)
-    if (_timedBuffer.length < 8) return;
+    // Minimum 4 gerçek frame: yavaş cihazlarda (A32) 8-frame guard
+    // inference fırsatlarını bloke ediyordu. 4 frame ≈ 600ms sinyal.
+    if (_timedBuffer.length < 4) return;
 
     _isInferring = true;
+    _lastInferenceMs = DateTime.now().millisecondsSinceEpoch;
     try {
       final frames = _timedBuffer.map((e) => e.$2).toList();
       final result = await _inference.run(frames);
@@ -278,6 +281,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     _timedBuffer.clear();
     _prevFrame = null;
     _lastMotionMs = 0;
+    _lastInferenceMs = 0;
     _frameCounter = 0;
     _resultCounter = 0;
   }

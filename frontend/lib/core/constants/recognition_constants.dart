@@ -21,12 +21,15 @@ abstract final class RecognitionConstants {
   static const int windowMs = 2000;
 
   /// İlk inference için gereken minimum pencere süresi (ms).
-  /// 800ms → ~24 gerçek frame, %60 padding. 1200ms → ~36 frame, %40 padding.
-  static const int minWindowMs = 1200;
+  /// 600ms: yavaş cihazlarda (A32 ~130ms/frame) 4-5 gerçek frame → erken tepki.
+  /// Hızlı cihazlarda (30fps) 600ms ≈ 18 frame → yeterli temporal bilgi.
+  static const int minWindowMs = 600;
 
   // ── Inference hız kontrolü ────────────────────────────────────────────────
-  /// Her kaçıncı işlenen karede inference yapılır (A32 için 2-3 ideal)
-  static const int inferEvery = 2;
+  /// İki ardışık inference arasındaki minimum süre (ms).
+  /// Frame sayısına değil zamana göre throttle — cihaz hızından bağımsız.
+  /// 200ms = saniyede max 5 inference; stableFrames=5 ile onay ~1sn.
+  static const int inferIntervalMs = 200;
 
   // ── Temporal smoothing ────────────────────────────────────────────────────
   /// Aynı sınıfın kaç ardışık inference'ta görülmesi gerektiği

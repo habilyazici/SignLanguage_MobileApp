@@ -144,6 +144,7 @@ class RecognitionScreen extends ConsumerWidget {
                 child: _ResultPanel(
                   state: state,
                   isDark: isDark,
+                  confidenceThreshold: ref.watch(settingsProvider).confidenceThreshold,
                   onTtsReplay:
                       state.sentence.isNotEmpty &&
                           ref.watch(settingsProvider).ttsEnabled
@@ -194,6 +195,7 @@ class _ResultPanel extends StatelessWidget {
   const _ResultPanel({
     required this.state,
     required this.isDark,
+    required this.confidenceThreshold,
     this.onTtsReplay,
     this.onCopy,
     this.onShare,
@@ -201,6 +203,7 @@ class _ResultPanel extends StatelessWidget {
   });
   final RecognitionState state;
   final bool isDark;
+  final double confidenceThreshold;
   final VoidCallback? onTtsReplay;
   final VoidCallback? onCopy;
   final VoidCallback? onShare;
@@ -236,7 +239,7 @@ class _ResultPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _ConfidenceBar(score: state.confidenceScore, active: hasWords),
+          _ConfidenceBar(score: state.confidenceScore, active: hasWords, threshold: confidenceThreshold),
           const SizedBox(height: 16),
           _ActionBar(
             isDark: isDark,
@@ -678,15 +681,20 @@ class _SentenceRow extends StatelessWidget {
 }
 
 class _ConfidenceBar extends StatelessWidget {
-  const _ConfidenceBar({required this.score, required this.active});
+  const _ConfidenceBar({required this.score, required this.active, required this.threshold});
   final double score;
   final bool active;
+  final double threshold;
 
   @override
   Widget build(BuildContext context) {
-    final color = score >= 0.90
+    // Renk, kullanıcının seçtiği eşiğe göre ayarlanır:
+    //   ≥ threshold        → yeşil  (kabul edilir)
+    //   ≥ threshold - 0.10 → sarı   (yakın ama yetersiz)
+    //   < threshold - 0.10 → kırmızı
+    final color = score >= threshold
         ? AppTheme.primaryStatusGreen
-        : (score >= 0.80
+        : (score >= threshold - 0.10
               ? AppTheme.primaryStatusYellow
               : AppTheme.primaryStatusRed);
     return Column(

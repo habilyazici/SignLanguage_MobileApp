@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/sentinel.dart';
@@ -101,8 +102,8 @@ class HistoryNotifier extends Notifier<HistoryState> {
       final item = await repo.addHistory(text.trim());
       _offset++;
       state = state.copyWith(items: [item, ...state.items]);
-    } catch (_) {
-      // Sessiz hata — tanıma akışını engellemez.
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ History add hatası: $e');
     }
   }
 
