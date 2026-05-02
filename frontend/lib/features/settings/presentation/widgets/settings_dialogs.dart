@@ -12,7 +12,7 @@ class SettingsDialogs {
         backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
         title: const Text('Önbelleği Temizle'),
         content: const Text(
-          'İndirilen tüm videolar silinecek. Devam edilsin mi?',
+          'Resim ve görsel önbelleği temizlenecek. Devam edilsin mi?',
         ),
         actions: [
           TextButton(
@@ -22,20 +22,18 @@ class SettingsDialogs {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
-              // Video oynatıcı önbelleği sistem tarafından yönetiliyor;
-              // uygulama verilerini temizlemek için cihaz ayarlarını kullanın.
+              PaintingBinding.instance.imageCache.clear();
+              PaintingBinding.instance.imageCache.clearLiveImages();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text(
-                    'Bu özellik yakında eklenecek. Şimdilik uygulama önbelleği sistem tarafından yönetilmektedir.',
-                  ),
+                  content: Text('Önbellek temizlendi.'),
                   behavior: SnackBarBehavior.floating,
-                  duration: Duration(seconds: 3),
+                  duration: Duration(seconds: 2),
                 ),
               );
             },
             child: const Text(
-              'Tamam',
+              'Temizle',
               style: TextStyle(color: Colors.blueAccent),
             ),
           ),
@@ -154,7 +152,7 @@ class SettingsDialogs {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'Daha yüksek değerler gürültüyü azaltır ama tepki süresini uzatır. Varsayılan: 3',
+                  'Daha yüksek değerler gürültüyü azaltır ama tepki süresini uzatır. Varsayılan: 5',
                   style: TextStyle(fontSize: 12, color: AppTheme.midGrey),
                 ),
                 const SizedBox(height: 20),

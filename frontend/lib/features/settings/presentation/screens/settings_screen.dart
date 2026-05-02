@@ -340,7 +340,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
 
             // ── Geliştirici ────────────────────────────────────────────────
-            if (_visible('İleri Seviye (Geliştirici)')) ...[
+            if (_visible('İleri Seviye (Geliştirici)') && !isGuest) ...[
               const SettingsSection('İleri Seviye (Geliştirici)'),
               SettingsCard(
                 isDark: isDark,

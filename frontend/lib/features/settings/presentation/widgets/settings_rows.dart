@@ -285,13 +285,14 @@ class StabilityRow extends StatelessWidget {
       label: current.toString(),
       labelColor: AppTheme.primaryBlue,
       helpText:
-          'AI\'nın bir kelimeyi ekrana yazması için onu kaç kez üst üste doğrulaması gerektiğini belirler.\n\n1 = Smoothing kapalı, her tespit anında kabul edilir\nÖnerilen: 3\nKatı: 5+',
+          'AI\'nın bir kelimeyi ekrana yazması için onu kaç kez üst üste doğrulaması gerektiğini belirler.\n\n1 = Smoothing kapalı, her tespit anında kabul edilir\nÖnerilen: 5\nKatı: 8+',
       onTap: () => SettingsDialogs.showNumberPickerDialog(
         context: context,
         isDark: isDark,
         title: 'Kararlılık Eşiği',
         current: current,
         onChanged: onChanged,
+        max: 10,
       ),
     );
   }
@@ -326,7 +327,7 @@ class MotionThresholdRow extends StatelessWidget {
       label: current.toStringAsFixed(3),
       labelColor: AppTheme.primaryBlue,
       helpText:
-          'El hareketinin "gerçek hareket" sayılması için gereken minimum değişim miktarı.\n\nHassas: titrek eller veya küçük işaretler için\nKaba: yanlış tetiklenmeyi azaltır\n\nVarsayılan: 0.025',
+          'El hareketinin "gerçek hareket" sayılması için gereken minimum değişim miktarı.\n\nHassas: titrek eller veya küçük işaretler için\nKaba: yanlış tetiklenmeyi azaltır\n\nVarsayılan: 0.030',
       onTap: () => SettingsDialogs.showMotionThresholdDialog(
         context: context,
         isDark: isDark,

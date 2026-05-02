@@ -35,8 +35,8 @@ class SettingsLocalDatasource {
     sttEnabled: _prefs.getBool('sttEnabled') ?? true,
     devMode: _prefs.getBool('devMode') ?? false,
     showDevButton: _prefs.getBool('showDevButton') ?? false,
-    stableFramesThreshold: _prefs.getInt('stableFramesThreshold') ?? 3,
-    motionThreshold: _prefs.getDouble('motionThreshold') ?? 0.025,
+    stableFramesThreshold: _prefs.getInt('stableFramesThreshold') ?? 5,
+    motionThreshold: _prefs.getDouble('motionThreshold') ?? 0.030,
   );
 
   Future<void> write(AppSettings s) async {
