@@ -110,8 +110,6 @@ class HomeScreen extends ConsumerWidget {
 
               const SizedBox(height: 28),
 
-              // ── Hızlı Erişim ──────────────────────────────────────────
-              // Büyük birincil kart — Çeviri (kamera + metin modlarını kapsar)
               _PrimaryQuickCard(
                     title: 'Çeviri',
                     subtitle: 'Kamera veya metin ile işaret dili çevirisi',
@@ -125,7 +123,6 @@ class HomeScreen extends ConsumerWidget {
 
               const SizedBox(height: 12),
 
-              // Sözlük — tam genişlik (daha ince ve açıklayıcı)
               _SecondaryQuickCard(
                     title: 'İşaret Sözlüğü',
                     subtitle: dictCount > 0
@@ -190,7 +187,6 @@ class _DailyWordCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
-              // ── Dekoratif arka plan daireleri ─────────────────────────────
               Positioned(
                 right: -24,
                 top: -24,
@@ -215,7 +211,6 @@ class _DailyWordCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // ── İçerik ──────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -404,8 +399,6 @@ class _ProgressBanner extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Büyük birincil eylem kartı
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _PrimaryQuickCard extends StatelessWidget {
   const _PrimaryQuickCard({
@@ -430,7 +423,6 @@ class _PrimaryQuickCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          // Koyu indigo/violet — mavi Günün İŞareti kartından net ayrışır.
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -449,7 +441,6 @@ class _PrimaryQuickCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
-              // ── Dekoratif arka plan daireleri ─────────────────────────────
               Positioned(
                 right: -20,
                 top: -20,
@@ -474,7 +465,6 @@ class _PrimaryQuickCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // ── İçerik ──────────────────────────────────────────────────
               Row(
                 children: [
                   Expanded(
@@ -571,8 +561,6 @@ class _PrimaryQuickCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// İkincil kart
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SecondaryQuickCard extends StatelessWidget {

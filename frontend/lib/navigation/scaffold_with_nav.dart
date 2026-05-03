@@ -13,7 +13,6 @@ class ScaffoldWithNav extends ConsumerWidget {
 
   const ScaffoldWithNav({super.key, required this.child});
 
-  // Rota tabanlı indeks (0-4) — bottom nav için.
   static const _tabRoutes = [
     '/home',
     '/dictionary',
@@ -34,7 +33,6 @@ class ScaffoldWithNav extends ConsumerWidget {
 
   void _onTap(BuildContext context, WidgetRef ref, int index) {
     if (index == 2) {
-      // Kamera butonu: her zaman İşaret Oku (tab 0) sekmesine döner.
       ref.read(translationTabProvider.notifier).setTab(0);
       context.go('/translation?tab=0');
     } else {
@@ -95,7 +93,6 @@ class ScaffoldWithNav extends ConsumerWidget {
             clipBehavior: Clip.none,
             alignment: Alignment.topCenter,
             children: [
-              // ── 4 normal tab ──────────────────────────────────────────
               Row(
                 children: [
                   Expanded(
@@ -114,7 +111,6 @@ class ScaffoldWithNav extends ConsumerWidget {
                       onTap: () => _onTap(context, ref, 1),
                     ),
                   ),
-                  // Merkez kamera butonu için boşluk
                   const Expanded(child: SizedBox()),
                   Expanded(
                     child: _NavItem(
@@ -135,7 +131,6 @@ class ScaffoldWithNav extends ConsumerWidget {
                 ],
               ),
 
-              // ── Merkez yükseltilmiş kamera butonu ────────────────────
               Positioned(
                 top: -(bottomPadding > 0 ? 24.0 : 28.0),
                 child: GestureDetector(

@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 
@@ -16,117 +15,11 @@ import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
-import '../features/auth/presentation/providers/auth_provider.dart';
 import 'scaffold_with_nav.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
-// Sadece giriş yapmış kullanıcılara açık rotalar
-const _authRequiredRoutes = {'/bookmarks', '/profile/edit'};
-
-GoRouter createRouter(WidgetRef ref) => GoRouter(
-  initialLocation: '/splash',
-  navigatorKey: _rootNavigatorKey,
-  redirect: (context, state) {
-    final authState = ref.read(authProvider);
-    final path = state.matchedLocation;
-
-    // Auth yükleniyor → bekle
-    if (authState.status == AuthStatus.loading) return null;
-
-    // Giriş gerektiren sayfa → misafirler login'e
-    if (_authRequiredRoutes.contains(path) && !authState.isAuthenticated) {
-      return '/login';
-    }
-    return null;
-  },
-  routes: [
-    // ── Giriş akışı (bottom nav yok) ─────────────────────────────────
-    GoRoute(
-      path: '/splash',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: '/onboarding',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const OnboardingScreen(),
-    ),
-
-    // ── Shell: bottom nav taşıyan 5 tab ──────────────────────────────
-    ShellRoute(
-      navigatorKey: _shellNavigatorKey,
-      builder: (context, state, child) => ScaffoldWithNav(child: child),
-      routes: [
-        GoRoute(path: '/home',        builder: (context, _) => const HomeScreen()),
-        GoRoute(path: '/dictionary',  builder: (context, _) => const DictionaryScreen()),
-        GoRoute(
-          path: '/translation',
-          builder: (context, state) {
-            final tab = int.tryParse(
-                  state.uri.queryParameters['tab'] ?? '',
-                ) ??
-                0;
-            return TranslationScreen(initialTab: tab);
-          },
-        ),
-        GoRoute(path: '/history',     builder: (context, _) => const HistoryScreen()),
-        GoRoute(path: '/profile',     builder: (context, _) => const ProfileScreen()),
-      ],
-    ),
-
-    // ── Tam ekran rotalar (bottom nav yok) ───────────────────────────
-    GoRoute(
-      path: '/dictionary/:id',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) {
-        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
-        return DictionaryDetailScreen(wordId: id);
-      },
-    ),
-
-    // ── Kaydedilenler (giriş gerekli) ────────────────────────────────
-    GoRoute(
-      path: '/bookmarks',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const BookmarksScreen(),
-    ),
-
-    // ── Profil düzenle (giriş gerekli) ───────────────────────────────
-    GoRoute(
-      path: '/profile/edit',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ProfileEditScreen(),
-    ),
-
-    // ── Ayarlar ──────────────────────────────────────────────────────
-    GoRoute(
-      path: '/settings',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const SettingsScreen(),
-    ),
-
-    // ── Auth rotaları ─────────────────────────────────────────────────
-    GoRoute(
-      path: '/login',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: '/register',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const RegisterScreen(),
-    ),
-    GoRoute(
-      path: '/forgot-password',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const ForgotPasswordScreen(),
-    ),
-  ],
-);
-
-// Riverpod dışı kullanım için basit router (main.dart'ta override edilebilir)
 final router = GoRouter(
   initialLocation: '/splash',
   navigatorKey: _rootNavigatorKey,
@@ -172,10 +65,6 @@ final router = GoRouter(
     GoRoute(
       path: '/bookmarks',
       parentNavigatorKey: _rootNavigatorKey,
-      redirect: (context, state) {
-        // Guard context'ten auth okuyamayız, BookmarksScreen kendi içinde handle eder
-        return null;
-      },
       builder: (context, state) => const BookmarksScreen(),
     ),
     GoRoute(
