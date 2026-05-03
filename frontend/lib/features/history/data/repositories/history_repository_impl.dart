@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/history_item.dart';
+import '../../domain/entities/history_item.dart' show HistoryItem, HistoryItemType;
 import '../../domain/repositories/history_repository.dart';
 import '../datasources/history_api_datasource.dart';
 
@@ -17,7 +17,8 @@ class HistoryRepositoryImpl implements HistoryRepository {
       _datasource.fetchHistory(offset: offset, limit: limit);
 
   @override
-  Future<HistoryItem> addHistory(String text) => _datasource.addHistory(text);
+  Future<HistoryItem> addHistory(String text, {HistoryItemType type = HistoryItemType.recognition}) =>
+      _datasource.addHistory(text, type: type);
 
   @override
   Future<void> deleteHistory(String id) => _datasource.deleteHistory(id);

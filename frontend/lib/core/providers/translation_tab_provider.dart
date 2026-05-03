@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// TranslationScreen'deki aktif sekme (0=İşaret Oku, 1=İşaret Anlat).
+/// TranslationScreen'deki aktif sekme (0=İşaretten Çeviri, 1=Sesten Çeviri).
 /// ScaffoldWithNav swipe sistemi ile TranslationScreen arasında paylaşılır.
 final translationTabProvider =
     NotifierProvider<_TranslationTabNotifier, int>(_TranslationTabNotifier.new);

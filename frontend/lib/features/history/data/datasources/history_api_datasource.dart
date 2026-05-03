@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_client.dart';
-import '../../domain/entities/history_item.dart';
+import '../../domain/entities/history_item.dart' show HistoryItem, HistoryItemType;
 
 final historyDatasourceProvider = Provider((ref) => HistoryApiDatasource(ref));
 
@@ -16,8 +16,13 @@ class HistoryApiDatasource {
     return list.map(HistoryItem.fromJson).toList();
   }
 
-  Future<HistoryItem> addHistory(String text) async {
-    final res = await _ref.apiPost('/api/history', body: {'text': text});
+  Future<HistoryItem> addHistory(String text, {HistoryItemType type = HistoryItemType.recognition}) async {
+    final typeStr = switch (type) {
+      HistoryItemType.dictionary => 'DICTIONARY',
+      HistoryItemType.translation => 'TRANSLATION',
+      _ => 'RECOGNITION',
+    };
+    final res = await _ref.apiPost('/api/history', body: {'text': text, 'type': typeStr});
     if (res.statusCode != 201) throw Exception('Ekleme başarısız');
     return HistoryItem.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }

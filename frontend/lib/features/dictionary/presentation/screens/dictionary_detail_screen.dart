@@ -9,6 +9,8 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../bookmarks/presentation/providers/bookmarks_provider.dart';
+import '../../../history/domain/entities/history_item.dart' show HistoryItemType;
+import '../../../history/presentation/providers/history_provider.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../data/repositories/dictionary_repository_impl.dart';
 import '../../domain/entities/word_detail.dart';
@@ -45,6 +47,17 @@ class DictionaryDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_wordDetailProvider(wordId));
+
+    ref.listen(_wordDetailProvider(wordId), (prev, next) {
+      if (prev is! AsyncData<WordDetail> && next is AsyncData<WordDetail>) {
+        if (ref.read(authProvider).isAuthenticated) {
+          ref.read(historyProvider.notifier).add(
+            next.value.word,
+            type: HistoryItemType.dictionary,
+          );
+        }
+      }
+    });
 
     return async.when(
       loading: () => Scaffold(
@@ -128,8 +141,6 @@ class _DetailBody extends ConsumerWidget {
                                 color: AppTheme.textPrimary,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            _LetterBadge(letter: word.letter),
                           ],
                         ),
                       ),
@@ -602,30 +613,6 @@ class _CellularBlockPlaceholder extends StatelessWidget {
             style: TextStyle(color: Colors.white38, fontSize: 11),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _LetterBadge extends StatelessWidget {
-  const _LetterBadge({required this.letter});
-  final String letter;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryBlueTint,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        letter,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: AppTheme.primaryBlue,
-        ),
       ),
     );
   }
