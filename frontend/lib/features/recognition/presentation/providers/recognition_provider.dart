@@ -7,6 +7,7 @@ import '../../../../../core/providers/camera_lifecycle_provider.dart';
 import '../../../../../core/providers/label_provider.dart';
 import '../../../../../core/providers/tts_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../history/domain/entities/history_item.dart' show HistoryItemType;
 import '../../../history/presentation/providers/history_provider.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../domain/entities/inference_result.dart';
@@ -188,7 +189,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
           }
           if (!settings.zeroDataMode &&
               ref.read(authProvider).isAuthenticated) {
-            ref.read(historyProvider.notifier).add(word);
+            ref.read(historyProvider.notifier).add(word, type: HistoryItemType.recognition);
           }
           _scheduleClear();
         } else {

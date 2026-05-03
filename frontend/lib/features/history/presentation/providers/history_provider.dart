@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/sentinel.dart';
 import '../../data/repositories/history_repository_impl.dart';
-import '../../domain/entities/history_item.dart';
+import '../../domain/entities/history_item.dart' show HistoryItem, HistoryItemType;
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,12 +94,11 @@ class HistoryNotifier extends Notifier<HistoryState> {
     }
   }
 
-  /// Yeni kelime/cümle ekle — recognition provider'dan çağrılır.
-  Future<void> add(String text) async {
+  Future<void> add(String text, {HistoryItemType type = HistoryItemType.recognition}) async {
     if (text.trim().isEmpty) return;
     try {
       final repo = ref.read(historyRepositoryProvider);
-      final item = await repo.addHistory(text.trim());
+      final item = await repo.addHistory(text.trim(), type: type);
       _offset++;
       state = state.copyWith(items: [item, ...state.items]);
     } catch (e) {

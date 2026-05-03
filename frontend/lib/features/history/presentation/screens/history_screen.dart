@@ -10,6 +10,19 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/history_item.dart';
 import '../providers/history_provider.dart';
 
+extension _TypeLabel on HistoryItemType {
+  String get label => switch (this) {
+        HistoryItemType.recognition => 'Tanıma',
+        HistoryItemType.dictionary => 'Sözlük',
+        HistoryItemType.translation => 'Çeviri',
+      };
+  IconData get icon => switch (this) {
+        HistoryItemType.recognition => Icons.videocam_rounded,
+        HistoryItemType.dictionary => Icons.menu_book_rounded,
+        HistoryItemType.translation => Icons.sign_language_rounded,
+      };
+}
+
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
@@ -19,6 +32,7 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   final TextEditingController _search = TextEditingController();
+  HistoryItemType? _selectedType; // null = Tümü
 
   @override
   void dispose() {
@@ -32,11 +46,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final history = ref.watch(historyProvider);
 
     final q = TurkishNormalizer.trLower(_search.text.trim());
-    final filtered = q.isEmpty
-        ? history.items
-        : history.items
-            .where((i) => TurkishNormalizer.trLower(i.text).contains(q))
-            .toList();
+    final filtered = history.items.where((i) {
+      if (_selectedType != null && i.type != _selectedType) return false;
+      if (q.isNotEmpty && !TurkishNormalizer.trLower(i.text).contains(q)) return false;
+      return true;
+    }).toList();
 
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark
@@ -82,6 +96,34 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ],
               ),
             ).animate().fadeIn(duration: 300.ms),
+
+            const SizedBox(height: 12),
+
+            // ── Filtre chip'leri ─────────────────────────────────────────
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: 'Tümü',
+                    icon: Icons.list_rounded,
+                    selected: _selectedType == null,
+                    onTap: () => setState(() => _selectedType = null),
+                  ),
+                  const SizedBox(width: 8),
+                  ...HistoryItemType.values.map((t) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _FilterChip(
+                      label: t.label,
+                      icon: t.icon,
+                      selected: _selectedType == t,
+                      onTap: () => setState(() => _selectedType = t),
+                    ),
+                  )),
+                ],
+              ),
+            ).animate().fadeIn(delay: 80.ms, duration: 300.ms),
 
             const SizedBox(height: 8),
 
@@ -156,7 +198,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               : _HistoryList(
                                   items: filtered,
                                   isLoadingMore: history.isLoadingMore,
-                                  hasMore: history.hasMore && _search.text.isEmpty,
+                                  hasMore: history.hasMore && _search.text.isEmpty && _selectedType == null,
                                   onDelete: (id) => ref
                                       .read(historyProvider.notifier)
                                       .delete(id),
@@ -303,10 +345,15 @@ class _HistoryCard extends StatelessWidget {
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 3),
-          child: Text(
-            timeStr,
-            style: const TextStyle(
-                fontSize: 12, color: AppTheme.textMuted),
+          child: Row(
+            children: [
+              Icon(item.type.icon, size: 12, color: AppTheme.textMuted),
+              const SizedBox(width: 4),
+              Text(
+                timeStr,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+              ),
+            ],
           ),
         ),
         trailing: IconButton(
@@ -470,6 +517,59 @@ class _IconBtn extends StatelessWidget {
             border: Border.all(color: AppTheme.borderColor),
           ),
           child: Icon(icon, size: 18, color: AppTheme.midGrey),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.primaryBlue : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppTheme.primaryBlue : AppTheme.borderColor,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: selected ? Colors.white : AppTheme.midGrey,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : AppTheme.midGrey,
+              ),
+            ),
+          ],
         ),
       ),
     );
