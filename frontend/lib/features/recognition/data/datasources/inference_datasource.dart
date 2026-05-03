@@ -107,6 +107,8 @@ class InferenceDatasource {
     if (buffer.length < RecognitionConstants.windowSize) {
       final result = List<List<double>>.from(buffer);
       final lastFrame = buffer.last;
+      // Aynı lastFrame referansı birden fazla ekleniyor.
+      // LandmarkNormalizer.normalizeWindow her frame için kopya ürettiğinden güvenli.
       while (result.length < RecognitionConstants.windowSize) {
         result.add(lastFrame);
       }

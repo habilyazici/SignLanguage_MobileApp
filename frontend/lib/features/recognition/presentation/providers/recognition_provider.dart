@@ -18,7 +18,7 @@ export '../../domain/entities/recognition_state.dart'
 
 import 'recognition_repository_provider.dart';
 
-// Notifier provider
+// keepAlive: recognition pipeline navigasyon boyunca sürekli çalışmalı.
 final recognitionProvider =
     NotifierProvider<RecognitionNotifier, RecognitionState>(
       RecognitionNotifier.new,
@@ -128,7 +128,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     return const RecognitionState();
   }
 
-  // Inference sonucu işleme — smoothing + TTS
+  // ── Inference sonucu işleme — smoothing + TTS ─────────────────────────────
 
   void _onInferenceResult(InferenceResult result) {
     // Sentinel: tespit yok / buffer temizlendi → ekranı sıfırla

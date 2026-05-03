@@ -33,7 +33,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   final MlPipelineDatasource _ml;
   final InferenceDatasource _inference;
 
-  // ── Streams
+  // ── Streams ─────────────────────────────────────────────────────────────────
   final _cameraCtrl = StreamController<CameraController?>.broadcast();
   final _inferenceCtrl = StreamController<InferenceResult>.broadcast();
   final _landmarkCtrl = StreamController<LandmarkDevData>.broadcast();
@@ -45,9 +45,11 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   @override
   Stream<LandmarkDevData> get landmarkStream => _landmarkCtrl.stream;
 
-  // ── Çalışma zamanı durumu
+  // ── Çalışma zamanı durumu ────────────────────────────────────────────────────
   final List<(int, List<double>)> _timedBuffer = [];
+  /// Yalnızca kDebugMode log bloklarında okunur; production'da anlamsız.
   int _frameCounter = 0;
+  /// Yalnızca kDebugMode log bloklarında okunur; production'da anlamsız.
   int _resultCounter = 0;
   bool _isInferring = false;
   List<double>? _prevFrame;
@@ -172,8 +174,6 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
       (e) => nowMs - e.$1 > RecognitionConstants.windowMs,
     );
 
-    // Kare logu: Her 150 sonuçta bir durum bas.
-    final bool doLog = (_resultCounter % 150 == 0);
     bool shouldInfer = false;
 
     // Developer modu landmark stream'i
@@ -195,7 +195,8 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
         _noDetectionTimer = null;
       }
 
-      if (doLog && kDebugMode) {
+      // Kare durum logu: kDebugMode'da her 300 sonuçta bir (~60 saniye) bas.
+      if (kDebugMode && _resultCounter % 300 == 0) {
         debugPrint(
           '📊 [Durum] Kare=$_frameCounter | Buf=${_timedBuffer.length}',
         );
@@ -259,9 +260,9 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
       final frames = _timedBuffer.map((e) => e.$2).toList();
       final result = await _inference.run(frames);
       if (result != null) {
-        // Logları seyrelt: Yaklaşık her 2-3 saniyede bir veya çok yüksek skorlarda bas
+        // Yüksek güvenli tahmini her zaman, periyodik durum logunu ~40 saniyede bir bas.
         if (kDebugMode &&
-            (_frameCounter % 50 == 0 || result.confidence > 0.95)) {
+            (_frameCounter % 200 == 0 || result.confidence > 0.98)) {
           debugPrint(
             '🧠 Zeka → [${result.classIndex}] %${(result.confidence * 100).toStringAsFixed(0)}',
           );

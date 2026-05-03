@@ -130,7 +130,7 @@ class RecognitionScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      if (state.isError) _ErrorOverlay(),
+                      if (state.isError) const _ErrorOverlay(),
                     ],
                   ),
                 ),
@@ -189,7 +189,6 @@ class RecognitionScreen extends ConsumerWidget {
   }
 }
 
-// Top Header kaldırıldı.
 
 class _ResultPanel extends StatelessWidget {
   const _ResultPanel({
@@ -255,6 +254,8 @@ class _ResultPanel extends StatelessWidget {
 }
 
 class _ErrorOverlay extends StatelessWidget {
+  const _ErrorOverlay();
+
   @override
   Widget build(BuildContext context) {
     return Container(

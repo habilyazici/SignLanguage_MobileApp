@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 import 'dart:math' show min;
 import 'package:camera/camera.dart';
@@ -51,8 +52,8 @@ class MlPipelineDatasource {
   int _poseFrameCount = 0;
   int _currentPoseEvery = RecognitionConstants.poseEvery;
 
-  // Son 8 frame latency ortalaması — adaptif pose için.
-  final List<int> _recentLatencies = [];
+  // Son 8 frame latency ortalaması — adaptif pose frekansı için.
+  final _recentLatencies = Queue<int>();
   static const int _latencyWindow = 8;
 
   bool _handBusy = false;
@@ -147,7 +148,7 @@ class MlPipelineDatasource {
       // ── Adaptif pose frekansı: latency yüksekse pose daha seyrek çalışır ──
       _recentLatencies.add(sw.elapsedMilliseconds);
       if (_recentLatencies.length > _latencyWindow) {
-        _recentLatencies.removeAt(0);
+        _recentLatencies.removeFirst(); // Queue: O(1) — List.removeAt(0)'dan daha doğru
       }
       if (_recentLatencies.length == _latencyWindow) {
         final avg = _recentLatencies.reduce((a, b) => a + b) ~/ _latencyWindow;
@@ -352,9 +353,9 @@ class MlPipelineDatasource {
         double sx = (lm.x as num).toDouble();
         double sy = (lm.y as num).toDouble();
         // hand_detection koordinatları normalize [0,1] döner; piksel aralığına çevir.
-        // Eşik 1.05: tracking artifact'larında ufak taşma (1.01 gibi) varsa da
-        // normalize kabul edilir, >= 1.05 ise zaten piksel koordinatı olarak gelmiştir.
-        if (sx <= 1.05) {
+        // Eşik (handCoordNormThreshold): tracking artifact'larında ufak taşma (1.01 gibi)
+        // normalize kabul edilir; bu eşiğin üzerindekilerin piksel koordinatı olarak geldiği kabul edilir.
+        if (sx <= RecognitionConstants.handCoordNormThreshold) {
           sx *= imageWidth;
           sy *= imageHeight;
         }
@@ -412,7 +413,7 @@ class MlPipelineDatasource {
       out.setRange(r * w, (r + 1) * w, yPlane.bytes, r * yPlane.bytesPerRow);
     }
 
-    // 2. UV Interleaving (The heavy part - now deferred to processing phase)
+    // 2. UV Birleştirme (üretilen veriyi işleme aşamasına ertele)
     int uvOff = w * h;
     for (int r = 0; r < h ~/ 2; r++) {
       final int vRowBase = r * vPlane.bytesPerRow;

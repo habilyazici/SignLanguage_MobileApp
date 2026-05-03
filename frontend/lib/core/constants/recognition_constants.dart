@@ -58,4 +58,12 @@ abstract final class RecognitionConstants {
   /// Düşük tutmak önemli: hareket durduktan sonra el sabit poza girince
   /// model o pozu yüksek güvenle yanlış bir kelimeye atayabiliyor.
   static const int motionWindowMs = 500;
+
+  // ── Koordinat ayrımı ─────────────────────────────────────────────────────
+  /// hand_detection kütüphanesinden gelen koordinatın normalize [0,1] mi
+  /// yoksa piksel değeri mi olduğunu ayırt etmek için eşik.
+  /// Bu değerin altı → normalize, üstü → piksel koordinatı.
+  /// Tracking artifact'larında küçük taşmalar (1.01 gibi) hâlâ normalize
+  /// sayılır; 1.05 üzerindeki değerler piksel koordinatı kabul edilir.
+  static const double handCoordNormThreshold = 1.05;
 }

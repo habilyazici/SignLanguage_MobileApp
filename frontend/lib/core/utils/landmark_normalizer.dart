@@ -10,8 +10,6 @@
 ///   `[42..83]`  → Sol el  (21 nokta × x,y)
 ///   `[84..105]` → Pose üst vücut (11 nokta × x,y — seçili MediaPipe indeksleri: 0,2,5,7,8,11,12,13,14,15,16)
 
-library;
-
 class LandmarkNormalizer {
   // Sıfıra bölme hatasını engellemek için küçük sabit (Python'daki 1e-6 ile aynı)
   static const double _eps = 1e-6;
