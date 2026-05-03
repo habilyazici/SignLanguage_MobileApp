@@ -80,7 +80,9 @@ const server = app.listen(config.port, '0.0.0.0', () => {
   } else {
     console.log('CORS: tüm origin\'lere açık (development modu)');
   }
-  console.log(`Tunnel:  ngrok http --domain=reaffirm-visor-gazing.ngrok-free.dev ${config.port}`);
+  if (process.env['NODE_ENV'] !== 'production') {
+    console.log(`Tunnel:  ngrok http --domain=reaffirm-visor-gazing.ngrok-free.dev ${config.port}`);
+  }
 });
 
 server.on('error', (err) => {
