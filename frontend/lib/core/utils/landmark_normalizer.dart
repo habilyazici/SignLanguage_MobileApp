@@ -1,3 +1,5 @@
+library;
+
 /// HEAR ME OUT — Landmark Normalization
 ///
 /// Python'daki [model_training.py] `normalize_landmarks_pro` fonksiyonunun
