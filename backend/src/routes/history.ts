@@ -9,15 +9,26 @@ export const historyRouter = Router();
 
 historyRouter.use(requireAuth);
 
-const addSchema = z.object({ text: z.string().min(1).max(500) });
+const VALID_TYPES = ['RECOGNITION', 'DICTIONARY', 'TRANSLATION'] as const;
+type HistoryType = typeof VALID_TYPES[number];
 
-// GET /api/history?offset=0&limit=50
+const addSchema = z.object({
+  text: z.string().min(1).max(500),
+  type: z.enum(VALID_TYPES).default('RECOGNITION'),
+});
+
+// GET /api/history?offset=0&limit=50&type=RECOGNITION
 historyRouter.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
   const limit = Math.min(parseInt(String(req.query['limit'] ?? '50'), 10) || 50, 100);
   const offset = Math.max(parseInt(String(req.query['offset'] ?? '0'), 10) || 0, 0);
+  const typeParam = req.query['type'] as string | undefined;
+  const typeFilter = typeParam && (VALID_TYPES as readonly string[]).includes(typeParam)
+    ? typeParam as HistoryType
+    : undefined;
+
   try {
     const items = await prisma.history.findMany({
-      where: { userId: req.userId! },
+      where: { userId: req.userId!, ...(typeFilter ? { type: typeFilter } : {}) },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
@@ -36,7 +47,7 @@ historyRouter.post('/', async (req: AuthRequest, res: Response): Promise<void> =
 
   try {
     const item = await prisma.history.create({
-      data: { userId: req.userId!, text: parsed.data.text },
+      data: { userId: req.userId!, text: parsed.data.text, type: parsed.data.type },
     });
     res.status(201).json(item);
   } catch (err) {

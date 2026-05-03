@@ -33,15 +33,23 @@ model User {
   bookmarks    Bookmark[]
 }
 
+enum HistoryType {
+  RECOGNITION
+  DICTIONARY
+  TRANSLATION
+}
+
 model History {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   userId    String
   text      String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      HistoryType @default(RECOGNITION)
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
+  @@index([userId, type])
 }
 
 model PasswordResetToken {
