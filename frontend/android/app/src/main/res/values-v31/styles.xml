@@ -5,7 +5,8 @@
         <item name="android:windowFullscreen">false</item>
         <item name="android:windowDrawsSystemBarBackgrounds">false</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
-        <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
+        <item name="android:windowSplashScreenBackground">#0046AF</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#0046AF</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo_icon</item>
     </style>
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
