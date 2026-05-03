@@ -190,13 +190,7 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
               ref.read(authProvider).isAuthenticated) {
             ref.read(historyProvider.notifier).add(word);
           }
-          _clearTimer?.cancel();
-          _clearTimer = Timer(_clearDuration, () {
-            _lastShownWord = '';
-            _streak = 0;
-            _lastIdx = -1;
-            state = state.copyWith(predictedWord: '', confidenceScore: 0.0);
-          });
+          _scheduleClear();
         } else {
           state = state.copyWith(confidenceScore: maxScore);
         }
@@ -206,6 +200,17 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       // tam bunu tolere etmek için yapıldı. Streak yavaşça azalsın, hard-reset olmasın.
       if (_streak > 0) _streak--;
     }
+  }
+
+  void _scheduleClear() {
+    _clearTimer?.cancel();
+    _clearTimer = Timer(_clearDuration, () {
+      _clearTimer = null;
+      _lastShownWord = '';
+      _streak = 0;
+      _lastIdx = -1;
+      state = state.copyWith(predictedWord: '', confidenceScore: 0.0);
+    });
   }
 
   // Public API — ekran ve navigasyon katmanına açık
