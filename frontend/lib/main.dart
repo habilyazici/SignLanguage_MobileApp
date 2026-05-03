@@ -8,7 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'core/utils/label_mapper.dart';
 import 'core/data/repositories/label_repository_impl.dart';
 import 'core/providers/label_provider.dart';
-import 'navigation/app_router.dart';
+import 'navigation/app_router.dart' show routerProvider;
 import 'features/settings/presentation/providers/settings_provider.dart';
 
 void main() async {
@@ -54,7 +54,7 @@ class HearMeOutApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      routerConfig: router,
+      routerConfig: ref.watch(routerProvider),
       builder: (context, child) {
         final double scaleFactor = switch (textSize) {
           AppTextSize.standard => 1.0,

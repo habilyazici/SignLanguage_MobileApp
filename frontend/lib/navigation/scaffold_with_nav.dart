@@ -177,7 +177,7 @@ class ScaffoldWithNav extends ConsumerWidget {
 // Swipe navigasyonu — 6 sanal pozisyon
 //
 // Sanal indeks:
-//   0 = Anasayfa   1 = Sözlük   2 = İşaret Oku   3 = İşaret Anlat
+//   0 = Anasayfa   1 = Sözlük   2 = İşaretten Çeviri   3 = Sesten Çeviri
 //   4 = Geçmiş     5 = Profil
 //
 // Kamera ekranında (sanal 2 veya 3) dışarı çıkan swipe'lar çift kaydırma
@@ -214,8 +214,8 @@ class _SwipeNavWrapperState extends ConsumerState<_SwipeNavWrapper> {
   String _targetLabel(int virtual) => switch (virtual) {
     0 => 'Anasayfa',
     1 => 'Sözlük',
-    2 => 'İşaret Oku',
-    3 => 'İşaret Anlat',
+    2 => 'İşaretten Çeviri',
+    3 => 'Sesten Çeviri',
     4 => 'Geçmiş',
     _ => 'Profil',
   };
