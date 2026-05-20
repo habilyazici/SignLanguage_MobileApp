@@ -226,16 +226,24 @@ class _ResultPanel extends StatelessWidget {
         children: [
           Expanded(
             child: Center(
-              child: hasWords
-                  ? _SentenceRow(sentence: state.sentence, isDark: isDark)
-                  : Text(
-                      'Kameraya ellerinizi gösterin',
-                      style: TextStyle(
-                        color: isDark ? Colors.white24 : Colors.black26,
-                        fontSize: 15,
-                        fontStyle: FontStyle.italic,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                child: hasWords
+                    ? _SentenceRow(
+                        key: const ValueKey('sentence'),
+                        sentence: state.sentence,
+                        isDark: isDark,
+                      )
+                    : Text(
+                        key: const ValueKey('empty'),
+                        'Kameraya ellerinizi gösterin',
+                        style: TextStyle(
+                          color: isDark ? Colors.white24 : Colors.black26,
+                          fontSize: 15,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -662,7 +670,7 @@ class _ActionBtn extends StatelessWidget {
 }
 
 class _SentenceRow extends StatelessWidget {
-  const _SentenceRow({required this.sentence, required this.isDark});
+  const _SentenceRow({super.key, required this.sentence, required this.isDark});
   final List<String> sentence;
   final bool isDark;
 

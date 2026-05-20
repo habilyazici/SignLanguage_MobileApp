@@ -9,34 +9,50 @@ class SettingsLocalDatasource {
 
   final SharedPreferences _prefs;
 
-  AppSettings read() => AppSettings(
-    themeMode: _enumVal(ThemeMode.values, 'themeMode', ThemeMode.system),
-    textSize: _enumVal(AppTextSize.values, 'textSize', AppTextSize.standard),
-    leftHandMode: _prefs.getBool('leftHandMode') ?? false,
-    confidenceLevel: _enumVal(
-      ConfidenceLevel.values,
-      'confidenceLevel',
-      ConfidenceLevel.medium,
-    ),
-    fpsPreference: _enumVal(
-      FpsPreference.values,
-      'fpsPreference',
-      FpsPreference.performance,
-    ),
-    cellularVideoDisabled: _prefs.getBool('cellularVideoDisabled') ?? false,
-    videoQuality: _enumVal(
-      VideoQuality.values,
-      'videoQuality',
-      VideoQuality.high,
-    ),
-    zeroDataMode: _prefs.getBool('zeroDataMode') ?? false,
-    ttsEnabled: _prefs.getBool('ttsEnabled') ?? true,
-    sttEnabled: _prefs.getBool('sttEnabled') ?? true,
-    devMode: _prefs.getBool('devMode') ?? false,
-    showDevButton: _prefs.getBool('showDevButton') ?? false,
-    stableFramesThreshold: _prefs.getInt('stableFramesThreshold') ?? 5,
-    motionThreshold: _prefs.getDouble('motionThreshold') ?? 0.030,
-  );
+  // AI parametrelerinin default'ları değiştiğinde bu sayıyı artır.
+  // Uygulama eski versiyonu görünce AI ayarlarını sıfırlar; diğer ayarlar korunur.
+  static const int _settingsVersion = 2;
+
+  void _migrate() {
+    final saved = _prefs.getInt('settingsVersion') ?? 1;
+    if (saved >= _settingsVersion) return;
+    _prefs.remove('confidenceLevel');
+    _prefs.remove('stableFramesThreshold');
+    _prefs.remove('motionThreshold');
+    _prefs.setInt('settingsVersion', _settingsVersion);
+  }
+
+  AppSettings read() {
+    _migrate();
+    return AppSettings(
+      themeMode: _enumVal(ThemeMode.values, 'themeMode', ThemeMode.system),
+      textSize: _enumVal(AppTextSize.values, 'textSize', AppTextSize.standard),
+      leftHandMode: _prefs.getBool('leftHandMode') ?? false,
+      confidenceLevel: _enumVal(
+        ConfidenceLevel.values,
+        'confidenceLevel',
+        ConfidenceLevel.low,
+      ),
+      fpsPreference: _enumVal(
+        FpsPreference.values,
+        'fpsPreference',
+        FpsPreference.performance,
+      ),
+      cellularVideoDisabled: _prefs.getBool('cellularVideoDisabled') ?? false,
+      videoQuality: _enumVal(
+        VideoQuality.values,
+        'videoQuality',
+        VideoQuality.high,
+      ),
+      zeroDataMode: _prefs.getBool('zeroDataMode') ?? false,
+      ttsEnabled: _prefs.getBool('ttsEnabled') ?? true,
+      sttEnabled: _prefs.getBool('sttEnabled') ?? true,
+      devMode: _prefs.getBool('devMode') ?? false,
+      showDevButton: _prefs.getBool('showDevButton') ?? false,
+      stableFramesThreshold: _prefs.getInt('stableFramesThreshold') ?? 3,
+      motionThreshold: _prefs.getDouble('motionThreshold') ?? 0.020,
+    );
+  }
 
   Future<void> write(AppSettings s) async {
     await _prefs.setInt('themeMode', s.themeMode.index);

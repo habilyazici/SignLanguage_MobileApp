@@ -28,8 +28,8 @@ abstract final class RecognitionConstants {
   // ── Inference hız kontrolü ────────────────────────────────────────────────
   /// İki ardışık inference arasındaki minimum süre (ms).
   /// Frame sayısına değil zamana göre throttle — cihaz hızından bağımsız.
-  /// 150ms = saniyede max ~6.7 inference; stableFrames=4 ile onay ~600ms.
-  static const int inferIntervalMs = 150;
+  /// 350ms = saniyede max ~2.9 inference; stableFrames=3 ile onay ~1050ms.
+  static const int inferIntervalMs = 350;
 
   // ── Temporal smoothing ────────────────────────────────────────────────────
   /// Aynı sınıfın kaç ardışık inference'ta görülmesi gerektiği (dok. değeri).
