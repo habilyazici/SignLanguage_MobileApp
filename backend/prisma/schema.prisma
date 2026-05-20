@@ -3,6 +3,8 @@ generator client {
   output   = "../generated/prisma"
 }
 
+// Bağlantı URL'i prisma.config.ts üzerinden sağlanır (Prisma 6 özelliği).
+// Standart "url = env(...)" satırı kasıtlı olarak burada yok.
 datasource db {
   provider = "postgresql"
 }

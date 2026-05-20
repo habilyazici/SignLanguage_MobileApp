@@ -33,7 +33,7 @@ function signToken(userId: string): string {
 authRouter.post('/register', async (req: Request, res: Response): Promise<void> => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: 'Gecersiz veri.', details: parsed.error.flatten() });
+    res.status(400).json({ error: 'Geçersiz veri.', details: parsed.error.flatten() });
     return;
   }
 
@@ -42,7 +42,7 @@ authRouter.post('/register', async (req: Request, res: Response): Promise<void> 
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      res.status(409).json({ error: 'Bu e-posta zaten kayitli.' });
+      res.status(409).json({ error: 'Bu e-posta zaten kayıtlı.' });
       return;
     }
 
@@ -55,14 +55,14 @@ authRouter.post('/register', async (req: Request, res: Response): Promise<void> 
     });
   } catch (err) {
     console.error('[POST /auth/register]:', err);
-    res.status(500).json({ error: 'Sunucu hatasi.' });
+    res.status(500).json({ error: 'Sunucu hatası.' });
   }
 });
 
 authRouter.post('/login', async (req: Request, res: Response): Promise<void> => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: 'Gecersiz veri.' });
+    res.status(400).json({ error: 'Geçersiz veri.' });
     return;
   }
 
@@ -71,13 +71,13 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<void> => 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      res.status(401).json({ error: 'E-posta veya sifre hatali.' });
+      res.status(401).json({ error: 'E-posta veya şifre hatalı.' });
       return;
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      res.status(401).json({ error: 'E-posta veya sifre hatali.' });
+      res.status(401).json({ error: 'E-posta veya şifre hatalı.' });
       return;
     }
 
@@ -87,7 +87,7 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<void> => 
     });
   } catch (err) {
     console.error('[POST /auth/login]:', err);
-    res.status(500).json({ error: 'Sunucu hatasi.' });
+    res.status(500).json({ error: 'Sunucu hatası.' });
   }
 });
 
@@ -96,7 +96,7 @@ const forgotPasswordSchema = z.object({ email: z.string().email() });
 authRouter.post('/forgot-password', async (req: Request, res: Response): Promise<void> => {
   const parsed = forgotPasswordSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: 'Gecersiz e-posta.' });
+    res.status(400).json({ error: 'Geçersiz e-posta.' });
     return;
   }
 
@@ -124,7 +124,7 @@ authRouter.post('/forgot-password', async (req: Request, res: Response): Promise
 
       await sendPasswordResetEmail(email, code);
     } catch (err) {
-      console.error('Sifre sifirlama hatasi:', err);
+      console.error('Şifre sıfırlama hatası:', err);
     }
   })();
 });
@@ -138,7 +138,7 @@ const resetPasswordSchema = z.object({
 authRouter.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
   const parsed = resetPasswordSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: 'Gecersiz veri.' });
+    res.status(400).json({ error: 'Geçersiz veri.' });
     return;
   }
 
@@ -151,26 +151,26 @@ authRouter.post('/reset-password', async (req: Request, res: Response): Promise<
     });
 
     if (!token) {
-      res.status(400).json({ error: 'Gecersiz veya suresi dolmus kod.' });
+      res.status(400).json({ error: 'Geçersiz veya süresi dolmuş kod.' });
       return;
     }
 
     const valid = await bcrypt.compare(code, token.codeHash);
     if (!valid) {
-      res.status(400).json({ error: 'Kod hatali.' });
+      res.status(400).json({ error: 'Kod hatalı.' });
       return;
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await prisma.$transaction([
-      prisma.passwordResetToken.update({ where: { id: token.id }, data: { used: true } }),
+      prisma.passwordResetToken.delete({ where: { id: token.id } }),
       prisma.user.update({ where: { email }, data: { passwordHash } }),
     ]);
 
-    res.json({ message: 'Sifre guncellendi.' });
+    res.json({ message: 'Şifre güncellendi.' });
   } catch (err) {
     console.error('[POST /auth/reset-password]:', err);
-    res.status(500).json({ error: 'Sunucu hatasi.' });
+    res.status(500).json({ error: 'Sunucu hatası.' });
   }
 });
 
@@ -180,29 +180,29 @@ const updateProfileSchema = z.object({
   newPassword: z.string().min(6).optional(),
 }).refine(
   data => !data.newPassword || !!data.currentPassword,
-  { message: 'Yeni sifre icin mevcut sifre gerekli.' },
+  { message: 'Yeni şifre için mevcut şifre gerekli.' },
 );
 
 authRouter.put('/profile', requireAuth, async (req: AuthRequest, res: Response): Promise<void> => {
   const parsed = updateProfileSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: 'Gecersiz veri.', details: parsed.error.flatten() });
+    res.status(400).json({ error: 'Geçersiz veri.', details: parsed.error.flatten() });
     return;
   }
 
   const { name, currentPassword, newPassword } = parsed.data;
   if (!name && !newPassword) {
-    res.status(400).json({ error: 'Guncelleme icin en az bir alan gerekli.' });
+    res.status(400).json({ error: 'Güncelleme için en az bir alan gerekli.' });
     return;
   }
 
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId! } });
-    if (!user) { res.status(404).json({ error: 'Kullanici bulunamadi.' }); return; }
+    if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı.' }); return; }
 
     if (newPassword) {
       const valid = await bcrypt.compare(currentPassword!, user.passwordHash);
-      if (!valid) { res.status(400).json({ error: 'Mevcut sifre hatali.' }); return; }
+      if (!valid) { res.status(400).json({ error: 'Mevcut şifre hatalı.' }); return; }
     }
 
     const updated = await prisma.user.update({
@@ -216,7 +216,7 @@ authRouter.put('/profile', requireAuth, async (req: AuthRequest, res: Response):
     res.json({ id: updated.id, name: updated.name, email: updated.email, avatarUrl: updated.avatarUrl });
   } catch (err) {
     console.error('[PUT /auth/profile]:', err);
-    res.status(500).json({ error: 'Sunucu hatasi.' });
+    res.status(500).json({ error: 'Sunucu hatası.' });
   }
 });
 
@@ -240,7 +240,7 @@ authRouter.post('/avatar', requireAuth, (req: AuthRequest, res: Response): void 
       if (existing?.avatarUrl) {
         const oldFile = path.basename(existing.avatarUrl);
         const oldPath = path.join(process.cwd(), 'uploads', 'avatars', oldFile);
-        try { fs.unlinkSync(oldPath); } catch (_) {}
+        try { await fs.promises.unlink(oldPath); } catch (_) {}
       }
 
       const updated = await prisma.user.update({
@@ -259,7 +259,7 @@ authRouter.post('/avatar', requireAuth, (req: AuthRequest, res: Response): void 
 authRouter.delete('/profile', requireAuth, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId! } });
-    if (!user) { res.status(404).json({ error: 'Kullanici bulunamadi.' }); return; }
+    if (!user) { res.status(404).json({ error: 'Kullanıcı bulunamadı.' }); return; }
 
     // History ve Bookmark kayıtları cascade ile otomatik silinir (schema.prisma).
     await prisma.user.delete({ where: { id: req.userId! } });
@@ -267,6 +267,6 @@ authRouter.delete('/profile', requireAuth, async (req: AuthRequest, res: Respons
     res.status(204).send();
   } catch (err) {
     console.error('[DELETE /auth/profile]:', err);
-    res.status(500).json({ error: 'Sunucu hatasi.' });
+    res.status(500).json({ error: 'Sunucu hatası.' });
   }
 });
