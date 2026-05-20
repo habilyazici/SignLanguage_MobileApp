@@ -48,10 +48,12 @@ String _errorMessage(Object e) {
   return 'Sunucuya bağlanılamadı.';
 }
 
-const _kTokenKey = 'auth_token';
-const _kNameKey = 'auth_name';
-const _kEmailKey = 'auth_email';
+const _kTokenKey  = 'auth_token';
+const _kNameKey   = 'auth_name';
+const _kEmailKey  = 'auth_email';
 const _kAvatarKey = 'auth_avatar';
+
+const _kAllKeys = [_kTokenKey, _kNameKey, _kEmailKey, _kAvatarKey];
 
 const _storage = FlutterSecureStorage(
   aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -317,10 +319,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> clearSession() async {
-    await _storage.delete(key: _kTokenKey);
-    await _storage.delete(key: _kNameKey);
-    await _storage.delete(key: _kEmailKey);
-    await _storage.delete(key: _kAvatarKey);
+    for (final key in _kAllKeys) {
+      await _storage.delete(key: key);
+    }
   }
 
   @override

@@ -87,9 +87,10 @@ class MlPipelineDatasource {
       _handDetectorIsolate = await HandDetectorIsolate.spawn();
       if (kDebugMode) debugPrint('✅ HandDetectorIsolate başlatıldı');
     } catch (e) {
-      _initFuture = null; // Hata durumunda korumayı sıfırla ki tekrar denenebilsin
+      _initFuture = null;
       rethrow;
     }
+    _initFuture = null;
   }
 
   bool get isReady => _poseDetector != null && _handDetectorIsolate != null;
