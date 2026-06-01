@@ -66,7 +66,7 @@ class AppSettings {
     this.themeMode = ThemeMode.light,
     this.textSize = AppTextSize.standard,
     this.leftHandMode = false,
-    this.confidenceLevel = ConfidenceLevel.low,
+    this.confidenceLevel = ConfidenceLevel.medium,
     this.fpsPreference = FpsPreference.performance,
     this.cellularVideoDisabled = false,
     this.videoQuality = VideoQuality.high,
@@ -75,8 +75,8 @@ class AppSettings {
     this.sttEnabled = true,
     this.devMode = false,
     this.showDevButton = false,
-    this.stableFramesThreshold = 3,
-    this.motionThreshold = 0.020,
+    this.stableFramesThreshold = 2,
+    this.motionThreshold = 0.030,
   });
 
   /// Confidence level'ı TFLite threshold değerine dönüştürür.
