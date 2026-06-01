@@ -55,6 +55,7 @@ class InferenceDatasource {
       _initFuture = null;
       rethrow;
     }
+    _initFuture = null;
   }
 
   /// [frames]: zaman damgasız ham feature vektörleri listesi.
