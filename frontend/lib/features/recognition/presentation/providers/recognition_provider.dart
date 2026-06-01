@@ -200,6 +200,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
           _sameWordTimer?.cancel();
           _sameWordTimer = Timer(_sameWordCooldown, () {
             _lastShownWord = '';
+            _streak = 0;
+            _lastIdx = -1;
             _sameWordTimer = null;
           });
           _scheduleClear();
