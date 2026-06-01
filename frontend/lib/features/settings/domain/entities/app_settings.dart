@@ -68,7 +68,7 @@ class AppSettings {
     this.themeMode = ThemeMode.light,
     this.textSize = AppTextSize.standard,
     this.leftHandMode = false,
-    this.confidenceLevel = ConfidenceLevel.low,
+    this.confidenceLevel = ConfidenceLevel.medium,
     this.fpsPreference = FpsPreference.performance,
     this.cellularVideoDisabled = false,
     this.videoQuality = VideoQuality.high,
