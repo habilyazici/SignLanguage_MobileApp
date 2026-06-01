@@ -294,7 +294,21 @@ class MlPipelineDatasource {
         yuv.dispose();
         return bgr;
       } else {
-        final bgra = cv.Mat.fromList(d.height, d.width, cv.MatType.CV_8UC4, d.planes[0].bytes);
+        // iOS BGRA satırları hizalama dolgusu içerebilir (bytesPerRow > width × 4).
+        // OpenCV Mat bunu bilmez — dolguyu soyarak sadece piksel verisini geç.
+        final int stride = d.planes[0].bytesPerRow;
+        final int rowBytes = d.width * 4;
+        final Uint8List src = d.planes[0].bytes;
+        final Uint8List pixels;
+        if (stride == rowBytes) {
+          pixels = src;
+        } else {
+          pixels = Uint8List(rowBytes * d.height);
+          for (int r = 0; r < d.height; r++) {
+            pixels.setRange(r * rowBytes, (r + 1) * rowBytes, src, r * stride);
+          }
+        }
+        final bgra = cv.Mat.fromList(d.height, d.width, cv.MatType.CV_8UC4, pixels);
         final bgr = cv.cvtColor(bgra, cv.COLOR_BGRA2BGR);
         bgra.dispose();
         return bgr;

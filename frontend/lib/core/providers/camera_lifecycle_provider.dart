@@ -17,10 +17,17 @@ class CameraActiveNotifier extends Notifier<bool> {
   /// STT gibi ses donanımı kullanan modüller bunu await edebilir.
   Completer<void>? _releaseCompleter;
 
+  /// Mevcut pause isteğinin donanımı tamamen serbest bırakması gerekip gerekmediği.
+  /// false → sadece stream durdurulur, controller canlı kalır (hızlı resume için).
+  /// true  → donanım tamamen serbest bırakılır (iOS STT / AVAudioSession için).
+  bool _releaseHardware = false;
+  bool get releaseHardware => _releaseHardware;
+
   @override
   bool build() => false;
 
-  void setActive({required bool active}) {
+  void setActive({required bool active, bool releaseHardware = false}) {
+    _releaseHardware = releaseHardware;
     if (!active && state) {
       // Kamera kapatılıyor — release sinyali hazırla
       _releaseCompleter = Completer<void>();

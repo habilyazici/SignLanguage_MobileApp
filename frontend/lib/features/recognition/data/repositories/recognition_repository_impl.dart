@@ -92,17 +92,19 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   // ── Kamera kontrolü ───────────────────────────────────────────────────────
 
   @override
-  Future<void> pauseCamera() async {
+  Future<void> pauseCamera({bool releaseHardware = false}) async {
     if (!_isStreaming) return;
     _isStreaming = false;
     _isPausing = true;
 
-    // UI'a hemen haber ver ki buildPreview() yaparken hata almasın
     _cameraCtrl.add(null);
-
-    // Önce stream'i durdur, sonra donanımı serbest bırak
     await _camera.stopStream();
-    await _camera.release();
+
+    if (releaseHardware) {
+      // Donanımı tamamen serbest bırak — iOS STT / AVAudioSession için gerekli.
+      await _camera.release();
+    }
+    // releaseHardware=false: controller canlı kalır, resume anında olur.
 
     _resetBuffer();
     _isPausing = false;
@@ -110,17 +112,17 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
 
   @override
   Future<void> resumeCamera() async {
-    // _isPausing: pause hâlâ devam ediyorsa resume'u blokla.
-    // Çağıran (recognition_provider) pause tamamlanınca tekrar dener.
     if (_isStreaming || _isInitializing || _isPausing) return;
 
     _resetBuffer();
 
     if (_camera.currentCamera == null) {
-      // Kamera tamamen kapatılmışsa (pause sonrası), yeniden başlat
+      // Donanım tamamen serbest bırakılmış (releaseHardware=true sonrası) — yeniden başlat.
       await initialize();
     } else {
+      // Controller hâlâ canlı (sadece stream durdurulmuştu) — anında yeniden başlat.
       _isStreaming = true;
+      _cameraCtrl.add(_camera.currentCamera);
       _camera.startStream(_onFrame);
     }
   }

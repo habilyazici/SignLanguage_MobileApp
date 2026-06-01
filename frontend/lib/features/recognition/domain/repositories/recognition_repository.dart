@@ -10,7 +10,9 @@ abstract interface class RecognitionRepository {
   Stream<LandmarkDevData> get landmarkStream;
 
   Future<void> initialize();
-  Future<void> pauseCamera();
+  /// [releaseHardware] = true → donanımı tamamen serbest bırak (iOS STT için).
+  /// false → sadece stream durdurulur, controller canlı kalır (hızlı resume).
+  Future<void> pauseCamera({bool releaseHardware = false});
   Future<void> resumeCamera();
   Future<void> switchCamera();
 

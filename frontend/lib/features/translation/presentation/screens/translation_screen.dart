@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -62,7 +64,12 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen>
 
   /// Sekme 0 = İşaret Oku → kamera açık; Sekme 1 = İşaret Anlat → kamera kapalı.
   void _syncCamera(int index) {
-    ref.read(cameraActiveProvider.notifier).setActive(active: index == 0);
+    ref.read(cameraActiveProvider.notifier).setActive(
+      active: index == 0,
+      // iOS'ta STT AVAudioSession için kamera donanımının tamamen serbest
+      // bırakılması gerekir. Diğer tab geçişlerinde stream durdurulur yeterlidir.
+      releaseHardware: Platform.isIOS && index != 0,
+    );
   }
 
   @override

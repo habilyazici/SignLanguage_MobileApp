@@ -98,12 +98,10 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       if (isActive) {
         _repo.resumeCamera();
       } else {
-        await _repo.pauseCamera();
-        // Donanım tamamen serbest — STT güvenle başlatılabilir
+        final releaseHardware =
+            ref.read(cameraActiveProvider.notifier).releaseHardware;
+        await _repo.pauseCamera(releaseHardware: releaseHardware);
         ref.read(cameraActiveProvider.notifier).markReleased();
-        // Hızlı çift dokunuş koruması: pause tamamlanırken kullanıcı
-        // tekrar kamera sekmesine geçmiş olabilir. Bu durumda kamera
-        // serbest bırakıldığı hâlde açık kalması gerekiyor — resume et.
         if (ref.read(cameraActiveProvider)) {
           _repo.resumeCamera();
         }
