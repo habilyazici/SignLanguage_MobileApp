@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 
 import '../core/providers/camera_lifecycle_provider.dart';
+import '../core/providers/translation_tab_provider.dart';
 import '../features/auth/presentation/providers/auth_provider.dart';
 import '../features/welcome/presentation/screens/welcome_screen.dart';
 import '../features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -40,8 +41,11 @@ class _RouterNotifier extends ChangeNotifier {
 }
 
 // Misafir için tam ekran kamera — alt menü yok, geri → welcome
+// ScaffoldWithNav/SwipeNavWrapper olmadığından tab geçişi burada yakalanır.
 class _GuestCameraScreen extends ConsumerWidget {
   const _GuestCameraScreen();
+
+  static const _velThreshold = 300.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,7 +57,19 @@ class _GuestCameraScreen extends ConsumerWidget {
         ref.read(cameraActiveProvider.notifier).setActive(active: false);
         context.go('/welcome');
       },
-      child: const TranslationScreen(initialTab: 0),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          final v = details.primaryVelocity;
+          if (v == null) return;
+          if (v > _velThreshold) {
+            ref.read(translationTabProvider.notifier).setTab(0);
+          } else if (v < -_velThreshold) {
+            ref.read(translationTabProvider.notifier).setTab(1);
+          }
+        },
+        child: const TranslationScreen(initialTab: 0),
+      ),
     );
   }
 }
