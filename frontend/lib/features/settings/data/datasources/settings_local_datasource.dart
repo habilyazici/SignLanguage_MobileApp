@@ -11,7 +11,7 @@ class SettingsLocalDatasource {
 
   // AI parametrelerinin default'ları değiştiğinde bu sayıyı artır.
   // Uygulama eski versiyonu görünce AI ayarlarını sıfırlar; diğer ayarlar korunur.
-  static const int _settingsVersion = 4;
+  static const int _settingsVersion = 6;
 
   void _migrate() {
     final saved = _prefs.getInt('settingsVersion') ?? 1;
@@ -49,7 +49,7 @@ class SettingsLocalDatasource {
       sttEnabled: _prefs.getBool('sttEnabled') ?? true,
       devMode: _prefs.getBool('devMode') ?? false,
       showDevButton: _prefs.getBool('showDevButton') ?? false,
-      stableFramesThreshold: _prefs.getInt('stableFramesThreshold') ?? 2,
+      stableFramesThreshold: _prefs.getInt('stableFramesThreshold') ?? 3,
       motionThreshold: _prefs.getDouble('motionThreshold') ?? 0.030,
     );
   }

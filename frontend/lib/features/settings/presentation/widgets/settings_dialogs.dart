@@ -132,7 +132,7 @@ class SettingsDialogs {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'Daha yüksek değerler gürültüyü azaltır ama tepki süresini uzatır. Varsayılan: 5',
+                  'Daha yüksek değerler gürültüyü azaltır ama tepki süresini uzatır. Varsayılan: 3',
                   style: TextStyle(fontSize: 12, color: AppTheme.midGrey),
                 ),
                 const SizedBox(height: 20),

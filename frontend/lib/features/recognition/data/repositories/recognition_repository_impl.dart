@@ -164,6 +164,14 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   @override
   void updateMotionThreshold(double threshold) => _motionThreshold = threshold;
 
+  @override
+  void clearBuffer() {
+    _timedBuffer.clear();
+    _prevFrame = null;
+    _lastMotionMs = DateTime.now().millisecondsSinceEpoch;
+    _lastInferenceMs = 0;
+  }
+
   // ── Frame işleme ──────────────────────────────────────────────────────────
 
   void _onFrame(CameraImage image) async {
@@ -255,8 +263,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
         shouldInfer = true;
       }
     } else {
-      // 1 saniyelik grace period — 1-2 frame kaybında buffer bozulmasın
-      _noDetectionTimer ??= Timer(const Duration(seconds: 1), () {
+      _noDetectionTimer ??= Timer(const Duration(milliseconds: RecognitionConstants.noDetectionGracePeriodMs), () {
         _timedBuffer.clear();
         _noDetectionTimer = null;
         _inferenceCtrl.add(InferenceResult.empty);
@@ -284,7 +291,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     if (_isInferring || _timedBuffer.isEmpty) return;
     // Minimum 4 gerçek frame: yavaş cihazlarda (A32) 8-frame guard
     // inference fırsatlarını bloke ediyordu. 4 frame ≈ 600ms sinyal.
-    if (_timedBuffer.length < 4) return;
+    if (_timedBuffer.length < RecognitionConstants.minInferenceFrames) return;
 
     _isInferring = true;
     _lastInferenceMs = DateTime.now().millisecondsSinceEpoch;
@@ -292,9 +299,8 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
       final frames = _timedBuffer.map((e) => e.$2).toList();
       final result = await _inference.run(frames);
       if (result != null) {
-        // Yüksek güvenli tahmini her zaman, periyodik durum logunu ~40 saniyede bir bas.
-        if (kDebugMode &&
-            (_frameCounter % 200 == 0 || result.confidence > 0.98)) {
+        // Periyodik durum logu — her 500 frame'de bir (~100 sn debug modda).
+        if (kDebugMode && _frameCounter % 500 == 0) {
           debugPrint(
             '🧠 Zeka → [${result.classIndex}] %${(result.confidence * 100).toStringAsFixed(0)}',
           );

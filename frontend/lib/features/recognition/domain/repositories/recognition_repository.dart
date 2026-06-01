@@ -27,5 +27,8 @@ abstract interface class RecognitionRepository {
   /// Hareket algılama eşiğini günceller (0.005–0.050).
   void updateMotionThreshold(double threshold);
 
+  /// Kelime kabul edildikten sonra çağrılır — eski kare artıkları temizlenir.
+  void clearBuffer();
+
   Future<void> dispose();
 }

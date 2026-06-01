@@ -27,9 +27,9 @@ class InferenceDatasource {
 
   Future<void> initialize() async {
     if (isReady) return;
-    if (_initFuture != null) return _initFuture;
+    if (_initFuture != null) return _initFuture!;
     _initFuture = _doInitialize();
-    return _initFuture;
+    return _initFuture!;
   }
 
   Future<void> _doInitialize() async {

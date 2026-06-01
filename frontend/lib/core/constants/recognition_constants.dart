@@ -1,6 +1,15 @@
 /// TFLite model ve ML pipeline için sabit değerler.
-/// Bu değerler modeli ve eğitim verisini yansıtır —
-/// model yeniden eğitilirse burası güncellenmeli.
+///
+/// TUNING GUIDE — Modeli veya tanıma davranışını değiştirmek istersen buraya bak:
+///   Model mimarisi     → windowSize, featureSize, numClasses
+///   Hız/gecikme        → inferIntervalMs, minInferenceFrames
+///   Tanıma kalitesi    → streakNoiseFloor (en kritik: bkz. açıklama)
+///   Hareket hassasiyeti→ motionThreshold, motionWindowMs
+///   Performans (CPU)   → poseEvery, poseEveryMax, kLatencyRampUpMs/Down
+///   UX zamanlamaları   → noDetectionGracePeriodMs, sentenceClearMs, sameWordCooldownMs
+///
+/// AppSettings'teki ayarlar (kullanıcı tarafından değiştirilebilir):
+///   stableFramesThreshold, confidenceLevel, motionThreshold, fpsPreference
 abstract final class RecognitionConstants {
   // ── Model mimarisi ────────────────────────────────────────────────────────
   /// Modelin giriş penceresi (kare sayısı)
@@ -21,30 +30,54 @@ abstract final class RecognitionConstants {
   static const int windowMs = 2000;
 
   /// İlk inference için gereken minimum pencere süresi (ms).
-  /// 450ms: yavaş cihazlarda (A32 ~130ms/frame) 3-4 gerçek frame → erken tepki.
-  /// Hızlı cihazlarda (30fps) 450ms ≈ 13 frame → yeterli temporal bilgi.
-  static const int minWindowMs = 450;
+  /// 600ms: yavaş cihazlarda (A32 ~130ms/frame) 4-5 gerçek frame → erken tepki.
+  /// Hızlı cihazlarda (30fps) 600ms ≈ 18 frame → yeterli temporal bilgi.
+  static const int minWindowMs = 600;
+
+  /// Inference tetiklemek için gereken minimum gerçek frame sayısı.
+  /// 4 frame ≈ 600ms sinyal (yavaş cihazlarda A32 ~130ms/frame).
+  static const int minInferenceFrames = 4;
 
   // ── Inference hız kontrolü ────────────────────────────────────────────────
   /// İki ardışık inference arasındaki minimum süre (ms).
   /// Frame sayısına değil zamana göre throttle — cihaz hızından bağımsız.
-  /// 350ms = saniyede max ~2.9 inference; stableFrames=3 ile onay ~1050ms.
-  static const int inferIntervalMs = 350;
+  /// 250ms = saniyede max ~4 inference; stableFrames=2 ile onay ~500ms.
+  /// (Eskiden 350ms idi; azaltıldı çünkü doğru kelimeler streak dolmadan
+  ///  model başka sınıfa geçiyordu — daha sık inference streak birikimini hızlandırır.)
+  static const int inferIntervalMs = 250;
 
-  // ── Temporal smoothing ────────────────────────────────────────────────────
-  /// Aynı sınıfın kaç ardışık inference'ta görülmesi gerektiği (dok. değeri).
-  /// Gerçek eşik AppSettings.stableFramesThreshold'dan okunur.
-  static const int stableFrames = 4;
+  // ── Streak (kararlılık) gürültü eşiği ─────────────────────────────────────
+  /// Ana tanıma bug'ı için kritik sabittir.
+  ///
+  /// SORUN: Model doğru kelimeyi tahmin ediyor (dev panelde görünüyor) ama
+  /// ekrana yansımıyor. Neden? Confidence eşiği (örn. 0.75) altında kalan
+  /// her inference, streak sayacını 1 azaltıyordu. Böylece streak hiç
+  /// birikmeden sürekli sıfırlanıyordu.
+  ///
+  /// ÇÖZÜM: Streak yalnızca bu eşiğin ALTINDA net gürültü inference'larında
+  /// azalır. Bu eşik ile güven eşiği (örn. 0.75) arasındaki "gri bölge" streak'i
+  /// ne artırır ne azaltır — tarafsız kalır ve birikime izin verir.
+  ///
+  /// 0.40: Model bu skoru başka sınıfa veriyorsa gerçekten belirsiz → azalt.
+  ///       0.40-0.75 arası: model doğruya yakın ama kesin değil → streak koru.
+  static const double streakNoiseFloor = 0.40;
 
   // ── Pose örnekleme ───────────────────────────────────────────────────────
   /// Pose detection her kaçıncı işlenen karede çalışır.
   /// Araya giren karelerde son bilinen pose değerleri taşınır.
   /// hand detection her frame çalışmaya devam eder (asıl darboğaz).
-  /// Yavaş cihazlarda (latency > kLatencySlowMs) bu değer otomatik artar.
+  /// Yavaş cihazlarda (latency > kLatencyRampUpMs) bu değer otomatik artar.
   static const int poseEvery = 1;
 
   /// Bu eşiğin (ms) üzerinde latency ölçülürse poseEvery bir adım artar.
-  static const int kLatencySlowMs = 100;
+  /// Histerezis için rampDown < rampUp — tam eşikte sürekli salınım engellenir.
+  static const int kLatencyRampUpMs = 120;
+
+  /// Bu eşiğin (ms) altına düşerse poseEvery bir adım azalır.
+  static const int kLatencyRampDownMs = 80;
+
+  /// Geriye uyumluluk takma adı — kodu bozmadan dışarıdan referans alanlar için.
+  static const int kLatencySlowMs = kLatencyRampUpMs;
 
   /// poseEvery'nin ulaşabileceği maksimum değer.
   static const int poseEveryMax = 6;
@@ -59,6 +92,19 @@ abstract final class RecognitionConstants {
   /// 800ms: hareket bittikten sonra elde yeterli inference fırsatı (~5 inference)
   /// sağlanır. Çok düşük tutmak statik/yavaş işaretlerin kaçırılmasına yol açar.
   static const int motionWindowMs = 800;
+
+  // ── Pipeline zamanlama sabitleri ──────────────────────────────────────────
+  /// El tespit edilmediğinde buffer temizlenmeden önce beklenen süre (ms).
+  /// 1-2 frame kayıplarında buffer bozulmasını önler.
+  static const int noDetectionGracePeriodMs = 1000;
+
+  /// Yeni kelime gelmezse cümlenin otomatik silineceği süre (ms).
+  static const int sentenceClearMs = 4000;
+
+  /// Aynı kelimenin tekrar kabul edilebilmesi için minimum süre (ms).
+  /// Buffer clear + motion gate fiziksel minimumu ~1.15s — bu süre onun
+  /// altında olduğundan kazara çift tetik mümkün değil.
+  static const int sameWordCooldownMs = 1000;
 
   // ── Koordinat ayrımı ─────────────────────────────────────────────────────
   /// hand_detection kütüphanesinden gelen koordinatın normalize [0,1] mi

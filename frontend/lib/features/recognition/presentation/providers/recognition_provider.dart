@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/constants/recognition_constants.dart';
 import '../../../../../core/providers/camera_lifecycle_provider.dart';
 import '../../../../../core/providers/label_provider.dart';
 import '../../../../../core/providers/tts_provider.dart';
@@ -33,7 +34,9 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   int _streak = 0;
   String _lastShownWord = '';
   Timer? _clearTimer;
-  static const _clearDuration = Duration(seconds: 4);
+  Timer? _sameWordTimer;
+  static const _clearDuration = Duration(milliseconds: RecognitionConstants.sentenceClearMs);
+  static const _sameWordCooldown = Duration(milliseconds: RecognitionConstants.sameWordCooldownMs);
 
   // ── Dev modu top-3 (per-inference güncellenir) ────────────────────────────
   List<({String word, double confidence})> _topPredictions = [];
@@ -117,22 +120,22 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       inferenceSub.cancel();
       landmarkSub.cancel();
       _clearTimer?.cancel();
+      _sameWordTimer?.cancel();
       _repo.dispose();
       cameraNotifier.dispose();
       devNotifier.dispose();
     });
 
-    _repo
-        .initialize()
-        .then((_) {
-          final s = ref.read(settingsProvider);
-          _repo.updateLeftHandMode(s.leftHandMode);
-          _repo.updateFpsLimit(s.targetFps);
-          _repo.updateMotionThreshold(s.motionThreshold);
-        })
-        .catchError((e) {
-          state = state.copyWith(isError: true);
-        });
+    // Settings'i initialize başlamadan önce uygula — ilk kameradan gelen
+    // frame'ler doğru FPS/el modu/eşik değerleriyle işlensin.
+    final initialSettings = ref.read(settingsProvider);
+    _repo.updateLeftHandMode(initialSettings.leftHandMode);
+    _repo.updateFpsLimit(initialSettings.targetFps);
+    _repo.updateMotionThreshold(initialSettings.motionThreshold);
+
+    _repo.initialize().catchError((e) {
+      state = state.copyWith(isError: true);
+    });
 
     return const RecognitionState();
   }
@@ -146,6 +149,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       _streak = 0;
       _lastIdx = -1;
       _lastShownWord = '';
+      _sameWordTimer?.cancel();
+      _sameWordTimer = null;
       return;
     }
 
@@ -199,14 +204,29 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
               ref.read(authProvider).isAuthenticated) {
             ref.read(historyProvider.notifier).add(word, type: HistoryItemType.recognition);
           }
+          // Streak ve buffer'ı sıfırla: buffer'daki son hareketin artık
+          // kareleri hemen ardından farklı bir kelime tetiklemesini önler.
+          _streak = 0;
+          _lastIdx = -1;
+          _repo.clearBuffer();
+          // Aynı kelimenin 1 saniye içinde tekrar kabul edilmesini engelle.
+          // 1s sonra _lastShownWord temizlenir → kasıtlı tekrar mümkün olur.
+          _sameWordTimer?.cancel();
+          _sameWordTimer = Timer(_sameWordCooldown, () {
+            _lastShownWord = '';
+            _sameWordTimer = null;
+          });
           _scheduleClear();
         } else {
           state = state.copyWith(confidenceScore: maxScore);
         }
       }
-    } else {
-      // Tek gürültülü frame streak'i sıfırlamasın — eğitimde Gaussian noise augmentation
-      // tam bunu tolere etmek için yapıldı. Streak yavaşça azalsın, hard-reset olmasın.
+    } else if (maxScore < RecognitionConstants.streakNoiseFloor) {
+      // Yalnızca model gerçekten belirsizse (streakNoiseFloor altı) streak azalsın.
+      // streakNoiseFloor..scoreThreshold arası "gri bölge": model doğruya yakın
+      // ama eşiği geçemedi — streak'i ne artır ne azalt, birikime izin ver.
+      // Bu olmadan: 0.72 gibi "neredeyse doğru" inferences streak'i sıfırlıyor
+      // ve doğru kelimeler dev panelde görünüp ekrana hiç yansımıyor.
       if (_streak > 0) _streak--;
     }
   }
@@ -228,6 +248,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
 
   void clearSentence() {
     _clearTimer?.cancel();
+    _sameWordTimer?.cancel();
+    _sameWordTimer = null;
     _lastShownWord = '';
     _streak = 0;
     _lastIdx = -1;

@@ -70,7 +70,7 @@ class MlPipelineDatasource {
   Future<void> initialize() async {
     // Eğer zaten hazırsa veya şu an yükleniyorsa bekle/dön
     if (isReady) return;
-    if (_initFuture != null) return _initFuture;
+    if (_initFuture != null) return _initFuture!;
     
     _initFuture = _doInitialize();
     return _initFuture;
@@ -163,22 +163,6 @@ class MlPipelineDatasource {
     }
 
     try {
-      // ── Adaptif pose frekansı: latency yüksekse pose daha seyrek çalışır ──
-      _recentLatencies.add(sw.elapsedMilliseconds);
-      if (_recentLatencies.length > _latencyWindow) {
-        _recentLatencies.removeFirst(); // Queue: O(1) — List.removeAt(0)'dan daha doğru
-      }
-      if (_recentLatencies.length == _latencyWindow) {
-        final avg = _recentLatencies.reduce((a, b) => a + b) ~/ _latencyWindow;
-        if (avg > RecognitionConstants.kLatencySlowMs &&
-            _currentPoseEvery < RecognitionConstants.poseEveryMax) {
-          _currentPoseEvery++;
-        } else if (avg <= RecognitionConstants.kLatencySlowMs &&
-            _currentPoseEvery > RecognitionConstants.poseEvery) {
-          _currentPoseEvery--;
-        }
-      }
-
       // ── Pose ve El tespitini PARALEL başlat ──
       _poseFrameCount++;
       final bool runPose = _poseFrameCount % _currentPoseEvery == 0;
@@ -189,6 +173,26 @@ class MlPipelineDatasource {
             : Future.value(<mlkit.Pose>[]),
         _handDetectorIsolate!.detectHandsFromMat(mat),
       ]);
+
+      // ── Adaptif pose frekansı: gerçek ML süresi ölçülür (Future.wait sonrası) ──
+      // Önceden Future.wait'ten önce ölçülüyordu → yalnızca ~5ms preprocessing
+      // görünüyordu, eşik (100ms) hiç aşılamıyordu → poseEvery hiç artmıyordu.
+      _recentLatencies.add(sw.elapsedMilliseconds);
+      if (_recentLatencies.length > _latencyWindow) {
+        _recentLatencies.removeFirst();
+      }
+      if (_recentLatencies.length == _latencyWindow) {
+        final avg = _recentLatencies.reduce((a, b) => a + b) ~/ _latencyWindow;
+        // Histerezis: farklı artış/azalış eşikleri sayesinde tam sınırda
+        // poseEvery sürekli salınmaz.
+        if (avg > RecognitionConstants.kLatencyRampUpMs &&
+            _currentPoseEvery < RecognitionConstants.poseEveryMax) {
+          _currentPoseEvery++;
+        } else if (avg < RecognitionConstants.kLatencyRampDownMs &&
+            _currentPoseEvery > RecognitionConstants.poseEvery) {
+          _currentPoseEvery--;
+        }
+      }
 
       final List<mlkit.Pose> poses = results[0] as List<mlkit.Pose>;
       final List<Hand> hands = results[1] as List<Hand>;
