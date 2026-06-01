@@ -55,7 +55,8 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
       // döner — sabit delay yerine kesin sinyal.
       if (Platform.isIOS) {
         await ref.read(cameraActiveProvider.notifier).waitForRelease();
-        if (!mounted) return;
+        // Hızlı tab geçişinde (0→1→0) kamera yeniden aktif olmuş olabilir.
+        if (!mounted || ref.read(translationTabProvider) != 1) return;
       }
       final ready = await _stt.initialize(
         onError: (error) {

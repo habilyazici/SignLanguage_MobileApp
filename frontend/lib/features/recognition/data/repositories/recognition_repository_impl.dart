@@ -133,7 +133,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   @override
   Future<void> switchCamera() async {
     final wasStreaming = _isStreaming;
-    _camera.stopStream();
+    await _camera.stopStream();
     _resetBuffer();
     try {
       await _camera.switchCamera();
