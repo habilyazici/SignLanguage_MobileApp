@@ -145,6 +145,7 @@ class RecognitionScreen extends ConsumerWidget {
                 child: _ResultPanel(
                   state: state,
                   isDark: isDark,
+                  isReady: state.isReady,
                   confidenceThreshold: ref.watch(settingsProvider).confidenceThreshold,
                   onTtsReplay:
                       state.sentence.isNotEmpty &&
@@ -195,6 +196,7 @@ class _ResultPanel extends StatelessWidget {
   const _ResultPanel({
     required this.state,
     required this.isDark,
+    required this.isReady,
     required this.confidenceThreshold,
     this.onTtsReplay,
     this.onCopy,
@@ -203,6 +205,7 @@ class _ResultPanel extends StatelessWidget {
   });
   final RecognitionState state;
   final bool isDark;
+  final bool isReady;
   final double confidenceThreshold;
   final VoidCallback? onTtsReplay;
   final VoidCallback? onCopy;
@@ -235,8 +238,8 @@ class _ResultPanel extends StatelessWidget {
                         isDark: isDark,
                       )
                     : Text(
-                        key: const ValueKey('empty'),
-                        'Kameraya ellerinizi gösterin',
+                        key: ValueKey(isReady ? 'ready' : 'loading'),
+                        isReady ? 'Kameraya ellerinizi gösterin' : 'Kamera hazırlanıyor…',
                         style: TextStyle(
                           color: isDark ? Colors.white24 : Colors.black26,
                           fontSize: 15,
@@ -315,7 +318,29 @@ class _CameraLayer extends StatelessWidget {
       return Shimmer.fromColors(
         baseColor: AppTheme.cameraShimmerBase,
         highlightColor: AppTheme.cameraShimmerHighlight,
-        child: Container(color: AppTheme.cameraShimmerBase),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(color: AppTheme.cameraShimmerBase),
+            const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.videocam_rounded, color: Colors.white24, size: 32),
+                  SizedBox(height: 10),
+                  Text(
+                    'Kamera başlatılıyor…',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       );
     }
     final controller = cameraController!;
