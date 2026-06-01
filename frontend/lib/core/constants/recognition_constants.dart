@@ -52,8 +52,8 @@ abstract final class RecognitionConstants {
   ///
   /// Azalt (örn. 200) → daha hızlı tepki, CPU kullanımı artar.
   /// Artır (örn. 350) → daha yavaş ama pil dostu.
-  /// AppSettings.stableFramesThreshold=2 ile: onay süresi ≈ inferIntervalMs × 2
-  static const int inferIntervalMs = 250;
+  /// defaultStableFrames=3 ile: onay süresi ≈ inferIntervalMs × 3 = ~600ms
+  static const int inferIntervalMs = 200;
 
   // ════════════════════════════════════════════════════════════════
   // HAREKET ALGILAMA
@@ -64,14 +64,14 @@ abstract final class RecognitionConstants {
   /// Varsayılan: AppSettings.motionThreshold üzerinden ezilir.
   ///
   /// 0.010 → çok hassas, nefes/kamera titremesi bile tetikler.
-  /// 0.030 → dengeli (varsayılan).
+  /// 0.035 → dengeli — mikro-hareketleri filtreler, işaret hareketlerini kaçırmaz.
   /// 0.050 → yalnızca belirgin hareketler tetikler.
-  static const double motionThreshold = 0.030;
+  static const double motionThreshold = 0.035;
 
   /// Son hareketten kaç ms sonra inference duracak (ms).
   /// Çok düşürürsen durağan (static) işaretler kaçabilir.
   /// Çok artırırsan el durduktan sonra gereksiz inference çalışır.
-  static const int motionWindowMs = 800;
+  static const int motionWindowMs = 1000;
 
   // ════════════════════════════════════════════════════════════════
   // PERFORMANS
@@ -105,7 +105,7 @@ abstract final class RecognitionConstants {
   static const int sentenceMaxWords = 6;
 
   /// Yeni kelime gelmezse cümle kaç ms sonra silinsin.
-  static const int sentenceClearMs = 4000;
+  static const int sentenceClearMs = 5000;
 
   /// Aynı kelime tekrar kabul edilebilmesi için gereken bekleme süresi (ms).
   static const int sameWordCooldownMs = 1000;
@@ -126,26 +126,23 @@ abstract final class RecognitionConstants {
   static const double handCoordNormThreshold = 1.05;
 
   // ════════════════════════════════════════════════════════════════
-  // KULLANICI AYARLARI — AppSettings (settings/domain/entities/app_settings.dart)
-  // Bu değerler runtime'da SharedPreferences'ta saklanır ve uygulama
-  // içi Ayarlar → İleri Seviye ekranından değiştirilebilir.
-  // Burası sadece referans — değiştirmek için app_settings.dart'a git.
+  // KULLANICI AYARLARI DEFAULTLARI
+  // AppSettings constructor'ı bu değerleri kullanır.
+  // Değiştirince AppSettings'in varsayılanı da değişir — rebuild gerekir.
+  // Runtime'da kullanıcı Ayarlar → İleri Seviye'den ezebilir.
   // ════════════════════════════════════════════════════════════════
 
+  /// Kaç ardışık inference aynı sınıfı verirse kelime kabul edilir.
+  /// Düşür (1) → hızlı tepki, yanlış pozitif riski artar.
+  /// Artır (3–4) → daha kararlı, minimum kabul süresi = değer × inferIntervalMs.
+  static const int defaultStableFrames = 3;
+
+  // motionThreshold: yukarıdaki motionThreshold sabiti aynı zamanda AppSettings defaultu.
+  // stableFramesThreshold için defaultStableFrames'i kullan.
+
+  // ── Enum tabanlı ayarlar (doğrudan bağlanamaz, app_settings.dart'ta değiştir) ──
   // confidenceThreshold: low=0.65 · medium=0.75 (varsayılan) · high=0.85
-  //   → AppSettings.confidenceLevel (ConfidenceLevel enum)
-  //   → AppSettings.confidenceThreshold getter'ı skora dönüştürür
-
+  //   → AppSettings.confidenceLevel = ConfidenceLevel.medium
   // targetFps: powerSaver=15 · balanced=20 · performance=30 (varsayılan) · unlimited=0
-  //   → AppSettings.fpsPreference (FpsPreference enum)
-  //   → AppSettings.targetFps getter'ı int'e dönüştürür
-
-  // stableFramesThreshold: kaç ardışık inference aynı sınıfı verirse kelime kabul edilir
-  //   → AppSettings.stableFramesThreshold (varsayılan: 2)
-  //   → Düşür (1) → anında tepki ama yanlış pozitif artar
-  //   → Artır (3–4) → daha kararlı ama gecikme artar
-
-  // motionThreshold: el hareketi bu değerin altındaysa inference çalışmaz
-  //   → AppSettings.motionThreshold (varsayılan: 0.030)
-  //   → streakNoiseFloor ile karıştırma — bu bir hareket kapısı, skor değil
+  //   → AppSettings.fpsPreference = FpsPreference.performance
 }

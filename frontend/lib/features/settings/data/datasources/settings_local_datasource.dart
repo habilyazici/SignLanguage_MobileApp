@@ -11,7 +11,7 @@ class SettingsLocalDatasource {
 
   // AI parametrelerinin default'ları değiştiğinde bu sayıyı artır.
   // Uygulama eski versiyonu görünce AI ayarlarını sıfırlar; diğer ayarlar korunur.
-  static const int _settingsVersion = 6;
+  static const int _settingsVersion = 8;
 
   void _migrate() {
     final saved = _prefs.getInt('settingsVersion') ?? 1;

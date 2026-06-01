@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/recognition_constants.dart';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Enum'lar
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +68,7 @@ class AppSettings {
     this.themeMode = ThemeMode.light,
     this.textSize = AppTextSize.standard,
     this.leftHandMode = false,
-    this.confidenceLevel = ConfidenceLevel.medium,
+    this.confidenceLevel = ConfidenceLevel.low,
     this.fpsPreference = FpsPreference.performance,
     this.cellularVideoDisabled = false,
     this.videoQuality = VideoQuality.high,
@@ -75,8 +77,8 @@ class AppSettings {
     this.sttEnabled = true,
     this.devMode = false,
     this.showDevButton = false,
-    this.stableFramesThreshold = 2,
-    this.motionThreshold = 0.030,
+    this.stableFramesThreshold = RecognitionConstants.defaultStableFrames,
+    this.motionThreshold = RecognitionConstants.motionThreshold,
   });
 
   /// Confidence level'ı TFLite threshold değerine dönüştürür.
