@@ -68,12 +68,11 @@ class MlPipelineDatasource {
   Future<void>? _initFuture;
 
   Future<void> initialize() async {
-    // Eğer zaten hazırsa veya şu an yükleniyorsa bekle/dön
     if (isReady) return;
     if (_initFuture != null) return _initFuture!;
     
     _initFuture = _doInitialize();
-    return _initFuture;
+    return _initFuture!;
   }
 
   Future<void> _doInitialize() async {
@@ -104,8 +103,6 @@ class MlPipelineDatasource {
     required bool isFlipped,
     required bool leftHandMode,
   }) async {
-    // Sorumluluk: Kamera resim verisini HIZLI kopyala (Main thread'i yormadan).
-    // Loop (NV21 assembly) burada yapılmaz, _execute() içine ertelenir.
     final List<({Uint8List bytes, int bytesPerRow, int? bytesPerPixel})> planes = [];
     
     try {
@@ -144,11 +141,9 @@ class MlPipelineDatasource {
 
   // ── Çekirdek İşlem ────────────────────────────────────────────────────────
 
-  /// Pose ve El tespitini aynı kare üzerinde PARALEL olarak gerçekleştirir.
   Future<void> _execute(_PendingData data, Stopwatch sw) async {
     final frame = List<double>.filled(106, 0.0);
 
-    // NV21'i bir kez üret — hem InputImage hem Mat için kullanılır.
     final Uint8List? nv21 = Platform.isAndroid
         ? _buildNV21FromPlanes(data.planes, data.width, data.height)
         : null;
@@ -163,7 +158,6 @@ class MlPipelineDatasource {
     }
 
     try {
-      // ── Pose ve El tespitini PARALEL başlat ──
       _poseFrameCount++;
       final bool runPose = _poseFrameCount % _currentPoseEvery == 0;
 
@@ -174,9 +168,7 @@ class MlPipelineDatasource {
         _handDetectorIsolate!.detectHandsFromMat(mat),
       ]);
 
-      // ── Adaptif pose frekansı: gerçek ML süresi ölçülür (Future.wait sonrası) ──
-      // Önceden Future.wait'ten önce ölçülüyordu → yalnızca ~5ms preprocessing
-      // görünüyordu, eşik (100ms) hiç aşılamıyordu → poseEvery hiç artmıyordu.
+      // Latency Future.wait'ten sonra ölçülür — sadece böyle gerçek ML süresini yansıtır.
       _recentLatencies.add(sw.elapsedMilliseconds);
       if (_recentLatencies.length > _latencyWindow) {
         _recentLatencies.removeFirst();
@@ -197,17 +189,14 @@ class MlPipelineDatasource {
       final List<mlkit.Pose> poses = results[0] as List<mlkit.Pose>;
       final List<Hand> hands = results[1] as List<Hand>;
 
-      // ── 1. Pose Verilerini İşle ──
       int poseCount = poses.length;
       List<Offset> posePoints = [];
 
-      // Sensör döndürmesi (90/270°) ekran boyutlarını tersine çevirir.
       final bool rotated = data.sensorOrientation == 90 || data.sensorOrientation == 270;
       final double displayW = rotated ? data.height.toDouble() : data.width.toDouble();
       final double displayH = rotated ? data.width.toDouble() : data.height.toDouble();
 
       if (poses.isNotEmpty) {
-        // _lastPoseFeatures per-landmark olarak _fillPose içinde güncellenir.
         posePoints = _fillPose(
           poses.first,
           frame,
@@ -225,7 +214,6 @@ class MlPipelineDatasource {
         }
       }
 
-      // ── 2. El Verilerini İşle ──
       final handsData = _fillHands(
         hands,
         frame,
@@ -238,7 +226,6 @@ class MlPipelineDatasource {
         leftHandMode: data.leftHandMode,
       );
 
-      // ── 3. Sonuçları Yay ──
       _resultCtrl.add(MlFrameResult(
         features: frame,
         posePoints: posePoints,
@@ -345,8 +332,7 @@ class MlPipelineDatasource {
     for (int i = 0; i < _poseIndices.length; i++) {
       final lm = pose.landmarks[mlkit.PoseLandmarkType.values[_poseIndices[i]]];
       if (lm == null) {
-        // Bu landmark tespit edilemedi — son bilinen değeri koru.
-        frame[84 + i * 2] = _lastPoseFeatures[i * 2];
+          frame[84 + i * 2] = _lastPoseFeatures[i * 2];
         frame[84 + i * 2 + 1] = _lastPoseFeatures[i * 2 + 1];
         continue;
       }
@@ -355,7 +341,6 @@ class MlPipelineDatasource {
       if (isFlipped) mx = 1.0 - mx;
       frame[84 + i * 2] = mx;
       frame[84 + i * 2 + 1] = my;
-      // Sadece tespit edilen landmark'lar güncellenir — null olanlar önceki değeri korur.
       _lastPoseFeatures[i * 2] = mx;
       _lastPoseFeatures[i * 2 + 1] = my;
       pts.add(Offset(
@@ -460,12 +445,10 @@ class MlPipelineDatasource {
     final int vPS = vPlane.bytesPerPixel ?? 2;
     final out = _nv21Buffer!;
 
-    // 1. Y Plane (O(N) row-by-row setRange)
     for (int r = 0; r < h; r++) {
       out.setRange(r * w, (r + 1) * w, yPlane.bytes, r * yPlane.bytesPerRow);
     }
 
-    // 2. UV Birleştirme (üretilen veriyi işleme aşamasına ertele)
     int uvOff = w * h;
     for (int r = 0; r < h ~/ 2; r++) {
       final int vRowBase = r * vPlane.bytesPerRow;

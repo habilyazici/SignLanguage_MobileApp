@@ -1,116 +1,151 @@
-/// TFLite model ve ML pipeline için sabit değerler.
+/// Tanıma pipeline'ının tüm ayarlanabilir parametreleri.
 ///
-/// TUNING GUIDE — Modeli veya tanıma davranışını değiştirmek istersen buraya bak:
-///   Model mimarisi     → windowSize, featureSize, numClasses
-///   Hız/gecikme        → inferIntervalMs, minInferenceFrames
-///   Tanıma kalitesi    → streakNoiseFloor (en kritik: bkz. açıklama)
-///   Hareket hassasiyeti→ motionThreshold, motionWindowMs
-///   Performans (CPU)   → poseEvery, poseEveryMax, kLatencyRampUpMs/Down
-///   UX zamanlamaları   → noDetectionGracePeriodMs, sentenceClearMs, sameWordCooldownMs
-///
-/// AppSettings'teki ayarlar (kullanıcı tarafından değiştirilebilir):
-///   stableFramesThreshold, confidenceLevel, motionThreshold, fpsPreference
+/// Kullanıcı arayüzünden değiştirilebilen ayarlar (güven seviyesi, FPS,
+/// kararlılık eşiği, hareket hassasiyeti) AppSettings'tedir.
+/// Buradakiler geliştirici/ML tarafı — doğrudan bu dosyadan değiştir.
 abstract final class RecognitionConstants {
-  // ── Model mimarisi ────────────────────────────────────────────────────────
-  /// Modelin giriş penceresi (kare sayısı)
+
+  // ════════════════════════════════════════════════════════════════
+  // MODEL
+  // Model yeniden eğitilirse bu bölümdeki değerleri kontrol et.
+  // ════════════════════════════════════════════════════════════════
+
+  /// Modelin beklediği giriş kare sayısı. Değiştirme.
   static const int windowSize = 60;
 
-  /// Her kare için feature vektörü boyutu
-  /// [0..41] sağ el · [42..83] sol el · [84..105] pose (11 nokta × 2)
+  /// Her kare için özellik vektörü boyutu. Değiştirme.
+  /// [0..41] sağ el (21 nokta × xy) · [42..83] sol el · [84..105] pose (11 nokta × xy)
   static const int featureSize = 106;
 
-  /// Referans sınıf sayısı — sadece dokümantasyon amaçlı.
-  /// Gerçek inference sınıf sayısı InferenceDatasource.numClasses'tan okunur
-  /// (modelin çıkış tensor shape'i). Yeni model yüklendiğinde burayı
-  /// güncellemeye gerek yok; model otomatik algılar.
+  /// Sadece dokümantasyon için — gerçek değer modelden otomatik okunur.
   static const int numClasses = 226;
 
-  // ── Zaman tabanlı pencere ─────────────────────────────────────────────────
-  /// Kayan pencere süresi (ms) — son N ms'lik kareler pencereye alınır
-  static const int windowMs = 2000;
+  // ════════════════════════════════════════════════════════════════
+  // TANIMA KALİTESİ
+  // Doğru kelimeler çıkmıyorsa veya yanlışlar çok geliyorsa buraya bak.
+  // ════════════════════════════════════════════════════════════════
 
-  /// İlk inference için gereken minimum pencere süresi (ms).
-  /// 600ms: yavaş cihazlarda (A32 ~130ms/frame) 4-5 gerçek frame → erken tepki.
-  /// Hızlı cihazlarda (30fps) 600ms ≈ 18 frame → yeterli temporal bilgi.
-  static const int minWindowMs = 600;
-
-  /// Inference tetiklemek için gereken minimum gerçek frame sayısı.
-  /// 4 frame ≈ 600ms sinyal (yavaş cihazlarda A32 ~130ms/frame).
-  static const int minInferenceFrames = 4;
-
-  // ── Inference hız kontrolü ────────────────────────────────────────────────
-  /// İki ardışık inference arasındaki minimum süre (ms).
-  /// Frame sayısına değil zamana göre throttle — cihaz hızından bağımsız.
-  /// 250ms = saniyede max ~4 inference; stableFrames=2 ile onay ~500ms.
-  /// (Eskiden 350ms idi; azaltıldı çünkü doğru kelimeler streak dolmadan
-  ///  model başka sınıfa geçiyordu — daha sık inference streak birikimini hızlandırır.)
-  static const int inferIntervalMs = 250;
-
-  // ── Streak (kararlılık) gürültü eşiği ─────────────────────────────────────
-  /// Ana tanıma bug'ı için kritik sabittir.
+  /// Model güven skoru bu değerin altındaysa streak azalır (net gürültü).
+  /// Bu değer ile AppSettings.confidenceThreshold arasındaki skor streak'i
+  /// ne artırır ne azaltır — model doğruya yakın ama emin değil demektir.
   ///
-  /// SORUN: Model doğru kelimeyi tahmin ediyor (dev panelde görünüyor) ama
-  /// ekrana yansımıyor. Neden? Confidence eşiği (örn. 0.75) altında kalan
-  /// her inference, streak sayacını 1 azaltıyordu. Böylece streak hiç
-  /// birikmeden sürekli sıfırlanıyordu.
-  ///
-  /// ÇÖZÜM: Streak yalnızca bu eşiğin ALTINDA net gürültü inference'larında
-  /// azalır. Bu eşik ile güven eşiği (örn. 0.75) arasındaki "gri bölge" streak'i
-  /// ne artırır ne azaltır — tarafsız kalır ve birikime izin verir.
-  ///
-  /// 0.40: Model bu skoru başka sınıfa veriyorsa gerçekten belirsiz → azalt.
-  ///       0.40-0.75 arası: model doğruya yakın ama kesin değil → streak koru.
+  /// 0.40 iyi başlangıç. Model çok yanlış sınıf veriyorsa artır (0.45–0.50).
+  /// Çok azaltırsan doğru kelimeler daha kolay çıkar ama yanlışlar da artar.
   static const double streakNoiseFloor = 0.40;
 
-  // ── Pose örnekleme ───────────────────────────────────────────────────────
-  /// Pose detection her kaçıncı işlenen karede çalışır.
-  /// Araya giren karelerde son bilinen pose değerleri taşınır.
-  /// hand detection her frame çalışmaya devam eder (asıl darboğaz).
-  /// Yavaş cihazlarda (latency > kLatencyRampUpMs) bu değer otomatik artar.
-  static const int poseEvery = 1;
+  // ════════════════════════════════════════════════════════════════
+  // ZAMANLAMA
+  // İnference hızı ve buffer davranışı.
+  // ════════════════════════════════════════════════════════════════
 
-  /// Bu eşiğin (ms) üzerinde latency ölçülürse poseEvery bir adım artar.
-  /// Histerezis için rampDown < rampUp — tam eşikte sürekli salınım engellenir.
-  static const int kLatencyRampUpMs = 120;
+  /// Buffer'da tutulan maksimum süre (ms). Değiştirme — modelle bağlantılı.
+  static const int windowMs = 2000;
 
-  /// Bu eşiğin (ms) altına düşerse poseEvery bir adım azalır.
-  static const int kLatencyRampDownMs = 80;
+  /// İlk inference'ın tetiklenmesi için gereken minimum buffer yaşı (ms).
+  /// Çok düşürürsen az frame ile inference çalışır, doğruluk düşer.
+  static const int minWindowMs = 600;
 
-  /// Geriye uyumluluk takma adı — kodu bozmadan dışarıdan referans alanlar için.
-  static const int kLatencySlowMs = kLatencyRampUpMs;
+  /// İnference tetiklenmesi için gereken minimum gerçek frame sayısı.
+  static const int minInferenceFrames = 4;
 
-  /// poseEvery'nin ulaşabileceği maksimum değer.
-  static const int poseEveryMax = 6;
+  /// İki ardışık inference arasındaki minimum bekleme süresi (ms).
+  ///
+  /// Azalt (örn. 200) → daha hızlı tepki, CPU kullanımı artar.
+  /// Artır (örn. 350) → daha yavaş ama pil dostu.
+  /// AppSettings.stableFramesThreshold=2 ile: onay süresi ≈ inferIntervalMs × 2
+  static const int inferIntervalMs = 250;
 
-  // ── Hareket algılama ─────────────────────────────────────────────────────
-  /// Normalize uzayında ortalama mutlak fark eşiği (0..1 arası).
-  /// 0.008 = nefes/kamera titremesi yeterli (çok hassas).
-  /// 0.025 = gerçek el hareketi gerektirir.
+  // ════════════════════════════════════════════════════════════════
+  // HAREKET ALGILAMA
+  // El duruyorken inference tetiklenmesin diye.
+  // ════════════════════════════════════════════════════════════════
+
+  /// Normalize uzayında ortalama landmark hareketi eşiği (0.0–1.0).
+  /// Varsayılan: AppSettings.motionThreshold üzerinden ezilir.
+  ///
+  /// 0.010 → çok hassas, nefes/kamera titremesi bile tetikler.
+  /// 0.030 → dengeli (varsayılan).
+  /// 0.050 → yalnızca belirgin hareketler tetikler.
   static const double motionThreshold = 0.030;
 
-  /// Son hareketten bu kadar ms sonra inference durur.
-  /// 800ms: hareket bittikten sonra elde yeterli inference fırsatı (~5 inference)
-  /// sağlanır. Çok düşük tutmak statik/yavaş işaretlerin kaçırılmasına yol açar.
+  /// Son hareketten kaç ms sonra inference duracak (ms).
+  /// Çok düşürürsen durağan (static) işaretler kaçabilir.
+  /// Çok artırırsan el durduktan sonra gereksiz inference çalışır.
   static const int motionWindowMs = 800;
 
-  // ── Pipeline zamanlama sabitleri ──────────────────────────────────────────
-  /// El tespit edilmediğinde buffer temizlenmeden önce beklenen süre (ms).
-  /// 1-2 frame kayıplarında buffer bozulmasını önler.
-  static const int noDetectionGracePeriodMs = 1000;
+  // ════════════════════════════════════════════════════════════════
+  // PERFORMANS
+  // Yavaş cihazlarda CPU'yu korumak için pose örnekleme ayarları.
+  // ════════════════════════════════════════════════════════════════
 
-  /// Yeni kelime gelmezse cümlenin otomatik silineceği süre (ms).
+  /// Pose detection her kaçıncı karede çalışsın (1 = her kare).
+  /// El detection her kare çalışmaya devam eder.
+  static const int poseEvery = 1;
+
+  /// Yavaş cihazda poseEvery'nin ulaşabileceği maksimum değer.
+  static const int poseEveryMax = 6;
+
+  /// Frame latency bu değeri aşarsa poseEvery bir adım artar.
+  static const int kLatencyRampUpMs = 120;
+
+  /// Frame latency bu değerin altına düşerse poseEvery bir adım azalır.
+  /// rampDown < rampUp olduğu için eşik değerinde salınım olmaz.
+  static const int kLatencyRampDownMs = 80;
+
+  /// TFLite interpreter'ın kullanacağı thread sayısı.
+  /// Artırırsan inference hızlanır ama pil tüketimi artar.
+  static const int tfliteThreads = 4;
+
+  // ════════════════════════════════════════════════════════════════
+  // EKRAN & UX
+  // Kelime/cümle gösterim davranışı.
+  // ════════════════════════════════════════════════════════════════
+
+  /// Ekranda aynı anda gösterilecek maksimum kelime sayısı.
+  static const int sentenceMaxWords = 6;
+
+  /// Yeni kelime gelmezse cümle kaç ms sonra silinsin.
   static const int sentenceClearMs = 4000;
 
-  /// Aynı kelimenin tekrar kabul edilebilmesi için minimum süre (ms).
-  /// Buffer clear + motion gate fiziksel minimumu ~1.15s — bu süre onun
-  /// altında olduğundan kazara çift tetik mümkün değil.
+  /// Aynı kelime tekrar kabul edilebilmesi için gereken bekleme süresi (ms).
   static const int sameWordCooldownMs = 1000;
 
-  // ── Koordinat ayrımı ─────────────────────────────────────────────────────
-  /// hand_detection kütüphanesinden gelen koordinatın normalize [0,1] mi
-  /// yoksa piksel değeri mi olduğunu ayırt etmek için eşik.
-  /// Bu değerin altı → normalize, üstü → piksel koordinatı.
-  /// Tracking artifact'larında küçük taşmalar (1.01 gibi) hâlâ normalize
-  /// sayılır; 1.05 üzerindeki değerler piksel koordinatı kabul edilir.
+  /// El kaybolunca buffer kaç ms sonra temizlensin.
+  /// Kısa el kayboluşlarında (1–2 frame) buffer bozulmasın diye.
+  static const int noDetectionGracePeriodMs = 1000;
+
+  /// Dev modunda gösterilecek top-N tahmin sayısı.
+  static const int topPredictionsCount = 3;
+
+  // ════════════════════════════════════════════════════════════════
+  // TEKNİK — Değiştirme
+  // ════════════════════════════════════════════════════════════════
+
+  /// hand_detection koordinatının normalize [0,1] mi, piksel mi olduğunu ayırt eder.
+  /// Kütüphane davranışına bağlı — değiştirme.
   static const double handCoordNormThreshold = 1.05;
+
+  // ════════════════════════════════════════════════════════════════
+  // KULLANICI AYARLARI — AppSettings (settings/domain/entities/app_settings.dart)
+  // Bu değerler runtime'da SharedPreferences'ta saklanır ve uygulama
+  // içi Ayarlar → İleri Seviye ekranından değiştirilebilir.
+  // Burası sadece referans — değiştirmek için app_settings.dart'a git.
+  // ════════════════════════════════════════════════════════════════
+
+  // confidenceThreshold: low=0.65 · medium=0.75 (varsayılan) · high=0.85
+  //   → AppSettings.confidenceLevel (ConfidenceLevel enum)
+  //   → AppSettings.confidenceThreshold getter'ı skora dönüştürür
+
+  // targetFps: powerSaver=15 · balanced=20 · performance=30 (varsayılan) · unlimited=0
+  //   → AppSettings.fpsPreference (FpsPreference enum)
+  //   → AppSettings.targetFps getter'ı int'e dönüştürür
+
+  // stableFramesThreshold: kaç ardışık inference aynı sınıfı verirse kelime kabul edilir
+  //   → AppSettings.stableFramesThreshold (varsayılan: 2)
+  //   → Düşür (1) → anında tepki ama yanlış pozitif artar
+  //   → Artır (3–4) → daha kararlı ama gecikme artar
+
+  // motionThreshold: el hareketi bu değerin altındaysa inference çalışmaz
+  //   → AppSettings.motionThreshold (varsayılan: 0.030)
+  //   → streakNoiseFloor ile karıştırma — bu bir hareket kapısı, skor değil
 }

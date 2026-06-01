@@ -34,7 +34,7 @@ class InferenceDatasource {
 
   Future<void> _doInitialize() async {
     try {
-      final opts = tflite.InterpreterOptions()..threads = 4;
+      final opts = tflite.InterpreterOptions()..threads = RecognitionConstants.tfliteThreads;
 
       _interpreter = await tflite.Interpreter.fromAsset(
         'assets/models/sign_language_model_v2.tflite',
@@ -93,11 +93,10 @@ class InferenceDatasource {
 
     if (maxIdx < 0) return null;
 
-    // Top-3 tahmin (dev modu görselleştirme için)
     final indexed = List.generate(scores.length, (i) => (i, scores[i]));
     indexed.sort((a, b) => b.$2.compareTo(a.$2));
     final top3 = indexed
-        .take(3)
+        .take(RecognitionConstants.topPredictionsCount)
         .map((e) => (classIndex: e.$1, confidence: e.$2))
         .toList();
 

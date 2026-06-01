@@ -62,7 +62,6 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
     ref.keepAlive();
     _repo = ref.read(recognitionRepositoryProvider);
 
-    // Kamera controller → cameraNotifier (platform nesnesi domain'e girmez)
     final cameraSub = _repo.cameraControllerStream.listen((ctrl) {
       cameraNotifier.value = ctrl;
       state = state.copyWith(
@@ -73,11 +72,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       );
     });
 
-    // Inference sonuçları → smoothing + state güncellemesi
     final inferenceSub = _repo.inferenceStream.listen(_onInferenceResult);
 
-    // Landmark verisi → devNotifier (Riverpod rebuild yok)
-    // _topPredictions her inference'ta güncellenir, burada devNotifier'a eklenir.
     final landmarkSub = _repo.landmarkStream.listen((data) {
       devNotifier.value = LandmarkDevData(
         posePoints: data.posePoints,
@@ -91,7 +87,6 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       );
     });
 
-    // Ayarlar değişince repository'ye bildir
     ref.listen<AppSettings>(settingsProvider, (_, next) {
       _repo.updateLeftHandMode(next.leftHandMode);
       _repo.updateFpsLimit(next.targetFps);
@@ -143,7 +138,6 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
   // ── Inference sonucu işleme — smoothing + TTS ─────────────────────────────
 
   void _onInferenceResult(InferenceResult result) {
-    // Sentinel: tespit yok / buffer temizlendi → ekranı sıfırla
     if (result.classIndex == -1) {
       state = state.copyWith(predictedWord: '', confidenceScore: 0.0);
       _streak = 0;
@@ -154,7 +148,6 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
       return;
     }
 
-    // Top-3'ü Türkçe etikete çevir ve devNotifier için sakla
     if (result.topPredictions.isNotEmpty) {
       final labelRepo = ref.read(labelRepositoryProvider);
       _topPredictions = result.topPredictions
@@ -187,8 +180,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
         if (word != _lastShownWord) {
           _lastShownWord = word;
           final updated = [...state.sentence, word];
-          final trimmed = updated.length > 6
-              ? updated.sublist(updated.length - 6)
+          final trimmed = updated.length > RecognitionConstants.sentenceMaxWords
+              ? updated.sublist(updated.length - RecognitionConstants.sentenceMaxWords)
               : updated;
 
           state = state.copyWith(
@@ -204,13 +197,8 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
               ref.read(authProvider).isAuthenticated) {
             ref.read(historyProvider.notifier).add(word, type: HistoryItemType.recognition);
           }
-          // Streak ve buffer'ı sıfırla: buffer'daki son hareketin artık
-          // kareleri hemen ardından farklı bir kelime tetiklemesini önler.
           _streak = 0;
           _lastIdx = -1;
-          _repo.clearBuffer();
-          // Aynı kelimenin 1 saniye içinde tekrar kabul edilmesini engelle.
-          // 1s sonra _lastShownWord temizlenir → kasıtlı tekrar mümkün olur.
           _sameWordTimer?.cancel();
           _sameWordTimer = Timer(_sameWordCooldown, () {
             _lastShownWord = '';
@@ -218,15 +206,14 @@ class RecognitionNotifier extends Notifier<RecognitionState> {
           });
           _scheduleClear();
         } else {
+          // Cooldown'da aynı kelime: streak sıfırla, yoksa cooldown bitince
+          // birikmiş streak anında yeniden tetikler.
+          _streak = 0;
+          _lastIdx = -1;
           state = state.copyWith(confidenceScore: maxScore);
         }
       }
     } else if (maxScore < RecognitionConstants.streakNoiseFloor) {
-      // Yalnızca model gerçekten belirsizse (streakNoiseFloor altı) streak azalsın.
-      // streakNoiseFloor..scoreThreshold arası "gri bölge": model doğruya yakın
-      // ama eşiği geçemedi — streak'i ne artır ne azalt, birikime izin ver.
-      // Bu olmadan: 0.72 gibi "neredeyse doğru" inferences streak'i sıfırlıyor
-      // ve doğru kelimeler dev panelde görünüp ekrana hiç yansımıyor.
       if (_streak > 0) _streak--;
     }
   }

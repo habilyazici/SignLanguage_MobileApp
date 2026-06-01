@@ -47,9 +47,7 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
 
   // ── Çalışma zamanı durumu ────────────────────────────────────────────────────
   final List<(int, List<double>)> _timedBuffer = [];
-  /// Yalnızca kDebugMode log bloklarında okunur; production'da anlamsız.
   int _frameCounter = 0;
-  /// Yalnızca kDebugMode log bloklarında okunur; production'da anlamsız.
   int _resultCounter = 0;
   bool _isInferring = false;
   bool _isInitializing = false;
@@ -73,14 +71,11 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
     if (_isInitializing || _isStreaming) return;
     _isInitializing = true;
     try {
-      // ML ve Inference servislerini sadece bir kez başlat
       if (!_ml.isReady) await _ml.initialize();
       if (!_inference.isReady) await _inference.initialize();
 
-      // ML sonuçlarını dinle
       _mlSub ??= _ml.resultStream.listen(_onMlResult);
 
-      // Kamera controller stream'ini dinle
       _cameraSub ??= _camera.controllerStream.listen((ctrl) {
         _cameraCtrl.add(ctrl);
         if (ctrl != null) _resetBuffer();
@@ -164,20 +159,11 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
   @override
   void updateMotionThreshold(double threshold) => _motionThreshold = threshold;
 
-  @override
-  void clearBuffer() {
-    _timedBuffer.clear();
-    _prevFrame = null;
-    _lastMotionMs = DateTime.now().millisecondsSinceEpoch;
-    _lastInferenceMs = 0;
-  }
-
   // ── Frame işleme ──────────────────────────────────────────────────────────
 
   void _onFrame(CameraImage image) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    // FPS Limitleme (Throttling)
     if (_targetFps > 0) {
       final int frameIntervalMs = 1000 ~/ _targetFps;
       if (now - _lastFrameTimeMs < frameIntervalMs) return;
@@ -216,7 +202,6 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
 
     bool shouldInfer = false;
 
-    // Developer modu landmark stream'i
     _landmarkCtrl.add(
       LandmarkDevData(
         posePoints: result.posePoints,
@@ -235,7 +220,6 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
         _noDetectionTimer = null;
       }
 
-      // Kare durum logu: kDebugMode'da her 300 sonuçta bir (~60 saniye) bas.
       if (kDebugMode && _resultCounter % 300 == 0) {
         debugPrint(
           '📊 [Durum] Kare=$_frameCounter | Buf=${_timedBuffer.length}',
@@ -299,7 +283,6 @@ class RecognitionRepositoryImpl implements RecognitionRepository {
       final frames = _timedBuffer.map((e) => e.$2).toList();
       final result = await _inference.run(frames);
       if (result != null) {
-        // Periyodik durum logu — her 500 frame'de bir (~100 sn debug modda).
         if (kDebugMode && _frameCounter % 500 == 0) {
           debugPrint(
             '🧠 Zeka → [${result.classIndex}] %${(result.confidence * 100).toStringAsFixed(0)}',
