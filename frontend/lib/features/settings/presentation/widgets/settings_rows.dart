@@ -347,7 +347,7 @@ class StabilityRow extends StatelessWidget {
       label: current.toString(),
       labelColor: AppTheme.primaryBlue,
       helpText:
-          'AI\'nın bir kelimeyi ekrana yazması için onu kaç kez üst üste doğrulaması gerektiğini belirler.\n\n1 = Smoothing kapalı, her tespit anında kabul edilir\nÖnerilen: 4\nKatı: 8+',
+          'AI\'nın bir kelimeyi ekrana yazması için onu kaç kez üst üste doğrulaması gerektiğini belirler.\n\n1 = Smoothing kapalı, her tespit anında kabul edilir\nÖnerilen: 3\nKatı: 8+',
       onTap: () => SettingsDialogs.showNumberPickerDialog(
         context: context,
         isDark: isDark,
@@ -373,8 +373,8 @@ class MotionThresholdRow extends StatelessWidget {
   final bool isDark;
 
   String get _label {
-    if (current <= 0.015) return 'Hassas (${current.toStringAsFixed(3)})';
-    if (current <= 0.030) return 'Normal (${current.toStringAsFixed(3)})';
+    if (current <= 0.020) return 'Hassas (${current.toStringAsFixed(3)})';
+    if (current <= 0.045) return 'Normal (${current.toStringAsFixed(3)})';
     return 'Kaba (${current.toStringAsFixed(3)})';
   }
 
@@ -389,7 +389,7 @@ class MotionThresholdRow extends StatelessWidget {
       label: current.toStringAsFixed(3),
       labelColor: AppTheme.primaryBlue,
       helpText:
-          'El hareketinin "gerçek hareket" sayılması için gereken minimum değişim miktarı.\n\nHassas: titrek eller veya küçük işaretler için\nKaba: yanlış tetiklenmeyi azaltır\n\nVarsayılan: 0.030',
+          'El hareketinin "gerçek hareket" sayılması için gereken minimum değişim miktarı.\n\nHassas: titrek eller veya küçük işaretler için\nKaba: yanlış tetiklenmeyi azaltır\n\nVarsayılan: 0.035',
       onTap: () => SettingsDialogs.showMotionThresholdDialog(
         context: context,
         isDark: isDark,
