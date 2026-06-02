@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -184,6 +185,18 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
       if (next == 1 && !_sttReady) _initStt();
     });
 
+    // Tüm cümle oynatıldığında ses + titreşim — konuşan kişi ekrana bakamıyor.
+    ref.listen<TextToSignState>(textToSignProvider, (prev, next) {
+      if (prev != null &&
+          prev.isPlaying &&
+          !next.isPlaying &&
+          next.hasTokens &&
+          next.isLastToken) {
+        HapticFeedback.mediumImpact();
+        SystemSound.play(SystemSoundType.alert);
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -356,6 +369,8 @@ class _VideoStageState extends State<_VideoStage> {
   bool _initialized = false;
   bool _ended = false;
   String? _currentUrl;
+  Timer? _notFoundTimer;
+  Object? _currentTokenRef;
 
   @override
   void didUpdateWidget(_VideoStage old) {
@@ -363,28 +378,50 @@ class _VideoStageState extends State<_VideoStage> {
     final token = widget.token;
     final newUrl = token is SignFound ? token.videoUrl : null;
 
-    if (newUrl != _currentUrl) {
+    // Token nesnesi (referans) veya URL değiştiyse yeni kelimeye geç.
+    if (!identical(token, _currentTokenRef) || newUrl != _currentUrl) {
       _disposeCtrl();
       _currentUrl = newUrl;
-      if (newUrl != null) _initCtrl(newUrl);
+      _currentTokenRef = token;
+      if (newUrl != null) {
+        _initCtrl(newUrl);
+      } else if (token is SignNotFound && widget.isPlaying) {
+        // Bilinmeyen kelime — 1.5s göster, sonra sonraki kelimeye geç.
+        _startNotFoundTimer();
+      }
       return;
     }
 
-    if (_initialized && widget.isPlaying != old.isPlaying) {
-      if (widget.isPlaying) {
-        if (_ended) {
-          // Video sona ulaşmıştı — başa sar sonra oynat.
-          _ended = false;
-          _ctrl?.seekTo(Duration.zero).then((_) {
-            if (mounted && widget.isPlaying) _ctrl?.play();
-          });
+    if (widget.isPlaying != old.isPlaying) {
+      if (token is SignNotFound) {
+        if (widget.isPlaying) {
+          _startNotFoundTimer();
         } else {
-          _ctrl?.play();
+          _notFoundTimer?.cancel();
+          _notFoundTimer = null;
         }
-      } else {
-        _ctrl?.pause();
+      } else if (_initialized) {
+        if (widget.isPlaying) {
+          if (_ended) {
+            _ended = false;
+            _ctrl?.seekTo(Duration.zero).then((_) {
+              if (mounted && widget.isPlaying) _ctrl?.play();
+            });
+          } else {
+            _ctrl?.play();
+          }
+        } else {
+          _ctrl?.pause();
+        }
       }
     }
+  }
+
+  void _startNotFoundTimer() {
+    _notFoundTimer?.cancel();
+    _notFoundTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted && widget.isPlaying) widget.onVideoEnd();
+    });
   }
 
   Future<void> _initCtrl(String url) async {
@@ -416,16 +453,20 @@ class _VideoStageState extends State<_VideoStage> {
   }
 
   void _disposeCtrl() {
+    _notFoundTimer?.cancel();
+    _notFoundTimer = null;
     _ctrl?.removeListener(_onProgress);
     _ctrl?.dispose();
     _ctrl = null;
     _currentUrl = null;
+    _currentTokenRef = null;
     _ended = false;
     if (mounted) setState(() => _initialized = false);
   }
 
   @override
   void dispose() {
+    _notFoundTimer?.cancel();
     _ctrl?.removeListener(_onProgress);
     _ctrl?.dispose();
     _ctrl = null;
