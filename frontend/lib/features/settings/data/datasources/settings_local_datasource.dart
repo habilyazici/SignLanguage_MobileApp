@@ -47,6 +47,7 @@ class SettingsLocalDatasource {
       zeroDataMode: _prefs.getBool('zeroDataMode') ?? false,
       ttsEnabled: _prefs.getBool('ttsEnabled') ?? true,
       sttEnabled: _prefs.getBool('sttEnabled') ?? true,
+      translationBeepEnabled: _prefs.getBool('translationBeepEnabled') ?? true,
       devMode: _prefs.getBool('devMode') ?? false,
       showDevButton: _prefs.getBool('showDevButton') ?? false,
       stableFramesThreshold: _prefs.getInt('stableFramesThreshold') ?? 3,
@@ -65,6 +66,7 @@ class SettingsLocalDatasource {
     await _prefs.setBool('zeroDataMode', s.zeroDataMode);
     await _prefs.setBool('ttsEnabled', s.ttsEnabled);
     await _prefs.setBool('sttEnabled', s.sttEnabled);
+    await _prefs.setBool('translationBeepEnabled', s.translationBeepEnabled);
     await _prefs.setBool('devMode', s.devMode);
     await _prefs.setBool('showDevButton', s.showDevButton);
     await _prefs.setInt('stableFramesThreshold', s.stableFramesThreshold);

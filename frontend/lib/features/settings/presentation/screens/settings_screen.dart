@@ -242,6 +242,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         'Speech-to-Text teknolojisi ile kendi sesinizi metne dönüştürüp işaret dili animasyonlarını tetiklemenizi sağlar.',
                     onChanged: (_) => n.toggleStt(),
                   ),
+                  SettingsDivider(isDark: isDark),
+                  SettingsSwitchRow(
+                    isDark: isDark,
+                    icon: Icons.notifications_active_rounded,
+                    iconColor: Colors.amberAccent,
+                    title: 'Çeviri Bip Sesi',
+                    subtitle: 'İşaret çevirisi bitince ses + titreşim',
+                    value: settings.translationBeepEnabled,
+                    helpText:
+                        'Metin→İşaret ekranında tüm kelimeler oynatıldığında kısa bir bip sesi ve titreşimle bildirim alırsınız.',
+                    onChanged: (_) => n.toggleTranslationBeep(),
+                  ),
                 ],
               ).animate().fadeIn(delay: 140.ms, duration: 350.ms).slideY(begin: 0.06, end: 0),
             ],

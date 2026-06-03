@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -26,9 +29,11 @@ class TranslatorScreen extends ConsumerStatefulWidget {
 class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
   final _controller = TextEditingController();
   final _stt = SpeechToText();
+  final _beepPlayer = AudioPlayer();
   bool _sttReady = false;
   bool _sttInitializing = false;
   bool _listening = false;
+  bool _restarting = false; // true iken _listening bayrağı bypass'lanır — görsel sönme olmaz
   bool _continuous = true; // sürekli dinleme modu
   int _sttFailCount = 0; // sonsuz retry döngüsünü önler
   static const _maxSttFails = 5;
@@ -62,12 +67,14 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
       final ready = await _stt.initialize(
         onError: (error) {
           if (!mounted) return;
-          setState(() => _listening = false);
           _sttFailCount++;
           if (_continuous && ref.read(settingsProvider).sttEnabled &&
               _sttFailCount < _maxSttFails) {
+            _restarting = true;
             _restartDelay?.cancel();
-            _restartDelay = Timer(const Duration(milliseconds: 800), _startListening);
+            _restartDelay = Timer(const Duration(milliseconds: 400), _startListening);
+          } else {
+            setState(() => _listening = false);
           }
         },
       );
@@ -82,7 +89,8 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
   }
 
   Future<void> _startListening() async {
-    if (!_sttReady || _listening || !mounted) return;
+    if (!_sttReady || (_listening && !_restarting) || !mounted) return;
+    _restarting = false;
     setState(() => _listening = true);
 
     final started = await _stt.listen(
@@ -95,22 +103,26 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
           ref.read(textToSignProvider.notifier).translate(text);
         }
         if (!mounted) return;
-        setState(() => _listening = false);
         _sttFailCount = 0; // başarılı tanıma — hata sayacını sıfırla
-        // Sürekli modda: 600ms bekle, yeniden dinle
         if (_continuous && ref.read(settingsProvider).sttEnabled) {
+          // _restarting=true: mikrofon ikonu sönmeden yeniden başlar.
+          // Riverpod rebuild'i _listening=false görmez çünkü setState yok.
+          _restarting = true;
           _restartDelay?.cancel();
-          _restartDelay = Timer(const Duration(milliseconds: 600), _startListening);
+          _restartDelay = Timer(const Duration(milliseconds: 250), _startListening);
+        } else {
+          setState(() => _listening = false);
         }
       },
       localeId: 'tr_TR',
       listenFor: const Duration(seconds: 60),
-      pauseFor: const Duration(seconds: 3),
+      pauseFor: const Duration(seconds: 5),
       listenOptions: SpeechListenOptions(cancelOnError: false),
     );
 
     // listen() false döndüyse (başlatılamadı) durumu düzelt
     if (!started && mounted) {
+      _restarting = false;
       setState(() => _listening = false);
       _sttFailCount++;
       if (_continuous && ref.read(settingsProvider).sttEnabled &&
@@ -122,7 +134,8 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
   }
 
   Future<void> _toggleListening() async {
-    if (_listening) {
+    if (_listening || _restarting) {
+      _restarting = false;
       _continuous = false;
       _restartDelay?.cancel();
       await _stt.stop();
@@ -170,13 +183,16 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
     _continuous = false;
     _controller.dispose();
     _stt.cancel();
+    _beepPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final sttEnabled = ref.watch(settingsProvider).sttEnabled;
+    final settings = ref.watch(settingsProvider);
+    final sttEnabled = settings.sttEnabled;
+    final beepEnabled = settings.translationBeepEnabled;
     final ts = ref.watch(textToSignProvider);
     final notifier = ref.read(textToSignProvider.notifier);
 
@@ -191,9 +207,10 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
           prev.isPlaying &&
           !next.isPlaying &&
           next.hasTokens &&
-          next.isLastToken) {
-        HapticFeedback.mediumImpact();
-        SystemSound.play(SystemSoundType.alert);
+          next.isLastToken &&
+          ref.read(settingsProvider).translationBeepEnabled) {
+        HapticFeedback.heavyImpact();
+        _beepPlayer.play(BytesSource(_buildBeepWav()));
       }
     });
 
@@ -313,7 +330,14 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
                               textInputAction: TextInputAction.done,
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => ref
+                                .read(settingsProvider.notifier)
+                                .toggleTranslationBeep(),
+                            child: _BeepButton(enabled: beepEnabled),
+                          ),
+                          const SizedBox(width: 8),
                           GestureDetector(
                             // !_sttReady olsa da tıklanabilir: _toggleListening
                             // içinde _initStt() yeniden denenir (lazy retry).
@@ -335,6 +359,38 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
       ),
     );
   }
+}
+
+/// 880 Hz, 200 ms, fade-out içeren PCM WAV baytları üretir.
+/// Asset dosyası gerektirmez — tamamen Dart ile oluşturulur.
+Uint8List _buildBeepWav() {
+  const sampleRate = 8000;
+  const hz = 880;
+  const durationMs = 200;
+  final samples = sampleRate * durationMs ~/ 1000;
+  final dataSize = samples * 2;
+  final buf = ByteData(44 + dataSize);
+  final b = buf.buffer.asUint8List();
+  b.setRange(0, 4, [0x52, 0x49, 0x46, 0x46]);   // "RIFF"
+  buf.setUint32(4, 36 + dataSize, Endian.little);
+  b.setRange(8, 12, [0x57, 0x41, 0x56, 0x45]);   // "WAVE"
+  b.setRange(12, 16, [0x66, 0x6D, 0x74, 0x20]);  // "fmt "
+  buf.setUint32(16, 16, Endian.little);
+  buf.setUint16(20, 1, Endian.little);            // PCM
+  buf.setUint16(22, 1, Endian.little);            // mono
+  buf.setUint32(24, sampleRate, Endian.little);
+  buf.setUint32(28, sampleRate * 2, Endian.little);
+  buf.setUint16(32, 2, Endian.little);
+  buf.setUint16(34, 16, Endian.little);
+  b.setRange(36, 40, [0x64, 0x61, 0x74, 0x61]);  // "data"
+  buf.setUint32(40, dataSize, Endian.little);
+  for (int i = 0; i < samples; i++) {
+    final t = i / sampleRate;
+    final fade = (1.0 - i / samples).clamp(0.0, 1.0);
+    final s = (sin(2 * pi * hz * t) * fade * 28000).round().clamp(-32767, 32767);
+    buf.setInt16(44 + i * 2, s, Endian.little);
+  }
+  return b;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -912,6 +968,34 @@ class _PlaybackBar extends StatelessWidget {
           iconSize: 28,
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bip butonu — çeviri sesi açık/kapalı hızlı toggle
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BeepButton extends StatelessWidget {
+  const _BeepButton({required this.enabled});
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: enabled
+            ? Colors.amber.withValues(alpha: 0.15)
+            : Colors.grey.withValues(alpha: 0.1),
+      ),
+      child: Icon(
+        enabled ? Icons.notifications_active_rounded : Icons.notifications_off_rounded,
+        color: enabled ? Colors.amber : Colors.grey.withValues(alpha: 0.5),
+        size: 22,
+      ),
     );
   }
 }

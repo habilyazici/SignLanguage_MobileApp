@@ -38,6 +38,7 @@ dependencies:
 
   # ── Video ──────────────────────────────────────────────────────────────────
   video_player: ^2.9.3         # Metin → İşaret: TİD video oynatıcı
+  audioplayers: ^6.1.0         # Çeviri tamamlandı bip sesi
 
   # ── Animasyon & UI ─────────────────────────────────────────────────────────
   shimmer: ^3.0.0              # Yükleme iskelet efektleri

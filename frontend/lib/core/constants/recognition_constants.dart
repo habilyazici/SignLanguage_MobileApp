@@ -108,7 +108,7 @@ abstract final class RecognitionConstants {
   static const int sentenceClearMs = 5000;
 
   /// Aynı kelime tekrar kabul edilebilmesi için gereken bekleme süresi (ms).
-  static const int sameWordCooldownMs = 1000;
+  static const int sameWordCooldownMs = 1350;
 
   /// El kaybolunca buffer kaç ms sonra temizlensin.
   /// Kısa el kayboluşlarında (1–2 frame) buffer bozulmasın diye.

@@ -55,6 +55,7 @@ class AppSettings {
   // ── Ses ───────────────────────────────────────────────────────────────────
   final bool ttsEnabled;
   final bool sttEnabled;
+  final bool translationBeepEnabled;
 
   // ── Geliştirici ───────────────────────────────────────────────────────────
   final bool devMode;
@@ -75,6 +76,7 @@ class AppSettings {
     this.zeroDataMode = false,
     this.ttsEnabled = true,
     this.sttEnabled = true,
+    this.translationBeepEnabled = true,
     this.devMode = false,
     this.showDevButton = false,
     this.stableFramesThreshold = RecognitionConstants.defaultStableFrames,
@@ -108,6 +110,7 @@ class AppSettings {
     bool? zeroDataMode,
     bool? ttsEnabled,
     bool? sttEnabled,
+    bool? translationBeepEnabled,
     bool? devMode,
     bool? showDevButton,
     int? stableFramesThreshold,
@@ -123,6 +126,7 @@ class AppSettings {
     zeroDataMode: zeroDataMode ?? this.zeroDataMode,
     ttsEnabled: ttsEnabled ?? this.ttsEnabled,
     sttEnabled: sttEnabled ?? this.sttEnabled,
+    translationBeepEnabled: translationBeepEnabled ?? this.translationBeepEnabled,
     devMode: devMode ?? this.devMode,
     showDevButton: showDevButton ?? this.showDevButton,
     stableFramesThreshold: stableFramesThreshold ?? this.stableFramesThreshold,

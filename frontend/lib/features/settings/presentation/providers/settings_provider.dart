@@ -88,6 +88,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void toggleStt() => _persist(state.copyWith(sttEnabled: !state.sttEnabled));
 
+  void toggleTranslationBeep() => _persist(state.copyWith(translationBeepEnabled: !state.translationBeepEnabled));
+
   // ── Geliştirici ───────────────────────────────────────────────────────────
   void toggleDevMode() => _persist(state.copyWith(devMode: !state.devMode));
 
