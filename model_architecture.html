@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>BiLSTM + Self-Attention Mimarisi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #ffffff; font-family: 'Segoe UI', sans-serif; padding: 40px 50px; }
+  h1 { text-align: center; font-size: 22px; color: #1a1a2e; margin-bottom: 6px; font-weight: 700; }
+  p.sub { text-align: center; font-size: 13px; color: #666; margin-bottom: 40px; }
+
+  .arch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  /* Katman kutusu */
+  .layer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .layer-box {
+    flex: 1;
+    border-radius: 14px;
+    padding: 16px 20px;
+    position: relative;
+    border: 2px solid transparent;
+  }
+
+  .layer-title { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .layer-sub   { font-size: 12px; color: #64748b; line-height: 1.5; }
+  .layer-badge {
+    position: absolute; top: 14px; right: 16px;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 10px;
+  }
+
+  /* Renk temaları */
+  .c-input   { background: #f0f9ff; border-color: #7dd3fc; }
+  .c-input   .layer-title { color: #0369a1; }
+  .c-input   .layer-badge { background: #0369a1; color: white; }
+
+  .c-norm    { background: #f5f3ff; border-color: #c4b5fd; }
+  .c-norm    .layer-title { color: #6d28d9; }
+  .c-norm    .layer-badge { background: #6d28d9; color: white; }
+
+  .c-bilstm1 { background: #eff6ff; border-color: #93c5fd; }
+  .c-bilstm1 .layer-title { color: #1d4ed8; }
+  .c-bilstm1 .layer-badge { background: #1d4ed8; color: white; }
+
+  .c-bilstm2 { background: #e0f2fe; border-color: #7dd3fc; }
+  .c-bilstm2 .layer-title { color: #0369a1; }
+  .c-bilstm2 .layer-badge { background: #0369a1; color: white; }
+
+  .c-attn    { background: #fff7ed; border-color: #fdba74; }
+  .c-attn    .layer-title { color: #c2410c; }
+  .c-attn    .layer-badge { background: #c2410c; color: white; }
+
+  .c-dense1  { background: #f0fdf4; border-color: #86efac; }
+  .c-dense1  .layer-title { color: #15803d; }
+  .c-dense1  .layer-badge { background: #15803d; color: white; }
+
+  .c-dense2  { background: #f0fdf4; border-color: #6ee7b7; }
+  .c-dense2  .layer-title { color: #065f46; }
+  .c-dense2  .layer-badge { background: #065f46; color: white; }
+
+  .c-out     { background: #1a1a2e; border-color: #3b82f6; }
+  .c-out     .layer-title { color: #60a5fa; }
+  .c-out     .layer-sub   { color: #94a3b8; }
+  .c-out     .layer-badge { background: #3b82f6; color: white; }
+
+  /* Ok */
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0;
+    width: 100%;
+  }
+  .arrow-line { width: 2px; height: 24px; background: #cbd5e1; }
+  .arrow-head {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #cbd5e1;
+  }
+  .arrow-label {
+    font-size: 10px; color: #94a3b8; margin-top: 2px; text-align: center;
+  }
+
+  /* Yan açıklama notları */
+  .note {
+    min-width: 180px;
+    background: #f8fafc;
+    border-left: 3px solid #e2e8f0;
+    border-radius: 0 8px 8px 0;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #475569;
+    line-height: 1.6;
+    align-self: center;
+  }
+
+  /* BiLSTM iç görseli */
+  .bilstm-inner {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .bilstm-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: white;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1.5px solid #bfdbfe;
+  }
+  .arrow-lr { font-size: 14px; }
+
+  /* Attention head görseli */
+  .attn-heads { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .attn-head {
+    background: white;
+    border: 1.5px solid #fdba74;
+    border-radius: 8px;
+    padding: 3px 10px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #c2410c;
+  }
+
+  /* Özet */
+  .summary-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 32px;
+  }
+  .sum-box {
+    border-radius: 12px;
+    padding: 14px 20px;
+    text-align: center;
+    min-width: 130px;
+  }
+  .sum-box .big { font-size: 22px; font-weight: 800; }
+  .sum-box .sm  { font-size: 11px; margin-top: 3px; }
+  .s1 { background: #eff6ff; } .s1 .big { color: #1d4ed8; } .s1 .sm { color: #1d4ed8; }
+  .s2 { background: #fff7ed; } .s2 .big { color: #c2410c; } .s2 .sm { color: #c2410c; }
+  .s3 { background: #f0fdf4; } .s3 .big { color: #15803d; } .s3 .sm { color: #15803d; }
+  .s4 { background: #1a1a2e; } .s4 .big { color: #60a5fa; } .s4 .sm  { color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<h1>BiLSTM + Self-Attention Mimarisi</h1>
+<p class="sub">Giriş: 60 × 106 — Çıkış: 226 sınıf (TİD kelime)</p>
+
+<div class="arch">
+
+  <!-- GİRİŞ -->
+  <div class="layer">
+    <div class="note">60 video karesi<br>Her kare: 106 değer<br>(el + pose koordinatları)</div>
+    <div class="layer-box c-input">
+      <div class="layer-badge">GİRİŞ</div>
+      <div class="layer-title">Input Layer</div>
+      <div class="layer-sub">Şekil: (batch, 60, 106)<br>60 zaman adımı × 106 özellik</div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+  <!-- LAYER NORM -->
+  <div class="layer">
+    <div class="note">Her özelliği ortalar ve<br>ölçekler → eğitimi hızlandırır</div>
+    <div class="layer-box c-norm">
+      <div class="layer-badge">Normalize</div>
+      <div class="layer-title">LayerNormalization</div>
+      <div class="layer-sub">Girişi normalize eder → kararlı gradyan</div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+  <!-- BiLSTM 1 -->
+  <div class="layer">
+    <div class="note">Hem ileri hem geri okur<br>→ 128×2 = 256 çıkış<br>return_sequences=True</div>
+    <div class="layer-box c-bilstm1">
+      <div class="layer-badge">BiLSTM</div>
+      <div class="layer-title">Bidirectional LSTM — 128 birim</div>
+      <div class="layer-sub">Çıkış: (batch, 60, 256)</div>
+      <div class="bilstm-inner">
+        <div class="bilstm-cell"><span class="arrow-lr">→</span> İleri LSTM 128</div>
+        <div style="font-size:18px; color:#cbd5e1;">+</div>
+        <div class="bilstm-cell"><span class="arrow-lr">←</span> Geri LSTM 128</div>
+        <div style="font-size:13px; color:#94a3b8; margin-left:4px;">Concat → 256</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+  <!-- BiLSTM 2 -->
+  <div class="layer">
+    <div class="note">Daha derin soyutlama<br>→ 64×2 = 128 çıkış<br>return_sequences=True</div>
+    <div class="layer-box c-bilstm2">
+      <div class="layer-badge">BiLSTM</div>
+      <div class="layer-title">Bidirectional LSTM — 64 birim</div>
+      <div class="layer-sub">Çıkış: (batch, 60, 128)</div>
+      <div class="bilstm-inner">
+        <div class="bilstm-cell"><span class="arrow-lr">→</span> İleri LSTM 64</div>
+        <div style="font-size:18px; color:#cbd5e1;">+</div>
+        <div class="bilstm-cell"><span class="arrow-lr">←</span> Geri LSTM 64</div>
+        <div style="font-size:13px; color:#94a3b8; margin-left:4px;">Concat → 128</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+  <!-- SELF-ATTENTION -->
+  <div class="layer">
+    <div class="note">Hangi kare daha önemli?<br>Modele bunu öğretir<br>→ GlobalAveragePooling</div>
+    <div class="layer-box c-attn">
+      <div class="layer-badge">Attention</div>
+      <div class="layer-title">Multi-Head Self-Attention</div>
+      <div class="layer-sub">Her zaman adımı diğerlerine baktıktan sonra önem skoru alır → ağırlıklı ortalama</div>
+      <div class="attn-heads">
+        <div class="attn-head">Head 1</div>
+        <div class="attn-head">Head 2</div>
+        <div class="attn-head">Head 3</div>
+        <div class="attn-head">Head 4</div>
+        <div style="font-size:11px; color:#94a3b8; align-self:center;">→ Concat → GlobalAvgPool</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+  <!-- DENSE 256 -->
+  <div class="layer">
+    <div class="note">ReLU aktivasyon<br>Dropout 0.4 ile<br>aşırı öğrenmeyi önler</div>
+    <div class="layer-box c-dense1">
+      <div class="layer-badge">Dense</div>
+      <div class="layer-title">Dense — 256 nöron + ReLU</div>
+      <div class="layer-sub">Dropout(0.4) → yüksek seviye özellik kombinasyonu</div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+  <!-- DENSE 128 -->
+  <div class="layer">
+    <div class="note">ReLU aktivasyon<br>Dropout 0.3<br>Sınıflandırmaya hazırlık</div>
+    <div class="layer-box c-dense2">
+      <div class="layer-badge">Dense</div>
+      <div class="layer-title">Dense — 128 nöron + ReLU</div>
+      <div class="layer-sub">Dropout(0.3) → boyut azaltma</div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+  <!-- ÇIKIŞ -->
+  <div class="layer">
+    <div class="note" style="background:#1e293b; border-color:#334155; color:#94a3b8;">226 TİD kelimesi<br>Softmax: olasılık dağılımı<br>En yüksek = tahmin</div>
+    <div class="layer-box c-out">
+      <div class="layer-badge">ÇIKIŞ</div>
+      <div class="layer-title">Dense — 226 nöron + Softmax</div>
+      <div class="layer-sub">226 TİD kelimesi için olasılık vektörü<br>argmax → tahmin edilen kelime</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Özet -->
+<div class="summary-row">
+  <div class="sum-box s1"><div class="big">~1.2M</div><div class="sm">parametre</div></div>
+  <div class="sum-box s2"><div class="big">~87%</div><div class="sm">test doğruluğu</div></div>
+  <div class="sum-box s3"><div class="big">226</div><div class="sm">TİD kelimesi</div></div>
+  <div class="sum-box s4"><div class="big">~27ms</div><div class="sm">/ kare (Android)</div></div>
+</div>
+
+<div style="text-align:center; margin-top:20px; font-size:12px; color:#94a3b8;">
+  INT8 quantization → TFLite · XNNPACK CPU delegate · Android real-time
+</div>
+
+</body>
+</html>

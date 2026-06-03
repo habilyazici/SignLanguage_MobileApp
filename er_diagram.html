@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Veritabanı ER Diyagramı</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #ffffff; font-family: 'Segoe UI', sans-serif; padding: 40px 50px; }
+  h1 { text-align: center; font-size: 22px; color: #1a1a2e; margin-bottom: 6px; font-weight: 700; }
+  p.sub { text-align: center; font-size: 13px; color: #666; margin-bottom: 40px; }
+
+  .diagram {
+    position: relative;
+    width: 900px;
+    height: 600px;
+    margin: 0 auto;
+  }
+
+  /* SVG bağlantı çizgileri arkada */
+  .connections { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  /* Tablo kutuları */
+  .table-box {
+    position: absolute;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    min-width: 200px;
+  }
+
+  .table-header {
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .table-rows { background: white; }
+
+  .table-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 12px;
+    gap: 8px;
+  }
+  .table-row:last-child { border-bottom: none; }
+
+  .field-name { font-weight: 600; color: #1e293b; flex: 1; }
+  .field-type { color: #64748b; font-size: 11px; font-family: monospace; }
+
+  .badge-pk {
+    background: #fef3c7; color: #92400e;
+    font-size: 9.5px; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .badge-fk {
+    background: #dbeafe; color: #1d4ed8;
+    font-size: 9.5px; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .badge-uk {
+    background: #f0fdf4; color: #15803d;
+    font-size: 9.5px; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .badge-nn {
+    background: #fdf2f8; color: #9d174d;
+    font-size: 9.5px; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  /* Tablo renkleri */
+  .t-user     .table-header { background: #2563eb; }
+  .t-refresh  .table-header { background: #7c3aed; }
+  .t-history  .table-header { background: #dc2626; }
+  .t-bookmark .table-header { background: #d97706; }
+  .t-dict     .table-header { background: #059669; }
+
+  /* Konumlar */
+  .t-user     { top: 40px;  left: 330px; }
+  .t-refresh  { top: 40px;  left: 620px; }
+  .t-history  { top: 280px; left: 100px; }
+  .t-bookmark { top: 280px; left: 390px; }
+  .t-dict     { top: 280px; left: 640px; }
+
+  /* İlişki etiketleri */
+  .rel-label {
+    position: absolute;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
+  /* Altta legend */
+  .legend {
+    display: flex; gap: 20px; justify-content: center;
+    flex-wrap: wrap; margin-top: 24px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #475569;
+  }
+
+  /* İlişki satırları */
+  .rel-row {
+    display: flex; justify-content: center; gap: 40px;
+    flex-wrap: wrap; margin-top: 20px;
+  }
+  .rel-box {
+    background: #f8fafc; border-radius: 10px;
+    padding: 10px 16px; min-width: 200px;
+    border-left: 4px solid #e2e8f0;
+  }
+  .rel-box.blue  { border-color: #3b82f6; }
+  .rel-box.purple { border-color: #7c3aed; }
+  .rel-box.red   { border-color: #dc2626; }
+  .rel-box.amber { border-color: #d97706; }
+  .rel-box .r-title { font-size: 12.5px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+  .rel-box .r-desc  { font-size: 11.5px; color: #64748b; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1>Veritabanı ER Diyagramı — Hear Me Out</h1>
+<p class="sub">PostgreSQL + Prisma ORM · JWT kimlik doğrulama · 5 tablo</p>
+
+<div class="diagram">
+
+  <!-- SVG bağlantı çizgileri -->
+  <svg class="connections" viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+    <!-- User → RefreshToken -->
+    <line x1="530" y1="100" x2="620" y2="100" stroke="#7c3aed" stroke-width="2" stroke-dasharray="0"/>
+    <polygon points="616,96 624,100 616,104" fill="#7c3aed"/>
+    <text x="565" y="93" font-size="10" fill="#7c3aed" font-family="Segoe UI" text-anchor="middle" font-weight="600">1 : N</text>
+
+    <!-- User → History -->
+    <path d="M 430 185 Q 250 230 300 280" stroke="#dc2626" stroke-width="2" fill="none"/>
+    <polygon points="297,276 304,284 310,277" fill="#dc2626"/>
+    <text x="330" y="233" font-size="10" fill="#dc2626" font-family="Segoe UI" font-weight="600">1 : N</text>
+
+    <!-- User → Bookmark -->
+    <line x1="430" y1="185" x2="490" y2="280" stroke="#d97706" stroke-width="2"/>
+    <polygon points="487,276 494,284 500,277" fill="#d97706"/>
+    <text x="476" y="242" font-size="10" fill="#d97706" font-family="Segoe UI" font-weight="600">1 : N</text>
+  </svg>
+
+  <!-- USER tablosu -->
+  <div class="table-box t-user">
+    <div class="table-header">
+      <span>👤</span> User
+    </div>
+    <div class="table-rows">
+      <div class="table-row"><span class="badge-pk">PK</span><span class="field-name">id</span><span class="field-type">uuid</span></div>
+      <div class="table-row"><span class="badge-uk">UK</span><span class="field-name">email</span><span class="field-type">varchar(255)</span></div>
+      <div class="table-row"><span class="badge-nn">NN</span><span class="field-name">password_hash</span><span class="field-type">varchar</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">display_name</span><span class="field-type">varchar(100)?</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">created_at</span><span class="field-type">timestamp</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">updated_at</span><span class="field-type">timestamp</span></div>
+    </div>
+  </div>
+
+  <!-- REFRESH TOKEN tablosu -->
+  <div class="table-box t-refresh">
+    <div class="table-header">
+      <span>🔑</span> RefreshToken
+    </div>
+    <div class="table-rows">
+      <div class="table-row"><span class="badge-pk">PK</span><span class="field-name">id</span><span class="field-type">uuid</span></div>
+      <div class="table-row"><span class="badge-fk">FK</span><span class="field-name">user_id</span><span class="field-type">uuid → User</span></div>
+      <div class="table-row"><span class="badge-uk">UK</span><span class="field-name">token</span><span class="field-type">varchar (hash)</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">expires_at</span><span class="field-type">timestamp</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">created_at</span><span class="field-type">timestamp</span></div>
+    </div>
+  </div>
+
+  <!-- HISTORY tablosu -->
+  <div class="table-box t-history">
+    <div class="table-header">
+      <span>📋</span> History
+    </div>
+    <div class="table-rows">
+      <div class="table-row"><span class="badge-pk">PK</span><span class="field-name">id</span><span class="field-type">uuid</span></div>
+      <div class="table-row"><span class="badge-fk">FK</span><span class="field-name">user_id</span><span class="field-type">uuid → User</span></div>
+      <div class="table-row"><span class="badge-nn">NN</span><span class="field-name">word</span><span class="field-type">varchar(100)</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">confidence</span><span class="field-type">float (0-1)</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">translated_at</span><span class="field-type">timestamp</span></div>
+    </div>
+  </div>
+
+  <!-- BOOKMARK tablosu -->
+  <div class="table-box t-bookmark">
+    <div class="table-header">
+      <span>🔖</span> Bookmark
+    </div>
+    <div class="table-rows">
+      <div class="table-row"><span class="badge-pk">PK</span><span class="field-name">id</span><span class="field-type">uuid</span></div>
+      <div class="table-row"><span class="badge-fk">FK</span><span class="field-name">user_id</span><span class="field-type">uuid → User</span></div>
+      <div class="table-row"><span class="badge-nn">NN</span><span class="field-name">word</span><span class="field-type">varchar(100)</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">created_at</span><span class="field-type">timestamp</span></div>
+    </div>
+  </div>
+
+  <!-- DICTIONARY tablosu -->
+  <div class="table-box t-dict">
+    <div class="table-header">
+      <span>📖</span> Dictionary
+    </div>
+    <div class="table-rows">
+      <div class="table-row"><span class="badge-pk">PK</span><span class="field-name">id</span><span class="field-type">uuid</span></div>
+      <div class="table-row"><span class="badge-uk">UK</span><span class="field-name">word_tr</span><span class="field-type">varchar(100)</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">word_en</span><span class="field-type">varchar(100)?</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">description</span><span class="field-type">text?</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">video_url</span><span class="field-type">varchar?</span></div>
+      <div class="table-row"><span class="field-name" style="padding-left:4px;"> </span><span class="field-name">category</span><span class="field-type">varchar?</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- İlişki açıklamaları -->
+<div class="rel-row">
+  <div class="rel-box purple">
+    <div class="r-title">User → RefreshToken (1:N)</div>
+    <div class="r-desc">Bir kullanıcının birden fazla cihazda aktif oturumu olabilir. Her refresh token tek bir kullanıcıya aittir.</div>
+  </div>
+  <div class="rel-box red">
+    <div class="r-title">User → History (1:N)</div>
+    <div class="r-desc">Bir kullanıcının sınırsız çeviri geçmişi kaydedilebilir. Her geçmiş kaydı tek bir kullanıcıya aittir.</div>
+  </div>
+  <div class="rel-box amber">
+    <div class="r-title">User → Bookmark (1:N)</div>
+    <div class="r-desc">Bir kullanıcı birden fazla kelimeyi işaretleyebilir. Her yer imi tek bir kullanıcıya aittir.</div>
+  </div>
+  <div class="rel-box blue">
+    <div class="r-title">Dictionary (bağımsız)</div>
+    <div class="r-desc">Sözlük tablosu tüm kullanıcılara açık ortak veri. User ile doğrudan ilişki yok — /dictionary endpoint ile erişilir.</div>
+  </div>
+</div>
+
+<!-- Badge legend -->
+<div class="legend" style="margin-top: 20px;">
+  <div class="legend-item"><span class="badge-pk">PK</span> Primary Key</div>
+  <div class="legend-item"><span class="badge-fk">FK</span> Foreign Key</div>
+  <div class="legend-item"><span class="badge-uk">UK</span> Unique</div>
+  <div class="legend-item"><span class="badge-nn">NN</span> Not Null</div>
+  <div class="legend-item" style="color:#94a3b8; font-size:12px;">? = nullable alan</div>
+</div>
+
+<div style="text-align:center; margin-top:18px; font-size:12px; color:#94a3b8;">
+  PostgreSQL · Prisma ORM · UUID primary keys · JWT: access (15 dk) + refresh (7 gün)
+</div>
+
+</body>
+</html>

@@ -1,1 +1,0 @@
-baya düzenledim sjsjsj

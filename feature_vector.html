@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>106 Boyutlu Özellik Vektörü</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #ffffff; font-family: 'Segoe UI', sans-serif; padding: 40px 50px; }
+  h1 { text-align: center; font-size: 22px; color: #1a1a2e; margin-bottom: 6px; font-weight: 700; }
+  p.sub { text-align: center; font-size: 13px; color: #666; margin-bottom: 40px; }
+
+  .timeline {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.09);
+    max-width: 900px;
+    margin: 0 auto 36px;
+  }
+
+  .segment {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 10px;
+    position: relative;
+    cursor: default;
+  }
+
+  .seg-right  { flex: 42; background: #eff6ff; border-right: 2px solid #bfdbfe; }
+  .seg-left   { flex: 42; background: #f0fdf4; border-right: 2px solid #bbf7d0; }
+  .seg-pose   { flex: 22; background: #fefce8; }
+
+  .seg-label  { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 4px; text-align: center; }
+  .seg-range  { font-size: 22px; font-weight: 800; margin-bottom: 2px; text-align: center; }
+  .seg-desc   { font-size: 11px; color: #64748b; text-align: center; line-height: 1.4; }
+  .seg-count  { font-size: 11px; font-weight: 600; margin-top: 6px; padding: 2px 8px; border-radius: 12px; }
+
+  .seg-right  .seg-range { color: #2563eb; }
+  .seg-left   .seg-range { color: #16a34a; }
+  .seg-pose   .seg-range { color: #ca8a04; }
+
+  .seg-right  .seg-count { background: #dbeafe; color: #1d4ed8; }
+  .seg-left   .seg-count { background: #dcfce7; color: #15803d; }
+  .seg-pose   .seg-count { background: #fef9c3; color: #92400e; }
+
+  /* Blok grid */
+  .blocks-section { max-width: 900px; margin: 0 auto 32px; }
+  .blocks-title { font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 12px; }
+  .blocks-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+  .block {
+    width: 36px; height: 36px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: white;
+    cursor: default;
+    transition: transform 0.15s;
+  }
+  .block:hover { transform: scale(1.2); z-index: 10; }
+  .block.right { background: #3b82f6; }
+  .block.left  { background: #22c55e; }
+  .block.pose  { background: #eab308; color: #1a1a2e; }
+  .block.gap   { background: #f1f5f9; color: #94a3b8; }
+
+  /* Alt bilgi */
+  .info-row { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+  .info-box {
+    border-radius: 12px; padding: 16px 20px; text-align: center; min-width: 140px;
+  }
+  .info-box.blue  { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+  .info-box.green { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+  .info-box.yellow{ background: #fefce8; border: 1.5px solid #fde68a; }
+  .info-box.dark  { background: #1a1a2e; border: 1.5px solid #374151; }
+  .info-box .num  { font-size: 30px; font-weight: 800; }
+  .info-box .lbl  { font-size: 11.5px; margin-top: 3px; }
+  .info-box.blue  .num { color: #2563eb; } .info-box.blue  .lbl { color: #1d4ed8; }
+  .info-box.green .num { color: #16a34a; } .info-box.green .lbl { color: #15803d; }
+  .info-box.yellow .num { color: #ca8a04; } .info-box.yellow .lbl { color: #92400e; }
+  .info-box.dark  .num { color: #60a5fa; } .info-box.dark  .lbl { color: #94a3b8; }
+
+  .detail-table { max-width: 700px; margin: 28px auto 0; border-collapse: collapse; width: 100%; }
+  .detail-table th { background: #f8fafc; font-size: 12px; color: #475569; font-weight: 600; padding: 9px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+  .detail-table td { font-size: 12px; color: #334155; padding: 8px 12px; border-bottom: 1px solid #f1f5f9; }
+  .detail-table tr:hover td { background: #f8fafc; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10.5px; font-weight: 600; }
+  .badge.r { background: #dbeafe; color: #1d4ed8; }
+  .badge.l { background: #dcfce7; color: #15803d; }
+  .badge.p { background: #fef9c3; color: #92400e; }
+</style>
+</head>
+<body>
+
+<h1>60 × 106 Özellik Matrisi Yapısı</h1>
+<p class="sub">Her video → 60 kare × 106 değer = 6.360 sayıdan oluşan 2D matris</p>
+
+<!-- Ana segment çubuğu -->
+<div class="timeline">
+  <div class="segment seg-right">
+    <div class="seg-label">SAĞ EL</div>
+    <div class="seg-range">[0 – 41]</div>
+    <div class="seg-desc">21 landmark × 2 koordinat<br>(x, y) — bilek normalize</div>
+    <div class="seg-count">42 değer</div>
+  </div>
+  <div class="segment seg-left">
+    <div class="seg-label">SOL EL</div>
+    <div class="seg-range">[42 – 83]</div>
+    <div class="seg-desc">21 landmark × 2 koordinat<br>(x, y) — bilek normalize</div>
+    <div class="seg-count">42 değer</div>
+  </div>
+  <div class="segment seg-pose">
+    <div class="seg-label">POSE</div>
+    <div class="seg-range">[84 – 105]</div>
+    <div class="seg-desc">11 nokta × 2<br>burun · göz · kulak<br>omuz · dirsek · bilek</div>
+    <div class="seg-count">22 değer</div>
+  </div>
+</div>
+
+<!-- Blok grid -->
+<div class="blocks-section">
+  <div class="blocks-title">Her karedeki 106 değer — tek satır olarak:</div>
+  <div class="blocks-grid" id="blockGrid"></div>
+</div>
+
+<!-- Özet kutular -->
+<div class="info-row">
+  <div class="info-box blue"><div class="num">42</div><div class="lbl">Sağ El<br>[0–41]</div></div>
+  <div class="info-box green"><div class="num">42</div><div class="lbl">Sol El<br>[42–83]</div></div>
+  <div class="info-box yellow"><div class="num">22</div><div class="lbl">Pose<br>[84–105]</div></div>
+  <div class="info-box dark"><div class="num">106</div><div class="lbl" style="color:#aac;">Toplam / kare</div></div>
+</div>
+
+<!-- Detay tablosu -->
+<table class="detail-table">
+  <thead>
+    <tr>
+      <th>İndeks Aralığı</th>
+      <th>Grup</th>
+      <th>Landmark Noktası</th>
+      <th>Koordinatlar</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>0–1</td><td><span class="badge r">Sağ El</span></td><td>Bilek (0)</td><td>(x₀, y₀)</td></tr>
+    <tr><td>2–9</td><td><span class="badge r">Sağ El</span></td><td>Baş parmak (1–4)</td><td>(x₁,y₁)…(x₄,y₄)</td></tr>
+    <tr><td>10–17</td><td><span class="badge r">Sağ El</span></td><td>İşaret parmağı (5–8)</td><td>(x₅,y₅)…(x₈,y₈)</td></tr>
+    <tr><td>18–25</td><td><span class="badge r">Sağ El</span></td><td>Orta parmak (9–12)</td><td>…</td></tr>
+    <tr><td>26–33</td><td><span class="badge r">Sağ El</span></td><td>Yüzük parmağı (13–16)</td><td>…</td></tr>
+    <tr><td>34–41</td><td><span class="badge r">Sağ El</span></td><td>Serçe parmak (17–20)</td><td>…</td></tr>
+    <tr><td>42–83</td><td><span class="badge l">Sol El</span></td><td>Aynı sıra (0–20)</td><td>(x₀,y₀)…(x₂₀,y₂₀)</td></tr>
+    <tr><td>84–85</td><td><span class="badge p">Pose</span></td><td>Burun</td><td>(x, y)</td></tr>
+    <tr><td>86–87</td><td><span class="badge p">Pose</span></td><td>Sol Göz</td><td>(x, y)</td></tr>
+    <tr><td>88–89</td><td><span class="badge p">Pose</span></td><td>Sağ Göz</td><td>(x, y)</td></tr>
+    <tr><td>90–91</td><td><span class="badge p">Pose</span></td><td>Sol Kulak</td><td>(x, y)</td></tr>
+    <tr><td>92–93</td><td><span class="badge p">Pose</span></td><td>Sağ Kulak</td><td>(x, y)</td></tr>
+    <tr><td>94–95</td><td><span class="badge p">Pose</span></td><td>Sol Omuz</td><td>(x, y)</td></tr>
+    <tr><td>96–97</td><td><span class="badge p">Pose</span></td><td>Sağ Omuz</td><td>(x, y)</td></tr>
+    <tr><td>98–99</td><td><span class="badge p">Pose</span></td><td>Sol Dirsek</td><td>(x, y)</td></tr>
+    <tr><td>100–101</td><td><span class="badge p">Pose</span></td><td>Sağ Dirsek</td><td>(x, y)</td></tr>
+    <tr><td>102–103</td><td><span class="badge p">Pose</span></td><td>Sol Bilek</td><td>(x, y)</td></tr>
+    <tr><td>104–105</td><td><span class="badge p">Pose</span></td><td>Sağ Bilek</td><td>(x, y)</td></tr>
+  </tbody>
+</table>
+
+<script>
+const grid = document.getElementById('blockGrid');
+for (let i = 0; i < 106; i++) {
+  const d = document.createElement('div');
+  d.className = 'block ' + (i < 42 ? 'right' : i < 84 ? 'left' : 'pose');
+  d.title = `İndeks ${i}`;
+  d.textContent = i;
+  grid.appendChild(d);
+}
+</script>
+</body>
+</html>
