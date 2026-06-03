@@ -112,9 +112,9 @@ Long Short-Term Memory. Normal sinir ağları "hafızasız"dır — her girdiyi 
 ### BiLSTM Neden İki Yönlü?
 Normal LSTM sadece ileriye (kare 1'den 60'a) gider. **Bidirectional** LSTM hem ileriye hem geriye (60'tan 1'e) gider. İkisinin çıktısı birleştirilir. Neden? Bazı hareketlerin anlamı hem başlangıca hem sona göre değişir. Geriye gitmek de bağlam sağlar.
 
-**İlk BiLSTM(128):** 128 birim, geniş öğrenme kapasitesi. Ham koordinat dizisinden temel hareket kalıplarını öğrenir.
+**İlk BiLSTM(128):** 128 hücre, her biri bağımsız bir "not defteri". Ham koordinat dizisinden temel hareket kalıplarını öğrenir — "el yukarı gidiyor", "bilek büküldü" gibi düşük seviye bilgi. 128 birim çünkü detaylı bakmak için geniş alan gerekiyor. BiLSTM olduğu için çıkış 256 olur (ileri 128 + geri 128).
 
-**İkinci BiLSTM(64):** 64 birim, daha ince özellikler. İlk katmanın öğrendiklerini soyutlaştırır.
+**İkinci BiLSTM(64):** Artık ham koordinatları değil, birinci katmanın özetlediği bilgiyi alıyor. 64 birim çünkü iş daha rafine — ayrıntıları atmak, önemli olanı tutmak var. "El yukarı + parmaklar açık + bilek düz" → bunları birleştirip üst seviye anlam çıkarıyor. Boyut küçüldükçe gereksiz detaylar atılıyor, model daha iyi genelliyor.
 
 ### Self-Attention Nedir?
 60 karenin hepsi eşit önemli değildir. Bazı kareler işaretin kritik anını gösterir, bazıları geçiş hareketleri. Self-Attention katmanı modelin "hangi karelere daha çok dikkat etmeli" sorusunu kendi kendine öğrenmesini sağlar.
@@ -131,7 +131,27 @@ BiLSTM + Attention çıktısı yüksek boyutlu bir vektör. Dense(256) ve Dense(
 
 ---
 
-## 7. Eğitim Süreci & TFLite — Modeli Eğitmek ve Telefona Taşımak
+## 7. Neden BiLSTM? Transformer Değil mi?
+
+Bu soru sunum sonrası mutlaka gelir.
+
+### Transformer'ın Sorunu: Veri Miktarı
+Transformer mimarileri (BERT, GPT gibi) çok fazla veri ister. AUTSL'de ~28.000 eğitim örneği var. Transformer bu kadar küçük veriyle iyi öğrenemez, overfitting yapar. BiLSTM daha az veriyle çalışabilir.
+
+### BiLSTM'in Avantajları Bu Projede
+- **Küçük veri setinde daha iyi genelleme:** 28K örnek BiLSTM için yeterli, Transformer için az.
+- **Mobil uyumluluk:** ~500K parametre. Transformer tabanlı model bu veri için çok büyük olurdu, telefonda yavaş çalışırdı.
+- **Zaman serisi için tasarlanmış:** LSTM zaten sıralı veri için üretilmiş. Transformer'da pozisyon encoding eklemek gerekir.
+
+### Self-Attention Eklemesi
+BiLSTM'in zayıf noktası: tüm karelere eşit ağırlık veriyor. Bunu çözmek için Self-Attention eklendi — aslında Transformer'ın en faydalı kısmı alındı, ağır kısmı alınmadı. Hybrid yaklaşım: BiLSTM'in veri verimliliği + Attention'ın odaklanma kabiliyeti.
+
+### Kısaca
+"BiLSTM çünkü elimizdeki veri miktarı için en uygun denge buydu — daha az parametre, daha iyi genelleme, mobil uyumlu boyut."
+
+---
+
+## 8. Eğitim Süreci & TFLite — Modeli Eğitmek ve Telefona Taşımak
 
 ### Optimizer: Adam
 Adam (Adaptive Moment Estimation), en yaygın kullanılan sinir ağı optimizeri. Her parametre için ayrı öğrenme hızı tutar ve zamanla adapte eder. lr=0.001 başlangıç değeri makul bir seçim.
@@ -150,7 +170,7 @@ TensorFlow modeli (`best_model_v2.keras`) Python'da çalışır, telefonda deği
 
 ---
 
-## 8. Model Performansı — Sonuçlar Ne Anlama Gelir?
+## 9. Model Performansı — Sonuçlar Ne Anlama Gelir?
 
 ### %87 Doğruluk
 226 kelime içinden doğru kelimeyi tahmin etme oranı %87. Rastgele tahmin %0.44 olurdu (1/226). %87, modelin gerçekten öğrendiğini gösteriyor.
@@ -165,7 +185,67 @@ Model tahminini ne kadar "emin" verirse o kadar iyi. %75 altında emin değilse 
 
 ---
 
-## 9. Backend — API Katmanı
+## 10. Gerçek Zamanlı Tanıma Pipeline'ı — Telefonda Kameradan Kelimeye
+
+Bu bölüm sunum sırasında çok sorulur: "Uygulama nasıl çalışıyor, adım adım anlat?"
+
+### Adım 1 — Kamera Karesi Gelir
+Flutter kamera paketi her kareyi yakalar (hedef 30 FPS). Her kare ham piksel verisi olarak gelir.
+
+### Adım 2 — MediaPipe Çalışır (Paralel)
+İki dedektör **aynı anda** çalışır:
+- HandLandmarker → sağ el 21 nokta, sol el 21 nokta
+- PoseLandmarker → üst vücut 11 nokta
+
+Paralel çalışması önemli — sıralı çalışsaydı gecikme iki katına çıkardı.
+
+### Adım 3 — 106 Boyutlu Vektör Oluşturulur
+Koordinatlar normalize edilir (bilek/burun merkezleme + max-abs ölçekleme), 106 elemanlı bir diziye yerleştirilir. El görünmüyorsa o slot sıfır.
+
+### Adım 4 — Motion Gate (Hareket Kapısı)
+**Önemli optimizasyon:** El hareket etmiyorsa inference hiç çalışmaz. Her karedeki koordinatlar bir öncekiyle karşılaştırılır. Ortalama hareket belirli bir eşiğin altındaysa (varsayılan 0.035) o kare atlanır. Böylece pil korunur, yanlış pozitif azalır.
+
+### Adım 5 — Buffer'a Eklenir
+Gelen kare 60 karelik kayan pencere buffer'ına eklenir. Buffer dolana kadar inference beklenir (minimum 600ms, minimum 4 kare şartı var).
+
+### Adım 6 — TFLite Inference
+Buffer yeterliyse model çalışır. Giriş: 1×60×106 matris. Çıkış: 226 elemanlı olasılık vektörü. En yüksek olasılıklı sınıf alınır. ~27ms sürer.
+
+### Adım 7 — Streak Kontrolü (Kararlılık Filtresi)
+Model tek bir karede doğru sonuç verirse hemen kelime kabul etmiyoruz. Aynı kelime **ard arda 3 kez** (streak) en yüksek olasılıklı çıkmalı. Bu yanlış pozitifleri dramatik şekilde azaltır.
+
+### Adım 8 — Güven Kontrolü
+Streak tamamlansa bile kelime güven skoru eşiği (%75 varsayılan) geçmeli. Geçemezse kabul edilmez.
+
+### Adım 9 — Cooldown Kontrolü
+Aynı kelime tekrar kabul edilmeden önce 1350ms beklenilmeli. "Merhaba merhaba merhaba" gibi spam önlenir.
+
+### Adım 10 — Kelime Ekrana Gelir
+Tüm filtrelerden geçen kelime cümleye eklenir, TTS açıksa seslendirilir, geçmiş tablosuna kaydedilir.
+
+---
+
+## 11. Streak & Motion Gate — Neden Bu Kadar Önemli?
+
+### Gerçek Problem
+Model %87 doğruluk veriyor ama bu "durağan fotoğraf" için geçerli değil — gerçek zamanlı video akışında el sürekli hareket ediyor, geçiş pozisyonlarında model yanlış kelimeler görebiliyor. Bunu çözmezsen ekran sürekli yanlış kelimelerle doluyor.
+
+### Motion Gate'in Katkısı
+Hareket yoksa inference sıfır. Bu iki şey sağlıyor:
+1. **Pil:** Boşta oturulduğunda CPU hiç yüklenmez
+2. **Doğruluk:** El duruyorken model "statik" pozisyonu işaret sanabilirdi, şimdi bu durum filtreleniyor
+
+### Streak'in Katkısı
+3 ardışık inference aynı kelimeyi vermedikçe kabul etmiyoruz. Model geçiş karesinde yanlış bir şey görürse streak bozulur ve sıfırlanır. Gerçek bir işaret yapıldığında ise streak kolayca tamamlanır çünkü işaret 3+ kare boyunca aynı pozisyonda tutulur.
+
+### Sayıların Anlamı
+- inferIntervalMs = 200ms → saniyede 5 inference
+- defaultStableFrames = 3 → onay için minimum 3×200 = 600ms
+- Bu 600ms kullanıcı fark etmez ama yanlış pozitifleri büyük ölçüde keser
+
+---
+
+## 12. Backend — API Katmanı
 
 ### Neden Backend Gerekli?
 Mobil uygulama bazı verileri sunucuda saklamak istiyor: kullanıcı hesabı, çeviri geçmişi, yer imleri, sözlük videoları. Bunlar telefonda saklanamaz — hesap farklı cihazlardan açılabilir, video dosyaları çok büyük.
@@ -188,7 +268,7 @@ JSON Web Token. Kullanıcı giriş yapınca sunucu bir token üretir, telefona g
 
 ---
 
-## 10. PC Sunucu & ngrok — Dağıtım Stratejisi
+## 13. PC Sunucu & ngrok — Dağıtım Stratejisi
 
 ### Neden Bulut Değil?
 AWS, Google Cloud gibi platformlar para öder. Geliştirme ve sunum aşamasında bu gereksiz. Kendi bilgisayarında Express sunucusu çalıştırıp, ngrok ile internete açmak yeterli.
@@ -201,3 +281,54 @@ API URL'si uygulama koduna gömülü değil, `.env` dosyasından okunur. Build s
 
 ### Gerçek Dünya Testi
 ngrok + lokal sunucu sayesinde gerçek Android/iOS cihazda, gerçek veritabanıyla tam entegrasyon testi yapılabildi. Hata anında sunucu loglarına anında bakılabildi, hızlı iterasyon mümkün oldu.
+
+---
+
+## 14. Olası Sorular & Cevaplar
+
+Sunum sonrası gelebilecek sorular ve hazır cevaplar.
+
+---
+
+**S: Neden sadece 226 kelime?**
+C: AUTSL veri seti 226 kelime içeriyor. Daha fazla kelime eklemek için yeni video verisi toplamak ve modeli yeniden eğitmek gerekir. Bu projenin kapsamı dışında. Mevcut 226 kelime günlük hayatta sık kullanılan temel kelimelerden oluşuyor.
+
+---
+
+**S: %87 yeterli mi?**
+C: Kullanıcı bağımsız test için oldukça iyi bir sonuç. Ticari sistemler genellikle %90+ hedefler ama bu akademik çalışmalar için referans alınan AUTSL benchmark'ında state-of-the-art sonuçlara yakın. Gerçek kullanımda streak filtresi sayesinde yanlış pozitifler daha da azalıyor.
+
+---
+
+**S: Uygulama internet olmadan çalışır mı?**
+C: İşaret tanıma (kamera → kelime) tamamen çevrimdışı çalışır. TFLite modeli telefonda. Sadece geçmiş/yer imi kaydetmek ve sözlük videoları için internet gerekiyor.
+
+---
+
+**S: Neden sadece 2D koordinat, derinlik bilgisi yok?**
+C: AUTSL veri seti Kinect ile çekilmiş ama biz sadece RGB kanalını, yani 2D koordinatları kullandık. Çünkü telefon kamerasında derinlik sensörü yok. Model 2D koordinatlarla eğitildi, telefonda da 2D koordinatlar kullanılıyor — tutarlılık korundu.
+
+---
+
+**S: Model her kullanıcıda iyi çalışır mı?**
+C: Kullanıcı bağımsız test bunu gösteriyor: eğitimde görmediği 6 kişide %87 başarı. Ancak işaret diline yeni başlayan biri standart pozisyonlardan sapabilir. Streak ve confidence eşiği kullanıcı tarafından ayarlanabilir.
+
+---
+
+**S: iOS'ta da çalışıyor mu?**
+C: Mimari iOS destekliyor ama şu an sunum Android üzerinden yapılıyor. Flutter cross-platform framework olduğu için iOS build alınabilir.
+
+---
+
+**S: Cümle tanıma yapıyor mu?**
+C: Şu an kelime kelime tanıma yapıyor, cümle seviyesi yok. Kelimeler arka arkaya ekrana ekleniyor, kullanıcı anlamı çıkarıyor. Tam cümle tanıma için çok daha büyük veri seti ve daha karmaşık dil modeli gerekir.
+
+---
+
+**S: Bu model eğitimi ne kadar sürdü?**
+C: GPU'ya bağlı. EarlyStopping ile genellikle 30–50 epoch arasında durdu. Modern GPU'da birkaç saat.
+
+---
+
+**S: Veriler nasıl güvende?**
+C: JWT ile kimlik doğrulama, şifreler hash'leniyor (bcrypt), Sıfır Veri Modu açıksa hiçbir şey sunucuya gönderilmiyor. GDPR/KVKK uyumlu hesap silme mevcut.

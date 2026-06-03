@@ -1,6 +1,16 @@
 # Hear Me Out — Sunum Slayt İçerikleri
 ## Veri Mimarisi · Model Eğitimi · Backend
 
+
+bilinen kelimeler 
+bayram 
+ağaç
+polis
+zor
+bekar
+ben
+
+
 ---
 
 ## Slayt 1 — Veri Seti: AUTSL
@@ -76,7 +86,7 @@ LayerNorm → BiLSTM(128) → BiLSTM(64) → Self-Attention
 
 - BiLSTM: zaman serisinde çift yönlü bağımlılık
 - Self-Attention: kritik karelere odaklanma
-- ~1.2M parametre — mobil için optimize
+- ~500K parametre — mobil için optimize
 
 ---
 
