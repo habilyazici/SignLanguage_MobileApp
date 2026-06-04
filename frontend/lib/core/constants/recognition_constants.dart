@@ -43,7 +43,7 @@ abstract final class RecognitionConstants {
 
   /// İlk inference'ın tetiklenmesi için gereken minimum buffer yaşı (ms).
   /// Çok düşürürsen az frame ile inference çalışır, doğruluk düşer.
-  static const int minWindowMs = 600;
+  static const int minWindowMs = 1200;
 
   /// İnference tetiklenmesi için gereken minimum gerçek frame sayısı.
   static const int minInferenceFrames = 4;
